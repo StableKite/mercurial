@@ -884,6 +884,7 @@ Check we deny its usage on older repository
   $ cd no-internal-phase
   $ cat .hg/requires
   dotencode
+  exp-dirstate-v2 (dirstate-v2 !)
   fncache
   generaldelta
   persistent-nodemap (rust !)
@@ -897,11 +898,11 @@ Check we deny its usage on older repository
   A X
   $ hg --config "phases.new-commit=internal" commit -m "my test internal commit" 2>&1 | grep ProgrammingError
   ** ProgrammingError: this repository does not support the internal phase
-      raise error.ProgrammingError(msg)
+      raise error.ProgrammingError(msg) (no-pyoxidizer !)
   *ProgrammingError: this repository does not support the internal phase (glob)
   $ hg --config "phases.new-commit=archived" commit -m "my test archived commit" 2>&1 | grep ProgrammingError
   ** ProgrammingError: this repository does not support the archived phase
-      raise error.ProgrammingError(msg)
+      raise error.ProgrammingError(msg) (no-pyoxidizer !)
   *ProgrammingError: this repository does not support the archived phase (glob)
 
   $ cd ..
@@ -912,6 +913,7 @@ Check it works fine with repository that supports it.
   $ cd internal-phase
   $ cat .hg/requires
   dotencode
+  exp-dirstate-v2 (dirstate-v2 !)
   fncache
   generaldelta
   internal-phase

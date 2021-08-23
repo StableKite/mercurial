@@ -7,6 +7,7 @@
 
 from __future__ import absolute_import
 
+import binascii
 import codecs
 import collections
 import contextlib
@@ -30,7 +31,6 @@ from .i18n import _
 from .node import (
     bin,
     hex,
-    nullid,
     nullrev,
     short,
 )
@@ -71,6 +71,7 @@ from . import (
     registrar,
     repair,
     repoview,
+    requirements,
     revlog,
     revset,
     revsetlang,
@@ -92,6 +93,7 @@ from . import (
     wireprotoserver,
     wireprotov2peer,
 )
+from .interfaces import repository
 from .utils import (
     cborutil,
     compression,
@@ -104,6 +106,7 @@ from .utils import (
 from .revlogutils import (
     deltas as deltautil,
     nodemap,
+    rewrite,
     sidedata,
 )
 
@@ -794,7 +797,7 @@ def debugdeltachain(ui, repo, file_=None, **opts):
     index = r.index
     start = r.start
     length = r.length
-    generaldelta = r.version & revlog.FLAG_GENERALDELTA
+    generaldelta = r._generaldelta
     withsparseread = getattr(r, '_withsparseread', False)
 
     def revinfo(rev):
@@ -941,6 +944,12 @@ def debugdeltachain(ui, repo, file_=None, **opts):
         ),
         (b'', b'dates', True, _(b'display the saved mtime')),
         (b'', b'datesort', None, _(b'sort by saved mtime')),
+        (
+            b'',
+            b'all',
+            False,
+            _(b'display dirstate-v2 tree nodes that would not exist in v1'),
+        ),
     ],
     _(b'[OPTION]...'),
 )
@@ -953,26 +962,53 @@ def debugstate(ui, repo, **opts):
     datesort = opts.get('datesort')
 
     if datesort:
-        keyfunc = lambda x: (x[1][3], x[0])  # sort by mtime, then by filename
+        keyfunc = lambda x: (
+            x[1].v1_mtime(),
+            x[0],
+        )  # sort by mtime, then by filename
     else:
         keyfunc = None  # sort by filename
-    for file_, ent in sorted(pycompat.iteritems(repo.dirstate), key=keyfunc):
-        if ent[3] == -1:
+    if opts['all']:
+        entries = list(repo.dirstate._map.debug_iter())
+    else:
+        entries = list(pycompat.iteritems(repo.dirstate))
+    entries.sort(key=keyfunc)
+    for file_, ent in entries:
+        if ent.v1_mtime() == -1:
             timestr = b'unset               '
         elif nodates:
             timestr = b'set                 '
         else:
             timestr = time.strftime(
-                "%Y-%m-%d %H:%M:%S ", time.localtime(ent[3])
+                "%Y-%m-%d %H:%M:%S ", time.localtime(ent.v1_mtime())
             )
             timestr = encoding.strtolocal(timestr)
-        if ent[1] & 0o20000:
+        if ent.mode & 0o20000:
             mode = b'lnk'
         else:
-            mode = b'%3o' % (ent[1] & 0o777 & ~util.umask)
-        ui.write(b"%c %s %10d %s%s\n" % (ent[0], mode, ent[2], timestr, file_))
+            mode = b'%3o' % (ent.v1_mode() & 0o777 & ~util.umask)
+        ui.write(
+            b"%c %s %10d %s%s\n"
+            % (ent.v1_state(), mode, ent.v1_size(), timestr, file_)
+        )
     for f in repo.dirstate.copies():
         ui.write(_(b"copy: %s -> %s\n") % (repo.dirstate.copied(f), f))
+
+
+@command(
+    b'debugdirstateignorepatternshash',
+    [],
+    _(b''),
+)
+def debugdirstateignorepatternshash(ui, repo, **opts):
+    """show the hash of ignore patterns stored in dirstate if v2,
+    or nothing for dirstate-v2
+    """
+    if repo.dirstate._use_dirstate_v2:
+        docket = repo.dirstate._map.docket
+        hash_len = 20  # 160 bits for SHA-1
+        hash_bytes = docket.tree_metadata[-hash_len:]
+        ui.write(binascii.hexlify(hash_bytes) + b'\n')
 
 
 @command(
@@ -1417,6 +1453,80 @@ def debugfileset(ui, repo, expr, **opts):
         ui.write(b"%s\n" % f)
 
 
+@command(
+    b"debug-repair-issue6528",
+    [
+        (
+            b'',
+            b'to-report',
+            b'',
+            _(b'build a report of affected revisions to this file'),
+            _(b'FILE'),
+        ),
+        (
+            b'',
+            b'from-report',
+            b'',
+            _(b'repair revisions listed in this report file'),
+            _(b'FILE'),
+        ),
+        (
+            b'',
+            b'paranoid',
+            False,
+            _(b'check that both detection methods do the same thing'),
+        ),
+    ]
+    + cmdutil.dryrunopts,
+)
+def debug_repair_issue6528(ui, repo, **opts):
+    """find affected revisions and repair them. See issue6528 for more details.
+
+    The `--to-report` and `--from-report` flags allow you to cache and reuse the
+    computation of affected revisions for a given repository across clones.
+    The report format is line-based (with empty lines ignored):
+
+    ```
+    <ascii-hex of the affected revision>,... <unencoded filelog index filename>
+    ```
+
+    There can be multiple broken revisions per filelog, they are separated by
+    a comma with no spaces. The only space is between the revision(s) and the
+    filename.
+
+    Note that this does *not* mean that this repairs future affected revisions,
+    that needs a separate fix at the exchange level that hasn't been written yet
+    (as of 5.9rc0).
+
+    There is a `--paranoid` flag to test that the fast implementation is correct
+    by checking it against the slow implementation. Since this matter is quite
+    urgent and testing every edge-case is probably quite costly, we use this
+    method to test on large repositories as a fuzzing method of sorts.
+    """
+    cmdutil.check_incompatible_arguments(
+        opts, 'to_report', ['from_report', 'dry_run']
+    )
+    dry_run = opts.get('dry_run')
+    to_report = opts.get('to_report')
+    from_report = opts.get('from_report')
+    paranoid = opts.get('paranoid')
+    # TODO maybe add filelog pattern and revision pattern parameters to help
+    # narrow down the search for users that know what they're looking for?
+
+    if requirements.REVLOGV1_REQUIREMENT not in repo.requirements:
+        msg = b"can only repair revlogv1 repositories, v2 is not affected"
+        raise error.Abort(_(msg))
+
+    rewrite.repair_issue6528(
+        ui,
+        repo,
+        dry_run=dry_run,
+        to_report=to_report,
+        from_report=from_report,
+        paranoid=paranoid,
+    )
+
+
 @command(b'debugformat', [] + cmdutil.formatteropts)
 def debugformat(ui, repo, **opts):
     """display format information about the current repository
@@ -1667,7 +1777,7 @@ def debugindexdot(ui, repo, file_=None, **opts):
         node = r.node(i)
         pp = r.parents(node)
         ui.write(b"\t%d -> %d\n" % (r.rev(pp[0]), i))
-        if pp[1] != nullid:
+        if pp[1] != repo.nullid:
             ui.write(b"\t%d -> %d\n" % (r.rev(pp[1]), i))
     ui.write(b"}\n")
 
@@ -1675,7 +1785,7 @@ def debugindexdot(ui, repo, file_=None, **opts):
 @command(b'debugindexstats', [])
 def debugindexstats(ui, repo):
     """show stats related to the changelog index"""
-    repo.changelog.shortest(nullid, 1)
+    repo.changelog.shortest(repo.nullid, 1)
     index = repo.changelog.index
     if not util.safehasattr(index, b'stats'):
         raise error.Abort(_(b'debugindexstats only works with native code'))
@@ -2425,7 +2535,7 @@ def debugobsolete(ui, repo, precursor=None, *successors, **opts):
             # arbitrary node identifiers, possibly not present in the
             # local repository.
             n = bin(s)
-            if len(n) != len(nullid):
+            if len(n) != repo.nodeconstants.nodelen:
                 raise TypeError()
             return n
         except TypeError:
@@ -2603,7 +2713,7 @@ def debugpathcomplete(ui, repo, *specs, **opts):
         files, dirs = set(), set()
         adddir, addfile = dirs.add, files.add
         for f, st in pycompat.iteritems(dirstate):
-            if f.startswith(spec) and st[0] in acceptable:
+            if f.startswith(spec) and st.state in acceptable:
                 if fixpaths:
                     f = f.replace(b'/', pycompat.ossep)
                 if fullpaths:
@@ -2749,9 +2859,9 @@ def debugpickmergetool(ui, repo, *pats, **opts):
         changedelete = opts[b'changedelete']
         for path in ctx.walk(m):
             fctx = ctx[path]
-            try:
-                if not ui.debugflag:
-                    ui.pushbuffer(error=True)
+            with ui.silent(
+                error=True
+            ) if not ui.debugflag else util.nullcontextmanager():
                 tool, toolpath = filemerge._picktool(
                     repo,
                     ui,
@@ -2760,9 +2870,6 @@ def debugpickmergetool(ui, repo, *pats, **opts):
                     b'l' in fctx.flags(),
                     changedelete,
                 )
-            finally:
-                if not ui.debugflag:
-                    ui.popbuffer()
             ui.write(b'%s = %s\n' % (path, tool))
 
 
@@ -2973,8 +3080,8 @@ def debugrevlog(ui, repo, file_=None, **opts):
             )
         return 0
 
-    v = r.version
-    format = v & 0xFFFF
+    format = r._format_version
+    v = r._format_flags
     flags = []
     gdelta = False
     if v & revlog.FLAG_INLINE_DATA:
@@ -3328,7 +3435,7 @@ def debugrevlogindex(ui, repo, file_=None, **opts):
             try:
                 pp = r.parents(node)
             except Exception:
-                pp = [nullid, nullid]
+                pp = [repo.nullid, repo.nullid]
             if ui.verbose:
                 ui.write(
                     b"% 6d % 9d % 7d % 7d %s %s %s\n"
@@ -3742,7 +3849,9 @@ def debugbackupbundle(ui, repo, *pats, **opts):
         for n in chlist:
             if limit is not None and count >= limit:
                 break
-            parents = [True for p in other.changelog.parents(n) if p != nullid]
+            parents = [
+                True for p in other.changelog.parents(n) if p != repo.nullid
+            ]
             if opts.get(b"no_merges") and len(parents) == 2:
                 continue
             count += 1
@@ -3787,16 +3896,13 @@ def debugbackupbundle(ui, repo, *pats, **opts):
         if revs:
             revs = [other.lookup(rev) for rev in revs]
 
-        quiet = ui.quiet
-        try:
-            ui.quiet = True
-            other, chlist, cleanupfn = bundlerepo.getremotechanges(
-                ui, repo, other, revs, opts[b"bundle"], opts[b"force"]
-            )
-        except error.LookupError:
-            continue
-        finally:
-            ui.quiet = quiet
+        with ui.silent():
+            try:
+                other, chlist, cleanupfn = bundlerepo.getremotechanges(
+                    ui, repo, other, revs, opts[b"bundle"], opts[b"force"]
+                )
+            except error.LookupError:
+                continue
 
         try:
             if not chlist:
@@ -4046,7 +4152,7 @@ def debuguiprompt(ui, prompt=b''):
 def debugupdatecaches(ui, repo, *pats, **opts):
     """warm all known caches in the repository"""
     with repo.wlock(), repo.lock():
-        repo.updatecaches(full=True)
+        repo.updatecaches(caches=repository.CACHES_ALL)
 
 
 @command(
@@ -4573,16 +4679,15 @@ def debugwireproto(ui, repo, path=None, **opts):
             ui.write(_(b'creating http peer for wire protocol version 2\n'))
             # We go through makepeer() because we need an API descriptor for
             # the peer instance to be useful.
-            with ui.configoverride(
+            maybe_silent = (
+                ui.silent()
+                if opts[b'nologhandshake']
+                else util.nullcontextmanager()
+            )
+            with maybe_silent, ui.configoverride(
                 {(b'experimental', b'httppeer.advertise-v2'): True}
             ):
-                if opts[b'nologhandshake']:
-                    ui.pushbuffer()
-
                 peer = httppeer.makepeer(ui, path, opener=opener)
-
-                if opts[b'nologhandshake']:
-                    ui.popbuffer()
 
             if not isinstance(peer, httppeer.httpv2peer):
                 raise error.Abort(

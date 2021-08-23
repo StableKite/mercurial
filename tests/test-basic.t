@@ -2,9 +2,11 @@ Create a repository:
 
 #if no-extraextensions
   $ hg config
+  chgserver.idletimeout=60
   devel.all-warnings=true
   devel.default-date=0 0
   extensions.fsmonitor= (fsmonitor !)
+  format.exp-dirstate-v2=1 (dirstate-v2 !)
   largefiles.usercache=$TESTTMP/.cache/largefiles
   lfs.usercache=$TESTTMP/.cache/lfs
   ui.slash=True

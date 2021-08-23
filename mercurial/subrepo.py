@@ -21,7 +21,6 @@ from .i18n import _
 from .node import (
     bin,
     hex,
-    nullid,
     short,
 )
 from . import (
@@ -61,7 +60,7 @@ def _expandedabspath(path):
     expandedpath = urlutil.urllocalpath(util.expandpath(path))
     u = urlutil.url(expandedpath)
     if not u.scheme:
-        path = util.normpath(os.path.abspath(u.path))
+        path = util.normpath(util.abspath(u.path))
     return path
 
 
@@ -459,12 +458,14 @@ class hgsubrepo(abstractsubrepo):
         create = allowcreate and not r.wvfs.exists(b'%s/.hg' % path)
         # repository constructor does expand variables in path, which is
         # unsafe since subrepo path might come from untrusted source.
-        if os.path.realpath(util.expandpath(root)) != root:
+        norm_root = os.path.normcase(root)
+        real_root = os.path.normcase(os.path.realpath(util.expandpath(root)))
+        if real_root != norm_root:
             raise error.Abort(
                 _(b'subrepo path contains illegal component: %s') % path
             )
         self._repo = hg.repository(r.baseui, root, create=create)
-        if self._repo.root != root:
+        if os.path.normcase(self._repo.root) != os.path.normcase(root):
             raise error.ProgrammingError(
                 b'failed to reject unsafe subrepo '
                 b'path: %s (expanded to %s)' % (root, self._repo.root)
@@ -686,7 +687,7 @@ class hgsubrepo(abstractsubrepo):
         # we can't fully delete the repository as it may contain
         # local-only history
         self.ui.note(_(b'removing subrepo %s\n') % subrelpath(self))
-        hg.clean(self._repo, nullid, False)
+        hg.clean(self._repo, self._repo.nullid, False)
 
     def _get(self, state):
         source, revision, kind = state

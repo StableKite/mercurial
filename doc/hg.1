@@ -5782,7 +5782,7 @@ With \-\-edit, start an editor on the user\-level config file. With
 \-\-global, edit the system\-wide config file. With \-\-local, edit the
 repository\-level config file.
 .sp
-With \-\-debug, the source (filename and line number) is printed
+With \-\-source, the source (filename and line number) is printed
 for each config item.
 .sp
 See \%\fBhg help config\fP\: for more information about config files.
@@ -5821,6 +5821,10 @@ Options:
 .
 show untrusted configuration options
 .TP
+.B \-\-exp\-all\-known
+.
+show all known config option (EXPERIMENTAL)
+.TP
 .B \-e,  \-\-edit
 .
 edit user config
@@ -5828,6 +5832,10 @@ edit user config
 .B \-l,  \-\-local
 .
 edit repository config
+.TP
+.B \-\-source
+.
+show source of configuration value
 .TP
 .B \-\-shared
 .
@@ -6566,6 +6574,72 @@ defaults to \(aqvi\(aq.
 This is used by Python to find imported modules and may need to be
 set appropriately if this Mercurial is not installed system\-wide.
 .UNINDENT
+.SH SAFELY REWRITING HISTORY (EXPERIMENTAL)
+.sp
+Obsolescence markers make it possible to mark changesets that have been
+deleted or superseded in a new version of the changeset.
+.sp
+Unlike the previous way of handling such changes, by stripping the old
+changesets from the repository, obsolescence markers can be propagated
+between repositories. This allows for a safe and simple way of exchanging
+mutable history and altering it after the fact. Changeset phases are
+respected, such that only draft and secret changesets can be altered (see
+\%\fBhg help phases\fP\: for details).
+.sp
+Obsolescence is tracked using "obsolescence markers", a piece of metadata
+tracking which changesets have been made obsolete, potential successors for
+a given changeset, the moment the changeset was marked as obsolete, and the
+user who performed the rewriting operation. The markers are stored
+separately from standard changeset data can be exchanged without any of the
+precursor changesets, preventing unnecessary exchange of obsolescence data.
+.sp
+The complete set of obsolescence markers describes a history of changeset
+modifications that is orthogonal to the repository history of file
+modifications. This changeset history allows for detection and automatic
+resolution of edge cases arising from multiple users rewriting the same part
+of history concurrently.
+.SS Current feature status
+.sp
+This feature is still in development.
+.SS Instability
+.sp
+Rewriting changesets might introduce instability.
+.sp
+There are two main kinds of instability: orphaning and diverging.
+.sp
+Orphans are changesets left behind when their ancestors are rewritten.
+Divergence has two variants:
+.INDENT 0.0
+.IP \(bu 2
+.
+Content\-divergence occurs when independent rewrites of the same changesets
+lead to different results.
+.IP \(bu 2
+.
+Phase\-divergence occurs when the old (obsolete) version of a changeset
+becomes public.
+.UNINDENT
+.sp
+It is possible to prevent local creation of orphans by using the following config:
+.sp
+.nf
+.ft C
+[experimental]
+evolution.createmarkers = true
+evolution.exchange = true
+.ft P
+.fi
+.sp
+You can also enable that option explicitly:
+.sp
+.nf
+.ft C
+[experimental]
+evolution.createmarkers = true
+evolution.exchange = true
+evolution.allowunstable = true
+.ft P
+.fi
 .SH USING ADDITIONAL FEATURES
 .sp
 Mercurial has the ability to add new features through the use of
@@ -9167,6 +9241,9 @@ for the first operation is selected.
 .sp
 Changesets not found in the specified destination repository, or the
 default push location.
+.sp
+If the location resolve to multiple repositories, the union of all
+outgoing changeset will be used.
 .TP
 .B \fBp1([set])\fP
 .sp
@@ -17297,7 +17374,8 @@ Path to a vcr file. If nonexistent, will record a new vcr transcript, otherwise 
 command to delete untracked files from the working directory (DEPRECATED)
 .sp
 The functionality of this extension has been included in core Mercurial since
-version 5.7. Please use \%\fBhg purge ...\fP\: instead. \%\fBhg purge \-\-confirm\fP\: is now the default, unless the extension is enabled for backward compatibility.
+version 5.7. Please use \%\fBhg purge ...\fP\: instead. \%\fBhg purge \-\-confirm\fP\: is now
+the default, unless the extension is enabled for backward compatibility.
 .SS rebase
 .sp
 command to move sets of revisions to a different ancestor

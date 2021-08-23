@@ -1,10 +1,12 @@
 use crate::config::{Config, ConfigError, ConfigParseError};
 use crate::errors::{HgError, IoErrorContext, IoResultExt};
+use crate::exit_codes;
 use crate::requirements;
 use crate::utils::files::get_path_from_bytes;
 use crate::utils::SliceExt;
 use memmap::{Mmap, MmapOptions};
 use std::collections::HashSet;
+use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 /// A repository on disk
@@ -43,6 +45,22 @@ pub struct Vfs<'a> {
 }
 
 impl Repo {
+    /// tries to find nearest repository root in current working directory or
+    /// its ancestors
+    pub fn find_repo_root() -> Result<PathBuf, RepoError> {
+        let current_directory = crate::utils::current_dir()?;
+        // ancestors() is inclusive: it first yields `current_directory`
+        // as-is.
+        for ancestor in current_directory.ancestors() {
+            if is_dir(ancestor.join(".hg"))? {
+                return Ok(ancestor.to_path_buf());
+            }
+        }
+        return Err(RepoError::NotFound {
+            at: current_directory,
+        });
+    }
+
     /// Find a repository, either at the given path (which must contain a `.hg`
     /// sub-directory) or by searching the current directory and its
     /// ancestors.
@@ -53,12 +71,12 @@ impl Repo {
     /// Having two methods would just move that `if` to almost all callers.
     pub fn find(
         config: &Config,
-        explicit_path: Option<&Path>,
+        explicit_path: Option<PathBuf>,
     ) -> Result<Self, RepoError> {
         if let Some(root) = explicit_path {
-            if root.join(".hg").is_dir() {
+            if is_dir(root.join(".hg"))? {
                 Self::new_at_path(root.to_owned(), config)
-            } else if root.is_file() {
+            } else if is_file(&root)? {
                 Err(HgError::unsupported("bundle repository").into())
             } else {
                 Err(RepoError::NotFound {
@@ -66,17 +84,8 @@ impl Repo {
                 })
             }
         } else {
-            let current_directory = crate::utils::current_dir()?;
-            // ancestors() is inclusive: it first yields `current_directory`
-            // as-is.
-            for ancestor in current_directory.ancestors() {
-                if ancestor.join(".hg").is_dir() {
-                    return Self::new_at_path(ancestor.to_owned(), config);
-                }
-            }
-            Err(RepoError::NotFound {
-                at: current_directory,
-            })
+            let root = Self::find_repo_root()?;
+            Self::new_at_path(root, config)
         }
     }
 
@@ -122,7 +131,7 @@ impl Repo {
             if relative {
                 shared_path = dot_hg.join(shared_path)
             }
-            if !shared_path.is_dir() {
+            if !is_dir(&shared_path)? {
                 return Err(HgError::corrupted(format!(
                     ".hg/sharedpath points to nonexistent directory {}",
                     shared_path.display()
@@ -143,6 +152,7 @@ impl Repo {
                     Some(b"abort") | None => HgError::abort(
                         "abort: share source does not support share-safe requirement\n\
                         (see `hg help config.format.use-share-safe` for more information)",
+                        exit_codes::ABORT,
                     ),
                     _ => HgError::unsupported("share-safe downgrade"),
                 }
@@ -154,6 +164,7 @@ impl Repo {
                             "abort: version mismatch: source uses share-safe \
                             functionality while the current share does not\n\
                             (see `hg help config.format.use-share-safe` for more information)",
+                        exit_codes::ABORT,
                         ),
                         _ => HgError::unsupported("share-safe upgrade"),
                     }
@@ -218,13 +229,25 @@ impl Repo {
         }
     }
 
+    pub fn has_dirstate_v2(&self) -> bool {
+        self.requirements
+            .contains(requirements::DIRSTATE_V2_REQUIREMENT)
+    }
+
     pub fn dirstate_parents(
         &self,
     ) -> Result<crate::dirstate::DirstateParents, HgError> {
         let dirstate = self.hg_vfs().mmap_open("dirstate")?;
-        let parents =
-            crate::dirstate::parsers::parse_dirstate_parents(&dirstate)?;
-        Ok(parents.clone())
+        if dirstate.is_empty() {
+            return Ok(crate::dirstate::DirstateParents::NULL);
+        }
+        let parents = if self.has_dirstate_v2() {
+            crate::dirstate_tree::on_disk::read_docket(&dirstate)?.parents()
+        } else {
+            crate::dirstate::parsers::parse_dirstate_parents(&dirstate)?
+                .clone()
+        };
+        Ok(parents)
     }
 }
 
@@ -263,4 +286,30 @@ impl Vfs<'_> {
         std::fs::rename(&from, &to)
             .with_context(|| IoErrorContext::RenamingFile { from, to })
     }
+}
+
+fn fs_metadata(
+    path: impl AsRef<Path>,
+) -> Result<Option<std::fs::Metadata>, HgError> {
+    let path = path.as_ref();
+    match std::fs::metadata(path) {
+        Ok(meta) => Ok(Some(meta)),
+        Err(error) => match error.kind() {
+            // TODO: when we require a Rust version where `NotADirectory` is
+            // stable, invert this logic and return None for it and `NotFound`
+            // and propagate any other error.
+            ErrorKind::PermissionDenied => Err(error).with_context(|| {
+                IoErrorContext::ReadingMetadata(path.to_owned())
+            }),
+            _ => Ok(None),
+        },
+    }
+}
+
+fn is_dir(path: impl AsRef<Path>) -> Result<bool, HgError> {
+    Ok(fs_metadata(path)?.map_or(false, |meta| meta.is_dir()))
+}
+
+fn is_file(path: impl AsRef<Path>) -> Result<bool, HgError> {
+    Ok(fs_metadata(path)?.map_or(false, |meta| meta.is_file()))
 }

@@ -3,6 +3,7 @@ approximates the behavior of code formatters well enough for our tests.
 
   $ UPPERCASEPY="$TESTTMP/uppercase.py"
   $ cat > $UPPERCASEPY <<EOF
+  > import re
   > import sys
   > from mercurial.utils.procutil import setbinary
   > setbinary(sys.stdin)
@@ -10,16 +11,18 @@ approximates the behavior of code formatters well enough for our tests.
   > stdin = getattr(sys.stdin, 'buffer', sys.stdin)
   > stdout = getattr(sys.stdout, 'buffer', sys.stdout)
   > lines = set()
+  > def format(text):
+  >   return re.sub(b' +', b' ', text.upper())
   > for arg in sys.argv[1:]:
   >   if arg == 'all':
-  >     stdout.write(stdin.read().upper())
+  >     stdout.write(format(stdin.read()))
   >     sys.exit(0)
   >   else:
   >     first, last = arg.split('-')
   >     lines.update(range(int(first), int(last) + 1))
   > for i, line in enumerate(stdin.readlines()):
   >   if i + 1 in lines:
-  >     stdout.write(line.upper())
+  >     stdout.write(format(line))
   >   else:
   >     stdout.write(line)
   > EOF
@@ -266,11 +269,11 @@ nothing happens, even to the working directory.
   $ hg commit -Aqm "hello"
   $ hg phase -r 0 --public
   $ hg fix -r 0
-  abort: cannot fix public changesets
+  abort: cannot fix public changesets: 6470986d2e7b
   (see 'hg help phases' for details)
   [10]
   $ hg fix -r 0 --working-dir
-  abort: cannot fix public changesets
+  abort: cannot fix public changesets: 6470986d2e7b
   (see 'hg help phases' for details)
   [10]
   $ hg cat -r tip hello.whole
@@ -351,6 +354,23 @@ Fixing the working directory should still work if there are no revisions.
   $ hg fix --working-dir
   $ cat something.whole
   SOMETHING
+
+  $ cd ..
+
+Test that the working copy is reported clean if formatting of the parent makes
+it clean.
+  $ hg init wc-already-formatted
+  $ cd wc-already-formatted
+
+  $ printf "hello   world\n" > hello.whole
+  $ hg commit -Am initial
+  adding hello.whole
+  $ hg fix -w *
+  $ hg st
+  M hello.whole
+  $ hg fix -s . *
+  $ hg st
+  $ hg diff
 
   $ cd ..
 
@@ -1174,7 +1194,8 @@ an orphan. We must respect experimental.evolution.allowunstable.
   $ printf "two\n" > foo.whole
   $ hg commit -m "second"
   $ hg --config experimental.evolution.allowunstable=False fix -r '.^'
-  abort: cannot fix changeset with children
+  abort: cannot fix changeset, as that will orphan 1 descendants
+  (see 'hg help evolution.instability')
   [10]
   $ hg fix -r '.^'
   1 new orphan changesets

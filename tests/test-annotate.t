@@ -479,19 +479,19 @@ and its ancestor by overriding "repo._filecommit".
 
   $ cat > ../legacyrepo.py <<EOF
   > from __future__ import absolute_import
-  > from mercurial import commit, error, extensions, node
+  > from mercurial import commit, error, extensions
   > def _filecommit(orig, repo, fctx, manifest1, manifest2,
   >                 linkrev, tr, includecopymeta, ms):
   >     fname = fctx.path()
   >     text = fctx.data()
   >     flog = repo.file(fname)
-  >     fparent1 = manifest1.get(fname, node.nullid)
-  >     fparent2 = manifest2.get(fname, node.nullid)
+  >     fparent1 = manifest1.get(fname, repo.nullid)
+  >     fparent2 = manifest2.get(fname, repo.nullid)
   >     meta = {}
   >     copy = fctx.copysource()
   >     if copy and copy != fname:
   >         raise error.Abort('copying is not supported')
-  >     if fparent2 != node.nullid:
+  >     if fparent2 != repo.nullid:
   >         return flog.add(text, meta, tr, linkrev,
   >                         fparent1, fparent2), 'modified'
   >     raise error.Abort('only merging is supported')
@@ -631,7 +631,7 @@ annotate missing file
   $ rm baz
 
   $ hg annotate -ncr "wdir()" baz
-  abort: $TESTTMP\repo\baz: $ENOENT$ (windows !)
+  abort: $TESTTMP\repo/baz: $ENOENT$ (windows !)
   abort: $ENOENT$: '$TESTTMP/repo/baz' (no-windows !)
   [255]
 
@@ -640,7 +640,7 @@ annotate removed file
   $ hg rm baz
 
   $ hg annotate -ncr "wdir()" baz
-  abort: $TESTTMP\repo\baz: $ENOENT$ (windows !)
+  abort: $TESTTMP\repo/baz: $ENOENT$ (windows !)
   abort: $ENOENT$: '$TESTTMP/repo/baz' (no-windows !)
   [255]
 

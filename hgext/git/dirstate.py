@@ -4,7 +4,7 @@ import contextlib
 import errno
 import os
 
-from mercurial.node import nullid
+from mercurial.node import sha1nodeconstants
 from mercurial import (
     error,
     extensions,
@@ -74,6 +74,8 @@ class gitdirstate(object):
         self._root = os.path.dirname(root)
         self.git = gitrepo
         self._plchangecallbacks = {}
+        # TODO: context.poststatusfixup is bad and uses this attribute
+        self._dirty = False
 
     def p1(self):
         try:
@@ -81,14 +83,16 @@ class gitdirstate(object):
         except pygit2.GitError:
             # Typically happens when peeling HEAD fails, as in an
             # empty repository.
-            return nullid
+            return sha1nodeconstants.nullid
 
     def p2(self):
         # TODO: MERGE_HEAD? something like that, right?
-        return nullid
+        return sha1nodeconstants.nullid
 
-    def setparents(self, p1, p2=nullid):
-        assert p2 == nullid, b'TODO merging support'
+    def setparents(self, p1, p2=None):
+        if p2 is None:
+            p2 = sha1nodeconstants.nullid
+        assert p2 == sha1nodeconstants.nullid, b'TODO merging support'
         self.git.head.set_target(gitutil.togitnode(p1))
 
     @util.propertycache
@@ -102,14 +106,14 @@ class gitdirstate(object):
 
     def parents(self):
         # TODO how on earth do we find p2 if a merge is in flight?
-        return self.p1(), nullid
+        return self.p1(), sha1nodeconstants.nullid
 
     def __iter__(self):
         return (pycompat.fsencode(f.path) for f in self.git.index)
 
     def items(self):
         for ie in self.git.index:
-            yield ie.path, None  # value should be a dirstatetuple
+            yield ie.path, None  # value should be a DirstateItem
 
     # py2,3 compat forward
     iteritems = items
@@ -253,12 +257,12 @@ class gitdirstate(object):
             if match(p):
                 yield p
 
-    def normal(self, f, parentfiledata=None):
+    def set_clean(self, f, parentfiledata=None):
         """Mark a file normal and clean."""
         # TODO: for now we just let libgit2 re-stat the file. We can
         # clearly do better.
 
-    def normallookup(self, f):
+    def set_possibly_dirty(self, f):
         """Mark a file normal, but possibly dirty."""
         # TODO: for now we just let libgit2 re-stat the file. We can
         # clearly do better.
@@ -294,6 +298,16 @@ class gitdirstate(object):
         # TODO: figure out a strategy for saving index backups.
         pass
 
+    def set_tracked(self, f):
+        uf = pycompat.fsdecode(f)
+        if uf in self.git.index:
+            return False
+        index = self.git.index
+        index.read()
+        index.add(uf)
+        index.write()
+        return True
+
     def add(self, f):
         index = self.git.index
         index.read()
@@ -308,6 +322,16 @@ class gitdirstate(object):
             index.remove(fs)
             index.write()
 
+    def set_untracked(self, f):
+        index = self.git.index
+        index.read()
+        fs = pycompat.fsdecode(f)
+        if fs in index:
+            index.remove(fs)
+            index.write()
+            return True
+        return False
+
     def remove(self, f):
         index = self.git.index
         index.read()
@@ -319,6 +343,10 @@ class gitdirstate(object):
         return None
 
     def prefetch_parents(self):
+        # TODO
+        pass
+
+    def update_file(self, *args, **kwargs):
         # TODO
         pass
 

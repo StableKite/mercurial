@@ -97,7 +97,7 @@ aspects of its behavior.</p>
 <div class="section" id="troubleshooting">
 <h1><a class="toc-backref" href="#contents">Troubleshooting</a></h1>
 <p>If you're having problems with your configuration,
-<a class="reference external" href="hg.1.html#config"><tt class="docutils literal">hg config <span class="pre">--debug</span></tt></a> can help you understand what is introducing
+<a class="reference external" href="hg.1.html#config"><tt class="docutils literal">hg config <span class="pre">--source</span></tt></a> can help you understand what is introducing
 a setting into your environment.</p>
 <p>See <a class="reference external" href="hgrc.5.html#syntax"><tt class="docutils literal">hg help config.syntax</tt></a> and <a class="reference external" href="hgrc.5.html#files"><tt class="docutils literal">hg help config.files</tt></a>
 for information about how and where to override things.</p>
@@ -901,10 +901,16 @@ implemented in Rust, so people not using a version of Mercurial compiled
 with the Rust part  might actually suffer some slowdown. For this reason,
 Such version will by default refuse to access such repositories. That
 behavior can be controlled by configuration. Check
-<a class="reference external" href="hgrc.5.html#storage"><tt class="docutils literal">hg help <span class="pre">config.storage.revlog.persistent-nodemap.slowpath</span></tt></a> for details.</p>
+<a class="reference external" href="hgrc.5.html#storage"><tt class="docutils literal">hg help <span class="pre">config.storage.revlog.persistent-nodemap.slow-path</span></tt></a> for details.</p>
 <p>Repository with this on-disk format require Mercurial version 5.4 or above.</p>
-<p class="last">By default this format variant is disabled if fast implementation is not
+<p>By default this format variant is disabled if fast implementation is not
 available and enabled by default if the fast implementation is available.</p>
+<p>To accomodate install of Mercurial without the fast implementation you can
+downgrade your repository. To do so run the following command:</p>
+<dl class="last docutils">
+<dt>$ hg debugupgraderepo </dt>
+<dd>--run --config format.use-persistent-nodemap=False --config storage.revlog.persistent-nodemap.slow-path=allow</dd>
+</dl>
 </dd>
 <dt><tt class="docutils literal"><span class="pre">use-share-safe</span></tt></dt>
 <dd><p class="first">Enforce &quot;safe&quot; behaviors for all &quot;shares&quot; that access this repository.</p>
@@ -1621,6 +1627,11 @@ my_server:pushurl = ssh://example.com/my_path
 the path they point to.</p>
 <p>The following sub-options can be defined:</p>
 <dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">multi-urls</span></tt></dt>
+<dd>A boolean option. When enabled the value of the <cite>[paths]</cite> entry will be
+parsed as a list and the alias will resolve to multiple destination. If some
+of the list entry use the <cite>path://</cite> syntax, the suboption will be inherited
+individually.</dd>
 <dt><tt class="docutils literal">pushurl</tt></dt>
 <dd>The URL to use for push operations. If not defined, the location
 defined by the path's main entry is used.</dd>
@@ -1729,7 +1740,7 @@ most time was spent).</dd>
 <dd>Render profiling data as JSON.</dd>
 </dl>
 </dd>
-<dt><tt class="docutils literal">frequency</tt></dt>
+<dt><tt class="docutils literal">freq</tt></dt>
 <dd>Sampling frequency.  Specific to the <tt class="docutils literal">stat</tt> sampling profiler.
 (default: 1000)</dd>
 <dt><tt class="docutils literal">output</tt></dt>
@@ -1899,6 +1910,19 @@ but the source repository does not.
 <p>Control the strategy Mercurial uses internally to store history. Options in this
 category impact performance and repository size.</p>
 <dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">revlog.issue6528.fix-incoming</span></tt></dt>
+<dd><p class="first">Version 5.8 of Mercurial had a bug leading to altering the parent of file
+revision with copy information (or any other metadata) on exchange. This
+leads to the copy metadata to be overlooked by various internal logic. The
+issue was fixed in Mercurial 5.8.1.
+(See <a class="reference external" href="https://bz.mercurial-scm.org/show_bug.cgi?id=6528">https://bz.mercurial-scm.org/show_bug.cgi?id=6528</a> for details)</p>
+<p>As a result Mercurial is now checking and fixing incoming file revisions to
+make sure there parents are in the right order. This behavior can be
+disabled by setting this option to <cite>no</cite>. This apply to revisions added
+through push, pull, clone and unbundle.</p>
+<p class="last">To fix affected revisions that already exist within the repository, one can
+use <a class="reference external" href="hg.1.html#debug-repair-issue-6528"><tt class="docutils literal">hg <span class="pre">debug-repair-issue-6528</span></tt></a>.</p>
+</dd>
 <dt><tt class="docutils literal"><span class="pre">revlog.optimize-delta-parent-choice</span></tt></dt>
 <dd><p class="first">When storing a merge revision, both parents will be equally considered as
 a possible delta base. This results in better delta selection and improved

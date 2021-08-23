@@ -132,6 +132,7 @@ import subprocess
 
 from mercurial.i18n import _
 from mercurial.node import (
+    nullid,
     nullrev,
     wdirrev,
 )
@@ -147,6 +148,7 @@ from mercurial import (
     mdiff,
     merge,
     mergestate as mergestatemod,
+    obsolete,
     pycompat,
     registrar,
     rewriteutil,
@@ -451,10 +453,7 @@ def checkfixablectx(ui, repo, ctx):
     """Aborts if the revision shouldn't be replaced with a fixed one."""
     if ctx.obsolete():
         # It would be better to actually check if the revision has a successor.
-        allowdivergence = ui.configbool(
-            b'experimental', b'evolution.allowdivergence'
-        )
-        if not allowdivergence:
+        if not obsolete.isenabled(repo, obsolete.allowdivergenceopt):
             raise error.Abort(
                 b'fixing obsolete revision could cause divergence'
             )
@@ -753,16 +752,17 @@ def writeworkingdir(repo, ctx, filedata, replacements):
 
     Directly updates the dirstate for the affected files.
     """
+    assert repo.dirstate.p2() == nullid
+
     for path, data in pycompat.iteritems(filedata):
         fctx = ctx[path]
         fctx.write(data, fctx.flags())
-        if repo.dirstate[path] == b'n':
-            repo.dirstate.normallookup(path)
 
-    oldparentnodes = repo.dirstate.parents()
-    newparentnodes = [replacements.get(n, n) for n in oldparentnodes]
-    if newparentnodes != oldparentnodes:
-        repo.setparents(*newparentnodes)
+    oldp1 = repo.dirstate.p1()
+    newp1 = replacements.get(oldp1, oldp1)
+    if newp1 != oldp1:
+        with repo.dirstate.parentchange():
+            scmutil.movedirstate(repo, repo[newp1])
 
 
 def replacerev(ui, repo, ctx, filedata, replacements):
