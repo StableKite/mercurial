@@ -195,7 +195,7 @@ testpats = [
     [
         (r'^function', "don't use 'function', use old style"),
         (r'^diff.*-\w*N', "don't use 'diff -N'"),
-        (r'\$PWD|\${PWD}', "don't use $PWD, use `pwd`"),
+        (r'\$PWD|\${PWD}', "don't use $PWD, use `pwd`", "no-pwd-check"),
         (r'^([^"\'\n]|("[^"\n]*")|(\'[^\'\n]*\'))*\^', "^ must be quoted"),
         (r'kill (`|\$\()', "don't use kill, use killdaemons.py"),
     ],
@@ -339,11 +339,6 @@ commonpypats = [
         ),
         (r'[^\n]\Z', "no trailing newline"),
         (r'(\S[ \t]+|^[ \t]+)\n', "trailing whitespace"),
-        (
-            r'^\s+(self\.)?[A-Za-z][a-z0-9]+[A-Z]\w* = ',
-            "don't use camelcase in identifiers",
-            r'#.*camelcase-required',
-        ),
         (
             r'^\s*(if|while|def|class|except|try)\s[^[\n]*:\s*[^\\n]#\s]+',
             "linebreak after :",

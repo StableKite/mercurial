@@ -44,6 +44,19 @@ if extra_path is not None:
     # We do not prepend the values because the Mercurial library wants to be in
     # the front of the sys.path to avoid picking up other installations.
     sys.path.extend(extra_path.split(os.pathsep))
+# Add user site to sys.path to load extensions without the full path
+if os.name == 'nt':
+    vi = sys.version_info
+    appdata = os.environ.get('APPDATA')
+    if appdata:
+        sys.path.append(
+            os.path.join(
+                appdata,
+                'Python',
+                'Python%d%d' % (vi[0], vi[1]),
+                'site-packages',
+            )
+        )
 import hgdemandimport;
 hgdemandimport.enable();
 from mercurial import dispatch;
@@ -109,7 +122,7 @@ def make_exe(dist):
     )
 
     # Add Mercurial to resources.
-    exe.add_python_resources(exe.pip_install(["--verbose", ROOT]))
+    exe.add_python_resources(exe.pip_install(["--verbose", "--no-use-pep517", ROOT]))
 
     # On Windows, we install extra packages for convenience.
     if IS_WINDOWS:
@@ -242,7 +255,11 @@ def make_msi(manifest):
         path = "defaultrc/editor.rc",
     )
 
-    wix = WiXInstaller("hg", "%s-%s.msi" % (MSI_NAME, VERSION))
+    wix = WiXInstaller(
+        "hg",
+        "%s-%s-%s.msi" % (MSI_NAME, VERSION, platform),
+        arch = platform,
+    )
 
     # Materialize files in the manifest to the install layout.
     wix.add_install_files(manifest)
