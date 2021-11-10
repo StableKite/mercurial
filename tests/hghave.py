@@ -264,6 +264,13 @@ def has_executablebit():
     return not (new_file_has_exec or exec_flags_cannot_flip)
 
 
+@check("suidbit", "setuid and setgid bit")
+def has_suidbit():
+    if getattr(os, "statvfs", None) is None or getattr(os, "ST_NOSUID") is None:
+        return False
+    return bool(os.statvfs('.').f_flag & os.ST_NOSUID)
+
+
 @check("icasefs", "case insensitive file system")
 def has_icasefs():
     # Stolen from mercurial.util
@@ -611,7 +618,14 @@ def has_pylint():
 def has_clang_format():
     m = matchoutput('clang-format --version', br'clang-format version (\d+)')
     # style changed somewhere between 10.x and 11.x
-    return m and int(m.group(1)) >= 11
+    if m:
+        return int(m.group(1)) >= 11
+    # Assist Googler contributors, they have a centrally-maintained version of
+    # clang-format that is generally very fresh, but unlike most builds (both
+    # official and unofficial), it does *not* include a version number.
+    return matchoutput(
+        'clang-format --version', br'clang-format .*google3-trunk \([0-9a-f]+\)'
+    )
 
 
 @check("jshint", "JSHint static code analysis tool")

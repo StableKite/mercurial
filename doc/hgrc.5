@@ -2179,6 +2179,24 @@ revision by default.
 .sp
 Revsets specifying bookmarks will not result in the bookmark being
 pushed.
+.TP
+.B \fBbookmarks.mode\fP
+.sp
+How bookmark will be dealt during the exchange. It support the following value
+.INDENT 7.0
+.IP \(bu 2
+.
+\fBdefault\fP: the default behavior, local and remote bookmarks are "merged"
+on push/pull.
+.IP \(bu 2
+.
+\fBmirror\fP: when pulling, replace local bookmarks by remote bookmarks. This
+is useful to replicate a repository, or as an optimization.
+.IP \(bu 2
+.
+\fBignore\fP: ignore bookmarks during exchange.
+(This currently only affect pulling)
+.UNINDENT
 .UNINDENT
 .sp
 The following special named paths exist:
