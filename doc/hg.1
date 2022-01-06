@@ -9490,6 +9490,104 @@ hg diff \-r 1.3::1.5
 .ft P
 .fi
 .UNINDENT
+.SH RUST IN MERCURIAL
+.sp
+Mercurial can be augmented with Rust extensions for speeding up certain
+operations.
+.SS Compatibility
+.sp
+Though the Rust extensions are only tested by the project under Linux, users of
+MacOS, FreeBSD and other UNIX\-likes have been using the Rust extensions. Your
+mileage may vary, but by all means do give us feedback or signal your interest
+for better support.
+.sp
+No Rust extensions are available for Windows at this time.
+.SS Features
+.INDENT 0.0
+.TP
+.B The following operations are sped up when using Rust:
+.INDENT 7.0
+.IP \(bu 2
+.
+discovery of differences between repositories (pull/push)
+.IP \(bu 2
+.
+nodemap (see \%\fBhg help config.format.use\-persistent\-nodemap\fP\:)
+.IP \(bu 2
+.
+all commands using the dirstate (status, commit, diff, add, update, etc.)
+.IP \(bu 2
+.
+dirstate\-v2 (see \%\fBhg help config.format.exp\-rc\-dirstate\-v2\fP\:)
+.IP \(bu 2
+.
+iteration over ancestors in a graph
+.UNINDENT
+.UNINDENT
+.sp
+More features are in the works, and improvements on the above listed are still
+in progress. For more experimental work see the "rhg" section.
+.SS Checking for Rust
+.sp
+You may already have the Rust extensions depending on how you install Mercurial.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+$ hg debuginstall | grep \-i rust
+checking Rust extensions (installed)
+checking module policy (rust+c\-allow)
+.UNINDENT
+.UNINDENT
+.sp
+If those lines don\(aqt even exist, you\(aqre using an old version of \fIhg\fP which does
+not have any Rust extensions yet.
+.SS Installing
+.sp
+You will need \fIcargo\fP to be in your \fI$PATH\fP. See the "MSRV" section for which
+version to use.
+.SS Using pip
+.sp
+Users of \fIpip\fP can install the Rust extensions with the following command:
+.INDENT 0.0
+.INDENT 3.5
+.sp
+$ pip install mercurial \-\-global\-option \-\-rust \-\-no\-use\-pep517
+.UNINDENT
+.UNINDENT
+.sp
+\fI\-\-no\-use\-pep517\fP is here to tell \fIpip\fP to preserve backwards compatibility with
+the legacy \fIsetup.py\fP system. Mercurial has not yet migrated its complex setup
+to the new system, so we still need this to add compiled extensions.
+.sp
+This might take a couple of minutes because you\(aqre compiling everything.
+.sp
+See the "Checking for Rust" section to see if the install succeeded.
+.SS From your distribution
+.sp
+Some distributions are shipping Mercurial with Rust extensions enabled and
+pre\-compiled (meaning you won\(aqt have to install \fIcargo\fP), or allow you to
+specify an install flag. Check with your specific distribution for how to do
+that, or ask their team to add support for hg+Rust!
+.SS From source
+.sp
+Please refer to the \fIrust/README.rst\fP file in the Mercurial repository for
+instructions on how to install from source.
+.SS MSRV
+.sp
+The minimum supported Rust version is currently 1.48.0. The project\(aqs policy is
+to follow the version from Debian stable, to make the distributions\(aq job easier.
+.SS rhg
+.sp
+There exists an experimental pure\-Rust version of Mercurial called \fIrhg\fP with a
+fallback mechanism for unsupported invocations. It allows for much faster
+execution of certain commands while adding no discernable overhead for the rest.
+.sp
+The only way of trying it out is by building it from source. Please refer to
+\fIrust/README.rst\fP in the Mercurial repository.
+.SS Contributing
+.sp
+If you would like to help the Rust endeavor, please refer to \fIrust/README.rst\fP
+in the Mercurial repository.
 .SH USING MERCURIAL FROM SCRIPTS AND AUTOMATION
 .sp
 It is common for machines (as opposed to humans) to consume Mercurial.

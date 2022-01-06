@@ -266,7 +266,10 @@ def has_executablebit():
 
 @check("suidbit", "setuid and setgid bit")
 def has_suidbit():
-    if getattr(os, "statvfs", None) is None or getattr(os, "ST_NOSUID") is None:
+    if (
+        getattr(os, "statvfs", None) is None
+        or getattr(os, "ST_NOSUID", None) is None
+    ):
         return False
     return bool(os.statvfs('.').f_flag & os.ST_NOSUID)
 
@@ -1146,3 +1149,8 @@ def has_lzma():
 @check("bash", "bash shell")
 def has_bash():
     return matchoutput("bash -c 'echo hi'", b'^hi$')
+
+
+@check("bigendian", "big-endian CPU")
+def has_bigendian():
+    return sys.byteorder == 'big'

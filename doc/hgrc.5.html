@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.16: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 <title>hgrc</title>
 <meta name="author" content="Bryan O'Sullivan &lt;bos&#64;serpentine.com&gt;" />
 <meta name="organization" content="Mercurial" />
@@ -31,62 +31,62 @@
 <div class="contents htmlonly topic" id="contents">
 <p class="topic-title">Contents</p>
 <ul class="simple">
-<li><a class="reference internal" href="#description" id="id2">Description</a></li>
-<li><a class="reference internal" href="#troubleshooting" id="id3">Troubleshooting</a></li>
-<li><a class="reference internal" href="#structure" id="id4">Structure</a></li>
-<li><a class="reference internal" href="#files" id="id5">Files</a></li>
-<li><a class="reference internal" href="#syntax" id="id6">Syntax</a></li>
-<li><a class="reference internal" href="#sections" id="id7">Sections</a><ul>
-<li><a class="reference internal" href="#alias" id="id8"><tt class="docutils literal">alias</tt></a></li>
-<li><a class="reference internal" href="#annotate" id="id9"><tt class="docutils literal">annotate</tt></a></li>
-<li><a class="reference internal" href="#auth" id="id10"><tt class="docutils literal">auth</tt></a></li>
-<li><a class="reference internal" href="#cmdserver" id="id11"><tt class="docutils literal">cmdserver</tt></a></li>
-<li><a class="reference internal" href="#color" id="id12"><tt class="docutils literal">color</tt></a></li>
-<li><a class="reference internal" href="#commands" id="id13"><tt class="docutils literal">commands</tt></a></li>
-<li><a class="reference internal" href="#committemplate" id="id14"><tt class="docutils literal">committemplate</tt></a></li>
-<li><a class="reference internal" href="#decode-encode" id="id15"><tt class="docutils literal">decode/encode</tt></a></li>
-<li><a class="reference internal" href="#defaults" id="id16"><tt class="docutils literal">defaults</tt></a></li>
-<li><a class="reference internal" href="#diff" id="id17"><tt class="docutils literal">diff</tt></a></li>
-<li><a class="reference internal" href="#email" id="id18"><tt class="docutils literal">email</tt></a></li>
-<li><a class="reference internal" href="#extensions" id="id19"><tt class="docutils literal">extensions</tt></a></li>
-<li><a class="reference internal" href="#format" id="id20"><tt class="docutils literal">format</tt></a></li>
-<li><a class="reference internal" href="#graph" id="id21"><tt class="docutils literal">graph</tt></a></li>
-<li><a class="reference internal" href="#hooks" id="id22"><tt class="docutils literal">hooks</tt></a></li>
-<li><a class="reference internal" href="#hostfingerprints" id="id23"><tt class="docutils literal">hostfingerprints</tt></a></li>
-<li><a class="reference internal" href="#hostsecurity" id="id24"><tt class="docutils literal">hostsecurity</tt></a></li>
-<li><a class="reference internal" href="#http-proxy" id="id25"><tt class="docutils literal">http_proxy</tt></a></li>
-<li><a class="reference internal" href="#http" id="id26"><tt class="docutils literal">http</tt></a></li>
-<li><a class="reference internal" href="#merge" id="id27"><tt class="docutils literal">merge</tt></a></li>
-<li><a class="reference internal" href="#merge-patterns" id="id28"><tt class="docutils literal"><span class="pre">merge-patterns</span></tt></a></li>
-<li><a class="reference internal" href="#merge-tools" id="id29"><tt class="docutils literal"><span class="pre">merge-tools</span></tt></a></li>
-<li><a class="reference internal" href="#pager" id="id30"><tt class="docutils literal">pager</tt></a></li>
-<li><a class="reference internal" href="#patch" id="id31"><tt class="docutils literal">patch</tt></a></li>
-<li><a class="reference internal" href="#paths" id="id32"><tt class="docutils literal">paths</tt></a></li>
-<li><a class="reference internal" href="#phases" id="id33"><tt class="docutils literal">phases</tt></a></li>
-<li><a class="reference internal" href="#profiling" id="id34"><tt class="docutils literal">profiling</tt></a></li>
-<li><a class="reference internal" href="#progress" id="id35"><tt class="docutils literal">progress</tt></a></li>
-<li><a class="reference internal" href="#rebase" id="id36"><tt class="docutils literal">rebase</tt></a></li>
-<li><a class="reference internal" href="#revsetalias" id="id37"><tt class="docutils literal">revsetalias</tt></a></li>
-<li><a class="reference internal" href="#rewrite" id="id38"><tt class="docutils literal">rewrite</tt></a></li>
-<li><a class="reference internal" href="#share" id="id39"><tt class="docutils literal">share</tt></a></li>
-<li><a class="reference internal" href="#storage" id="id40"><tt class="docutils literal">storage</tt></a></li>
-<li><a class="reference internal" href="#server" id="id41"><tt class="docutils literal">server</tt></a></li>
-<li><a class="reference internal" href="#smtp" id="id42"><tt class="docutils literal">smtp</tt></a></li>
-<li><a class="reference internal" href="#subpaths" id="id43"><tt class="docutils literal">subpaths</tt></a></li>
-<li><a class="reference internal" href="#subrepos" id="id44"><tt class="docutils literal">subrepos</tt></a></li>
-<li><a class="reference internal" href="#templatealias" id="id45"><tt class="docutils literal">templatealias</tt></a></li>
-<li><a class="reference internal" href="#templates" id="id46"><tt class="docutils literal">templates</tt></a></li>
-<li><a class="reference internal" href="#trusted" id="id47"><tt class="docutils literal">trusted</tt></a></li>
-<li><a class="reference internal" href="#ui" id="id48"><tt class="docutils literal">ui</tt></a></li>
-<li><a class="reference internal" href="#command-templates" id="id49"><tt class="docutils literal"><span class="pre">command-templates</span></tt></a></li>
-<li><a class="reference internal" href="#web" id="id50"><tt class="docutils literal">web</tt></a></li>
-<li><a class="reference internal" href="#websub" id="id51"><tt class="docutils literal">websub</tt></a></li>
-<li><a class="reference internal" href="#worker" id="id52"><tt class="docutils literal">worker</tt></a></li>
+<li><a class="reference internal" href="#description" id="toc-entry-1">Description</a></li>
+<li><a class="reference internal" href="#troubleshooting" id="toc-entry-2">Troubleshooting</a></li>
+<li><a class="reference internal" href="#structure" id="toc-entry-3">Structure</a></li>
+<li><a class="reference internal" href="#files" id="toc-entry-4">Files</a></li>
+<li><a class="reference internal" href="#syntax" id="toc-entry-5">Syntax</a></li>
+<li><a class="reference internal" href="#sections" id="toc-entry-6">Sections</a><ul>
+<li><a class="reference internal" href="#alias" id="toc-entry-7"><tt class="docutils literal">alias</tt></a></li>
+<li><a class="reference internal" href="#annotate" id="toc-entry-8"><tt class="docutils literal">annotate</tt></a></li>
+<li><a class="reference internal" href="#auth" id="toc-entry-9"><tt class="docutils literal">auth</tt></a></li>
+<li><a class="reference internal" href="#cmdserver" id="toc-entry-10"><tt class="docutils literal">cmdserver</tt></a></li>
+<li><a class="reference internal" href="#color" id="toc-entry-11"><tt class="docutils literal">color</tt></a></li>
+<li><a class="reference internal" href="#commands" id="toc-entry-12"><tt class="docutils literal">commands</tt></a></li>
+<li><a class="reference internal" href="#committemplate" id="toc-entry-13"><tt class="docutils literal">committemplate</tt></a></li>
+<li><a class="reference internal" href="#decode-encode" id="toc-entry-14"><tt class="docutils literal">decode/encode</tt></a></li>
+<li><a class="reference internal" href="#defaults" id="toc-entry-15"><tt class="docutils literal">defaults</tt></a></li>
+<li><a class="reference internal" href="#diff" id="toc-entry-16"><tt class="docutils literal">diff</tt></a></li>
+<li><a class="reference internal" href="#email" id="toc-entry-17"><tt class="docutils literal">email</tt></a></li>
+<li><a class="reference internal" href="#extensions" id="toc-entry-18"><tt class="docutils literal">extensions</tt></a></li>
+<li><a class="reference internal" href="#format" id="toc-entry-19"><tt class="docutils literal">format</tt></a></li>
+<li><a class="reference internal" href="#graph" id="toc-entry-20"><tt class="docutils literal">graph</tt></a></li>
+<li><a class="reference internal" href="#hooks" id="toc-entry-21"><tt class="docutils literal">hooks</tt></a></li>
+<li><a class="reference internal" href="#hostfingerprints" id="toc-entry-22"><tt class="docutils literal">hostfingerprints</tt></a></li>
+<li><a class="reference internal" href="#hostsecurity" id="toc-entry-23"><tt class="docutils literal">hostsecurity</tt></a></li>
+<li><a class="reference internal" href="#http-proxy" id="toc-entry-24"><tt class="docutils literal">http_proxy</tt></a></li>
+<li><a class="reference internal" href="#http" id="toc-entry-25"><tt class="docutils literal">http</tt></a></li>
+<li><a class="reference internal" href="#merge" id="toc-entry-26"><tt class="docutils literal">merge</tt></a></li>
+<li><a class="reference internal" href="#merge-patterns" id="toc-entry-27"><tt class="docutils literal"><span class="pre">merge-patterns</span></tt></a></li>
+<li><a class="reference internal" href="#merge-tools" id="toc-entry-28"><tt class="docutils literal"><span class="pre">merge-tools</span></tt></a></li>
+<li><a class="reference internal" href="#pager" id="toc-entry-29"><tt class="docutils literal">pager</tt></a></li>
+<li><a class="reference internal" href="#patch" id="toc-entry-30"><tt class="docutils literal">patch</tt></a></li>
+<li><a class="reference internal" href="#paths" id="toc-entry-31"><tt class="docutils literal">paths</tt></a></li>
+<li><a class="reference internal" href="#phases" id="toc-entry-32"><tt class="docutils literal">phases</tt></a></li>
+<li><a class="reference internal" href="#profiling" id="toc-entry-33"><tt class="docutils literal">profiling</tt></a></li>
+<li><a class="reference internal" href="#progress" id="toc-entry-34"><tt class="docutils literal">progress</tt></a></li>
+<li><a class="reference internal" href="#rebase" id="toc-entry-35"><tt class="docutils literal">rebase</tt></a></li>
+<li><a class="reference internal" href="#revsetalias" id="toc-entry-36"><tt class="docutils literal">revsetalias</tt></a></li>
+<li><a class="reference internal" href="#rewrite" id="toc-entry-37"><tt class="docutils literal">rewrite</tt></a></li>
+<li><a class="reference internal" href="#share" id="toc-entry-38"><tt class="docutils literal">share</tt></a></li>
+<li><a class="reference internal" href="#storage" id="toc-entry-39"><tt class="docutils literal">storage</tt></a></li>
+<li><a class="reference internal" href="#server" id="toc-entry-40"><tt class="docutils literal">server</tt></a></li>
+<li><a class="reference internal" href="#smtp" id="toc-entry-41"><tt class="docutils literal">smtp</tt></a></li>
+<li><a class="reference internal" href="#subpaths" id="toc-entry-42"><tt class="docutils literal">subpaths</tt></a></li>
+<li><a class="reference internal" href="#subrepos" id="toc-entry-43"><tt class="docutils literal">subrepos</tt></a></li>
+<li><a class="reference internal" href="#templatealias" id="toc-entry-44"><tt class="docutils literal">templatealias</tt></a></li>
+<li><a class="reference internal" href="#templates" id="toc-entry-45"><tt class="docutils literal">templates</tt></a></li>
+<li><a class="reference internal" href="#trusted" id="toc-entry-46"><tt class="docutils literal">trusted</tt></a></li>
+<li><a class="reference internal" href="#ui" id="toc-entry-47"><tt class="docutils literal">ui</tt></a></li>
+<li><a class="reference internal" href="#command-templates" id="toc-entry-48"><tt class="docutils literal"><span class="pre">command-templates</span></tt></a></li>
+<li><a class="reference internal" href="#web" id="toc-entry-49"><tt class="docutils literal">web</tt></a></li>
+<li><a class="reference internal" href="#websub" id="toc-entry-50"><tt class="docutils literal">websub</tt></a></li>
+<li><a class="reference internal" href="#worker" id="toc-entry-51"><tt class="docutils literal">worker</tt></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#author" id="id53">Author</a></li>
-<li><a class="reference internal" href="#see-also" id="id54">See Also</a></li>
-<li><a class="reference internal" href="#copying" id="id55">Copying</a></li>
+<li><a class="reference internal" href="#author" id="toc-entry-52">Author</a></li>
+<li><a class="reference internal" href="#see-also" id="toc-entry-53">See Also</a></li>
+<li><a class="reference internal" href="#copying" id="toc-entry-54">Copying</a></li>
 </ul>
 </div>
 <div class="section" id="description">
@@ -889,24 +889,47 @@ reserved names, e.g. &quot;nul&quot;.</p>
 <p>Repositories with this on-disk format require Mercurial version 1.1.</p>
 <p class="last">Enabled by default.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">exp-rc-dirstate-v2</span></tt></dt>
+<dd><p class="first">Enable or disable the experimental &quot;dirstate-v2&quot; feature. The dirstate
+functionality is shared by all commands interacting with the working copy.
+The new version is more robust, faster and stores more information.</p>
+<p>The performance-improving version of this feature is currently only
+implemented in Rust (see <a class="reference external" href="hg.1.html#rust"><tt class="docutils literal">hg help rust</tt></a>), so people not using a version of
+Mercurial compiled with the Rust parts might actually suffer some slowdown.
+For this reason, such versions will by default refuse to access repositories
+with &quot;dirstate-v2&quot; enabled.</p>
+<p>This behavior can be adjusted via configuration: check
+<a class="reference external" href="hgrc.5.html#storage"><tt class="docutils literal">hg help <span class="pre">config.storage.dirstate-v2.slow-path</span></tt></a> for details.</p>
+<p>Repositories with this on-disk format require Mercurial 6.0 or above.</p>
+<p>By default this format variant is disabled if the fast implementation is not
+available, and enabled by default if the fast implementation is available.</p>
+<p>To accomodate installations of Mercurial without the fast implementation,
+you can downgrade your repository. To do so run the following command:</p>
+<dl class="docutils">
+<dt>$ hg debugupgraderepo </dt>
+<dd>--run --config format.exp-rc-dirstate-v2=False --config storage.dirstate-v2.slow-path=allow</dd>
+</dl>
+<p class="last">For a more comprehensive guide, see <a class="reference external" href="hg.1.html#internals.dirstate-v2"><tt class="docutils literal">hg help <span class="pre">internals.dirstate-v2</span></tt></a>.</p>
+</dd>
 <dt><tt class="docutils literal"><span class="pre">use-persistent-nodemap</span></tt></dt>
 <dd><p class="first">Enable or disable the &quot;persistent-nodemap&quot; feature which improves
-performance if the rust extensions are available.</p>
-<p>The &quot;persistence-nodemap&quot; persist the &quot;node -&gt; rev&quot; on disk removing the
+performance if the Rust extensions are available.</p>
+<p>The &quot;persistent-nodemap&quot; persist the &quot;node -&gt; rev&quot; on disk removing the
 need to dynamically build that mapping for each Mercurial invocation. This
-significantly reduce the startup cost of various local and server-side
-operation for larger repository.</p>
-<p>The performance improving version of this feature is currently only
-implemented in Rust, so people not using a version of Mercurial compiled
-with the Rust part  might actually suffer some slowdown. For this reason,
-Such version will by default refuse to access such repositories. That
-behavior can be controlled by configuration. Check
+significantly reduces the startup cost of various local and server-side
+operation for larger repositories.</p>
+<p>The performance-improving version of this feature is currently only
+implemented in Rust (see <a class="reference external" href="hg.1.html#rust"><tt class="docutils literal">hg help rust</tt></a>), so people not using a version of
+Mercurial compiled with the Rust parts might actually suffer some slowdown.
+For this reason, such versions will by default refuse to access repositories
+with &quot;persistent-nodemap&quot;.</p>
+<p>This behavior can be adjusted via configuration: check
 <a class="reference external" href="hgrc.5.html#storage"><tt class="docutils literal">hg help <span class="pre">config.storage.revlog.persistent-nodemap.slow-path</span></tt></a> for details.</p>
-<p>Repository with this on-disk format require Mercurial version 5.4 or above.</p>
-<p>By default this format variant is disabled if fast implementation is not
-available and enabled by default if the fast implementation is available.</p>
-<p>To accomodate install of Mercurial without the fast implementation you can
-downgrade your repository. To do so run the following command:</p>
+<p>Repositories with this on-disk format require Mercurial 5.4 or above.</p>
+<p>By default this format variant is disabled if the fast implementation is not
+available, and enabled by default if the fast implementation is available.</p>
+<p>To accomodate installations of Mercurial without the fast implementation,
+you can downgrade your repository. To do so run the following command:</p>
 <dl class="last docutils">
 <dt>$ hg debugupgraderepo </dt>
 <dd>--run --config format.use-persistent-nodemap=False --config storage.revlog.persistent-nodemap.slow-path=allow</dd>
