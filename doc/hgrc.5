@@ -1180,7 +1180,7 @@ Repositories with this on\-disk format require Mercurial version 1.1.
 .sp
 Enabled by default.
 .TP
-.B \fBexp\-rc\-dirstate\-v2\fP
+.B \fBuse\-dirstate\-v2\fP
 .sp
 Enable or disable the experimental "dirstate\-v2" feature. The dirstate
 functionality is shared by all commands interacting with the working copy.
@@ -1206,7 +1206,7 @@ you can downgrade your repository. To do so run the following command:
 .TP
 .B $ hg debugupgraderepo 
 .
-\-\-run \-\-config format.exp\-rc\-dirstate\-v2=False \-\-config storage.dirstate\-v2.slow\-path=allow
+\-\-run \-\-config format.use\-dirstate\-v2=False \-\-config storage.dirstate\-v2.slow\-path=allow
 .UNINDENT
 .sp
 For a more comprehensive guide, see \%\fBhg help internals.dirstate\-v2\fP\:.

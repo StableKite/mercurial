@@ -889,7 +889,7 @@ reserved names, e.g. &quot;nul&quot;.</p>
 <p>Repositories with this on-disk format require Mercurial version 1.1.</p>
 <p class="last">Enabled by default.</p>
 </dd>
-<dt><tt class="docutils literal"><span class="pre">exp-rc-dirstate-v2</span></tt></dt>
+<dt><tt class="docutils literal"><span class="pre">use-dirstate-v2</span></tt></dt>
 <dd><p class="first">Enable or disable the experimental &quot;dirstate-v2&quot; feature. The dirstate
 functionality is shared by all commands interacting with the working copy.
 The new version is more robust, faster and stores more information.</p>
@@ -907,7 +907,7 @@ available, and enabled by default if the fast implementation is available.</p>
 you can downgrade your repository. To do so run the following command:</p>
 <dl class="docutils">
 <dt>$ hg debugupgraderepo </dt>
-<dd>--run --config format.exp-rc-dirstate-v2=False --config storage.dirstate-v2.slow-path=allow</dd>
+<dd>--run --config format.use-dirstate-v2=False --config storage.dirstate-v2.slow-path=allow</dd>
 </dl>
 <p class="last">For a more comprehensive guide, see <a class="reference external" href="hg.1.html#internals.dirstate-v2"><tt class="docutils literal">hg help <span class="pre">internals.dirstate-v2</span></tt></a>.</p>
 </dd>

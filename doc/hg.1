@@ -9503,10 +9503,11 @@ for better support.
 .sp
 No Rust extensions are available for Windows at this time.
 .SS Features
+.sp
+The following operations are sped up when using Rust:
 .INDENT 0.0
-.TP
-.B The following operations are sped up when using Rust:
-.INDENT 7.0
+.INDENT 3.5
+.INDENT 0.0
 .IP \(bu 2
 .
 discovery of differences between repositories (pull/push)
@@ -9518,10 +9519,11 @@ nodemap (see \%\fBhg help config.format.use\-persistent\-nodemap\fP\:)
 all commands using the dirstate (status, commit, diff, add, update, etc.)
 .IP \(bu 2
 .
-dirstate\-v2 (see \%\fBhg help config.format.exp\-rc\-dirstate\-v2\fP\:)
+dirstate\-v2 (see \%\fBhg help config.format.use\-dirstate\-v2\fP\:)
 .IP \(bu 2
 .
 iteration over ancestors in a graph
+.UNINDENT
 .UNINDENT
 .UNINDENT
 .sp
