@@ -155,10 +155,10 @@ contrib/packaging/debian/copyright
 contrib/packaging/debian/default-tools.rc
 contrib/packaging/debian/hgkpath.rc
 contrib/packaging/debian/rules
-contrib/packaging/docker/centos7
-contrib/packaging/docker/centos8
 contrib/packaging/docker/debian.template
 contrib/packaging/docker/fedora.template
+contrib/packaging/docker/rhel7
+contrib/packaging/docker/rhel8
 contrib/packaging/docker/ubuntu.template
 contrib/packaging/hgpackaging/__init__.py
 contrib/packaging/hgpackaging/cli.py
@@ -550,7 +550,6 @@ mercurial/dummycert.pem
 mercurial/encoding.py
 mercurial/error.py
 mercurial/exchange.py
-mercurial/exchangev2.py
 mercurial/exewrapper.c
 mercurial/extensions.py
 mercurial/exthelper.py
@@ -663,8 +662,6 @@ mercurial/wireprotoserver.py
 mercurial/wireprototypes.py
 mercurial/wireprotov1peer.py
 mercurial/wireprotov1server.py
-mercurial/wireprotov2peer.py
-mercurial/wireprotov2server.py
 mercurial/worker.py
 mercurial.egg-info/PKG-INFO
 mercurial.egg-info/SOURCES.txt
@@ -1047,6 +1044,7 @@ relnotes/5.7
 relnotes/5.8
 relnotes/5.9
 relnotes/6.0
+relnotes/6.1
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
@@ -1080,6 +1078,7 @@ rust/hg-core/src/errors.rs
 rust/hg-core/src/exit_codes.rs
 rust/hg-core/src/filepatterns.rs
 rust/hg-core/src/lib.rs
+rust/hg-core/src/lock.rs
 rust/hg-core/src/logging.rs
 rust/hg-core/src/matchers.rs
 rust/hg-core/src/repo.rs
@@ -1151,12 +1150,14 @@ rust/hgcli/src/main.rs
 rust/rhg/Cargo.toml
 rust/rhg/README.md
 rust/rhg/src/blackbox.rs
+rust/rhg/src/color.rs
 rust/rhg/src/error.rs
 rust/rhg/src/main.rs
 rust/rhg/src/ui.rs
 rust/rhg/src/commands/cat.rs
 rust/rhg/src/commands/config.rs
 rust/rhg/src/commands/debugdata.rs
+rust/rhg/src/commands/debugignorerhg.rs
 rust/rhg/src/commands/debugrequirements.rs
 rust/rhg/src/commands/files.rs
 rust/rhg/src/commands/root.rs
@@ -1165,7 +1166,6 @@ rust/rhg/src/utils/path_utils.rs
 tests/.balto.toml
 tests/README
 tests/autodiff.py
-tests/badserverext.py
 tests/basic_test_result.py
 tests/binfile.bin
 tests/blackbox-readonly-dispatch.py
@@ -1329,6 +1329,7 @@ tests/test-churn.t
 tests/test-clone-cgi.t
 tests/test-clone-pull-corruption.t
 tests/test-clone-r.t
+tests/test-clone-stream-format.t
 tests/test-clone-stream.t
 tests/test-clone-update-order.t
 tests/test-clone.t
@@ -1607,8 +1608,6 @@ tests/test-hooklib-changeset_published.t
 tests/test-hooklib-enforce_draft_commits.t
 tests/test-hooklib-reject_merge_commits.t
 tests/test-hooklib-reject_new_heads.t
-tests/test-http-api-httpv2.t
-tests/test-http-api.t
 tests/test-http-bad-server.t
 tests/test-http-branchmap.t
 tests/test-http-bundle1.t
@@ -1778,6 +1777,7 @@ tests/test-narrow-debugrebuilddirstate.t
 tests/test-narrow-exchange-merges.t
 tests/test-narrow-exchange.t
 tests/test-narrow-expanddirstate.t
+tests/test-narrow-merge-outside.t
 tests/test-narrow-merge.t
 tests/test-narrow-patch.t
 tests/test-narrow-patterns.t
@@ -1889,6 +1889,7 @@ tests/test-push.t
 tests/test-pushvars.t
 tests/test-qrecord.t
 tests/test-racy-mutations.t
+tests/test-rank.t
 tests/test-rebase-abort.t
 tests/test-rebase-backup.t
 tests/test-rebase-base-flag.t
@@ -1993,6 +1994,8 @@ tests/test-revset-legacy-lookup.t
 tests/test-revset-outgoing.t
 tests/test-revset.t
 tests/test-revset2.t
+tests/test-rhg-no-generaldelta.t
+tests/test-rhg-sparse-narrow.t
 tests/test-rhg.t
 tests/test-rollback.t
 tests/test-run-tests.py
@@ -2017,6 +2020,11 @@ tests/test-sidedata.t
 tests/test-simple-update.t
 tests/test-simplekeyvaluefile.py
 tests/test-simplemerge.py
+tests/test-single-head-obsolescence-named-branch-A1.t
+tests/test-single-head-obsolescence-named-branch-A2.t
+tests/test-single-head-obsolescence-named-branch-A3.t
+tests/test-single-head-obsolescence-named-branch-A4.t
+tests/test-single-head-obsolescence-named-branch-A5.t
 tests/test-single-head.t
 tests/test-sparse-clear.t
 tests/test-sparse-clone.t
@@ -2047,6 +2055,7 @@ tests/test-status-inprocess.py
 tests/test-status-inprocess.py.out
 tests/test-status-rev.t
 tests/test-status-terse.t
+tests/test-status-tracked-key.t
 tests/test-status.t
 tests/test-stdio.py
 tests/test-storage.py
@@ -2114,23 +2123,7 @@ tests/test-walk.t
 tests/test-walkrepo.py
 tests/test-websub.t
 tests/test-win32text.t
-tests/test-wireproto-caching.t
 tests/test-wireproto-clientreactor.py
-tests/test-wireproto-command-branchmap.t
-tests/test-wireproto-command-capabilities.t
-tests/test-wireproto-command-changesetdata.t
-tests/test-wireproto-command-filedata.t
-tests/test-wireproto-command-filesdata.t
-tests/test-wireproto-command-heads.t
-tests/test-wireproto-command-known.t
-tests/test-wireproto-command-listkeys.t
-tests/test-wireproto-command-lookup.t
-tests/test-wireproto-command-manifestdata.t
-tests/test-wireproto-command-pushkey.t
-tests/test-wireproto-command-rawstorefiledata.t
-tests/test-wireproto-content-redirects.t
-tests/test-wireproto-exchangev2-shallow.t
-tests/test-wireproto-exchangev2.t
 tests/test-wireproto-framing.py
 tests/test-wireproto-serverreactor.py
 tests/test-wireproto.py
@@ -2142,7 +2135,6 @@ tests/test-xdg.t
 tests/tinyproxy.py
 tests/unwrap-message-id.py
 tests/wireprotohelpers.sh
-tests/wireprotosimplecache.py
 tests/artifacts/PURPOSE
 tests/artifacts/cache/big-file-churn.hg.md5
 tests/artifacts/scripts/generate-churning-bundle.py
@@ -2229,6 +2221,7 @@ tests/svn/svndump-replace.sh
 tests/svn/svndump-startrev.sh
 tests/svn/svndump-tags.sh
 tests/svn/tags.svndump
+tests/testlib/badserverext.py
 tests/testlib/common.sh
 tests/testlib/crash_transaction_late.py
 tests/testlib/exchange-obsmarker-util.sh
@@ -2245,4 +2238,5 @@ tests/testlib/persistent-nodemap-race-ext.py
 tests/testlib/push-checkheads-util.sh
 tests/testlib/sigpipe-remote.py
 tests/testlib/sigpipe-worker.py
+tests/testlib/stream_clone_setup.sh
 tests/testlib/wait-on-file

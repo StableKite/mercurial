@@ -513,13 +513,18 @@ effect and style see :hg:`help color`.
 ``update.check``
     Determines what level of checking :hg:`update` will perform before moving
     to a destination revision. Valid values are ``abort``, ``none``,
-    ``linear``, and ``noconflict``. ``abort`` always fails if the working
-    directory has uncommitted changes. ``none`` performs no checking, and may
-    result in a merge with uncommitted changes. ``linear`` allows any update
-    as long as it follows a straight line in the revision history, and may
-    trigger a merge with uncommitted changes. ``noconflict`` will allow any
-    update which would not trigger a merge with uncommitted changes, if any
-    are present.
+    ``linear``, and ``noconflict``.
+
+    - ``abort`` always fails if the working directory has uncommitted changes.
+
+    - ``none`` performs no checking, and may result in a merge with uncommitted changes.
+
+    - ``linear`` allows any update as long as it follows a straight line in the
+      revision history, and may trigger a merge with uncommitted changes.
+
+    - ``noconflict`` will allow any update which would not trigger a merge with
+      uncommitted changes, if any are present.
+
     (default: ``linear``)
 
 ``update.requiredest``
@@ -850,6 +855,24 @@ Example for ``~/.hgrc``::
   # (this extension will get loaded from the file specified)
   myfeature = ~/.hgext/myfeature.py
 
+If an extension fails to load, a warning will be issued, and Mercurial will
+proceed. To enforce that an extension must be loaded, one can set the `required`
+suboption in the config::
+
+  [extensions]
+  myfeature = ~/.hgext/myfeature.py
+  myfeature:required = yes
+
+To debug extension loading issue, one can add `--traceback` to their mercurial
+invocation.
+
+A default setting can we set using the special `*` extension key::
+
+  [extensions]
+  *:required = yes
+  myfeature = ~/.hgext/myfeature.py
+  rebase=
+
 
 ``format``
 ----------
@@ -921,6 +944,38 @@ https://www.mercurial-scm.org/wiki/MissingRequirement
 
     For a more comprehensive guide, see :hg:`help internals.dirstate-v2`.
 
+``use-dirstate-tracked-hint``
+    Enable or disable the writing of "tracked key" file alongside the dirstate.
+    (default to disabled)
+
+    That "tracked-hint" can help external automations to detect changes to the
+    set of tracked files. (i.e the result of `hg files` or `hg status -macd`)
+
+    The tracked-hint is written in a new `.hg/dirstate-tracked-hint`. That file
+    contains two lines:
+    - the first line is the file version (currently: 1),
+    - the second line contains the "tracked-hint".
+    That file is written right after the dirstate is written.
+
+    The tracked-hint changes whenever the set of file tracked in the dirstate
+    changes. The general idea is:
+    - if the hint is identical, the set of tracked file SHOULD be identical,
+    - if the hint is different, the set of tracked file MIGHT be different.
+
+    The "hint is identical" case uses `SHOULD` as the dirstate and the hint file
+    are two distinct files and therefore that cannot be read or written to in an
+    atomic way. If the key is identical, nothing garantees that the dirstate is
+    not updated right after the hint file. This is considered a negligible
+    limitation for the intended usecase. It is actually possible to prevent this
+    race by taking the repository lock during read operations.
+
+    They are two "ways" to use this feature:
+
+    1) monitoring changes to the `.hg/dirstate-tracked-hint`, if the file
+    changes, the tracked set might have changed.
+
+    2) storing the value and comparing it to a later value.
+
 ``use-persistent-nodemap``
     Enable or disable the "persistent-nodemap" feature which improves
     performance if the Rust extensions are available.
@@ -970,12 +1025,12 @@ https://www.mercurial-scm.org/wiki/MissingRequirement
 
     Beware that existing shares will not be upgraded/downgraded, and by
     default, Mercurial will refuse to interact with them until the mismatch
-    is resolved. See :hg:`help config share.safe-mismatch.source-safe` and
-    :hg:`help config share.safe-mismatch.source-not-safe` for details.
+    is resolved. See :hg:`help config.share.safe-mismatch.source-safe` and
+    :hg:`help config.share.safe-mismatch.source-not-safe` for details.
 
     Introduced in Mercurial 5.7.
 
-    Disabled by default.
+    Enabled by default in Mercurial 6.1.
 
 ``usestore``
     Enable or disable the "store" repository format which improves
@@ -2029,12 +2084,11 @@ Alias definitions for revsets. See :hg:`help revsets` for details.
 ---------
 
 ``safe-mismatch.source-safe``
-
     Controls what happens when the shared repository does not use the
     share-safe mechanism but its source repository does.
 
     Possible values are `abort` (default), `allow`, `upgrade-abort` and
-    `upgrade-abort`.
+    `upgrade-allow`.
 
     ``abort``
     Disallows running any command and aborts
@@ -2046,7 +2100,7 @@ Alias definitions for revsets. See :hg:`help revsets` for details.
     tries to upgrade the share; if it fails, continue by
     respecting the share source setting
 
-    Check :hg:`help config format.use-share-safe` for details about the
+    Check :hg:`help config.format.use-share-safe` for details about the
     share-safe feature.
 
 ``safe-mismatch.source-safe.warn``
@@ -2055,12 +2109,11 @@ Alias definitions for revsets. See :hg:`help revsets` for details.
     (default: True)
 
 ``safe-mismatch.source-not-safe``
-
     Controls what happens when the shared repository uses the share-safe
     mechanism but its source does not.
 
     Possible values are `abort` (default), `allow`, `downgrade-abort` and
-    `downgrade-abort`.
+    `downgrade-allow`.
 
     ``abort``
     Disallows running any command and aborts
@@ -2072,7 +2125,7 @@ Alias definitions for revsets. See :hg:`help revsets` for details.
     tries to downgrade the share to not use share-safe;
     if it fails, continue by respecting the shared source setting
 
-    Check :hg:`help config format.use-share-safe` for details about the
+    Check :hg:`help config.format.use-share-safe` for details about the
     share-safe feature.
 
 ``safe-mismatch.source-not-safe.warn``
@@ -2117,7 +2170,7 @@ category impact performance and repository size.
     Default to True.
 
     For details on the "persistent-nodemap" feature, see:
-    :hg:`help config format.use-persistent-nodemap`.
+    :hg:`help config.format.use-persistent-nodemap`.
 
 ``revlog.persistent-nodemap.slow-path``
     Control the behavior of Merucrial when using a repository with "persistent"
@@ -2129,7 +2182,7 @@ category impact performance and repository size.
     ``abort``: Prevent access to such repositories. (This is the default)
 
     For details on the "persistent-nodemap" feature, see:
-    :hg:`help config format.use-persistent-nodemap`.
+    :hg:`help config.format.use-persistent-nodemap`.
 
 ``revlog.reuse-external-delta-parent``
     Control the order in which delta parents are considered when adding new

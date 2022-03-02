@@ -118,10 +118,10 @@ include contrib/packaging/debian/copyright
 include contrib/packaging/debian/default-tools.rc
 include contrib/packaging/debian/hgkpath.rc
 include contrib/packaging/debian/rules
-include contrib/packaging/docker/centos7
-include contrib/packaging/docker/centos8
 include contrib/packaging/docker/debian.template
 include contrib/packaging/docker/fedora.template
+include contrib/packaging/docker/rhel7
+include contrib/packaging/docker/rhel8
 include contrib/packaging/docker/ubuntu.template
 include contrib/packaging/dockerdeb
 include contrib/packaging/dockerrpm
@@ -569,7 +569,6 @@ include mercurial/dummycert.pem
 include mercurial/encoding.py
 include mercurial/error.py
 include mercurial/exchange.py
-include mercurial/exchangev2.py
 include mercurial/exewrapper.c
 include mercurial/extensions.py
 include mercurial/exthelper.py
@@ -1017,8 +1016,6 @@ include mercurial/wireprotoserver.py
 include mercurial/wireprototypes.py
 include mercurial/wireprotov1peer.py
 include mercurial/wireprotov1server.py
-include mercurial/wireprotov2peer.py
-include mercurial/wireprotov2server.py
 include mercurial/worker.py
 include pyproject.toml
 include relnotes/5.1
@@ -1031,6 +1028,7 @@ include relnotes/5.7
 include relnotes/5.8
 include relnotes/5.9
 include relnotes/6.0
+include relnotes/6.1
 include relnotes/next
 include rust/.cargo/config
 include rust/Cargo.lock
@@ -1078,6 +1076,7 @@ include rust/hg-core/src/errors.rs
 include rust/hg-core/src/exit_codes.rs
 include rust/hg-core/src/filepatterns.rs
 include rust/hg-core/src/lib.rs
+include rust/hg-core/src/lock.rs
 include rust/hg-core/src/logging.rs
 include rust/hg-core/src/matchers.rs
 include rust/hg-core/src/operations/cat.rs
@@ -1135,9 +1134,11 @@ include rust/hgcli/src/main.rs
 include rust/rhg/Cargo.toml
 include rust/rhg/README.md
 include rust/rhg/src/blackbox.rs
+include rust/rhg/src/color.rs
 include rust/rhg/src/commands/cat.rs
 include rust/rhg/src/commands/config.rs
 include rust/rhg/src/commands/debugdata.rs
+include rust/rhg/src/commands/debugignorerhg.rs
 include rust/rhg/src/commands/debugrequirements.rs
 include rust/rhg/src/commands/files.rs
 include rust/rhg/src/commands/root.rs
@@ -1154,7 +1155,6 @@ include tests/artifacts/PURPOSE
 include tests/artifacts/cache/big-file-churn.hg.md5
 include tests/artifacts/scripts/generate-churning-bundle.py
 include tests/autodiff.py
-include tests/badserverext.py
 include tests/basic_test_result.py
 include tests/binfile.bin
 include tests/blackbox-readonly-dispatch.py
@@ -1401,6 +1401,7 @@ include tests/test-churn.t
 include tests/test-clone-cgi.t
 include tests/test-clone-pull-corruption.t
 include tests/test-clone-r.t
+include tests/test-clone-stream-format.t
 include tests/test-clone-stream.t
 include tests/test-clone-update-order.t
 include tests/test-clone.t
@@ -1679,8 +1680,6 @@ include tests/test-hooklib-changeset_published.t
 include tests/test-hooklib-enforce_draft_commits.t
 include tests/test-hooklib-reject_merge_commits.t
 include tests/test-hooklib-reject_new_heads.t
-include tests/test-http-api-httpv2.t
-include tests/test-http-api.t
 include tests/test-http-bad-server.t
 include tests/test-http-branchmap.t
 include tests/test-http-bundle1.t
@@ -1850,6 +1849,7 @@ include tests/test-narrow-debugrebuilddirstate.t
 include tests/test-narrow-exchange-merges.t
 include tests/test-narrow-exchange.t
 include tests/test-narrow-expanddirstate.t
+include tests/test-narrow-merge-outside.t
 include tests/test-narrow-merge.t
 include tests/test-narrow-patch.t
 include tests/test-narrow-patterns.t
@@ -1961,6 +1961,7 @@ include tests/test-push.t
 include tests/test-pushvars.t
 include tests/test-qrecord.t
 include tests/test-racy-mutations.t
+include tests/test-rank.t
 include tests/test-rebase-abort.t
 include tests/test-rebase-backup.t
 include tests/test-rebase-base-flag.t
@@ -2065,6 +2066,8 @@ include tests/test-revset-legacy-lookup.t
 include tests/test-revset-outgoing.t
 include tests/test-revset.t
 include tests/test-revset2.t
+include tests/test-rhg-no-generaldelta.t
+include tests/test-rhg-sparse-narrow.t
 include tests/test-rhg.t
 include tests/test-rollback.t
 include tests/test-run-tests.py
@@ -2089,6 +2092,11 @@ include tests/test-sidedata.t
 include tests/test-simple-update.t
 include tests/test-simplekeyvaluefile.py
 include tests/test-simplemerge.py
+include tests/test-single-head-obsolescence-named-branch-A1.t
+include tests/test-single-head-obsolescence-named-branch-A2.t
+include tests/test-single-head-obsolescence-named-branch-A3.t
+include tests/test-single-head-obsolescence-named-branch-A4.t
+include tests/test-single-head-obsolescence-named-branch-A5.t
 include tests/test-single-head.t
 include tests/test-sparse-clear.t
 include tests/test-sparse-clone.t
@@ -2119,6 +2127,7 @@ include tests/test-status-inprocess.py
 include tests/test-status-inprocess.py.out
 include tests/test-status-rev.t
 include tests/test-status-terse.t
+include tests/test-status-tracked-key.t
 include tests/test-status.t
 include tests/test-stdio.py
 include tests/test-storage.py
@@ -2186,23 +2195,7 @@ include tests/test-walk.t
 include tests/test-walkrepo.py
 include tests/test-websub.t
 include tests/test-win32text.t
-include tests/test-wireproto-caching.t
 include tests/test-wireproto-clientreactor.py
-include tests/test-wireproto-command-branchmap.t
-include tests/test-wireproto-command-capabilities.t
-include tests/test-wireproto-command-changesetdata.t
-include tests/test-wireproto-command-filedata.t
-include tests/test-wireproto-command-filesdata.t
-include tests/test-wireproto-command-heads.t
-include tests/test-wireproto-command-known.t
-include tests/test-wireproto-command-listkeys.t
-include tests/test-wireproto-command-lookup.t
-include tests/test-wireproto-command-manifestdata.t
-include tests/test-wireproto-command-pushkey.t
-include tests/test-wireproto-command-rawstorefiledata.t
-include tests/test-wireproto-content-redirects.t
-include tests/test-wireproto-exchangev2-shallow.t
-include tests/test-wireproto-exchangev2.t
 include tests/test-wireproto-framing.py
 include tests/test-wireproto-serverreactor.py
 include tests/test-wireproto.py
@@ -2211,6 +2204,7 @@ include tests/test-wireproto.t
 include tests/test-worker.t
 include tests/test-wsgirequest.py
 include tests/test-xdg.t
+include tests/testlib/badserverext.py
 include tests/testlib/common.sh
 include tests/testlib/crash_transaction_late.py
 include tests/testlib/exchange-obsmarker-util.sh
@@ -2227,11 +2221,11 @@ include tests/testlib/persistent-nodemap-race-ext.py
 include tests/testlib/push-checkheads-util.sh
 include tests/testlib/sigpipe-remote.py
 include tests/testlib/sigpipe-worker.py
+include tests/testlib/stream_clone_setup.sh
 include tests/testlib/wait-on-file
 include tests/tinyproxy.py
 include tests/unwrap-message-id.py
 include tests/wireprotohelpers.sh
-include tests/wireprotosimplecache.py
 include mercurial/__version__.py
 include doc/hg-ssh.8
 include doc/hg.1

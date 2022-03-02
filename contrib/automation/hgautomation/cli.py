@@ -151,14 +151,14 @@ def build_all_windows_packages(
     image = aws.ensure_windows_dev_ami(c, base_image_name=base_image_name)
     DIST_PATH.mkdir(exist_ok=True)
 
-    with aws.temporary_windows_dev_instances(c, image, 't3.medium') as insts:
+    with aws.temporary_windows_dev_instances(c, image, 'm6i.large') as insts:
         instance = insts[0]
 
         winrm_client = instance.winrm_client
 
         windows.synchronize_hg(SOURCE_ROOT, revision, instance)
 
-        for py_version in ("2.7", "3.7", "3.8", "3.9"):
+        for py_version in ("2.7", "3.7", "3.8", "3.9", "3.10"):
             for arch in ("x86", "x64"):
                 windows.purge_hg(winrm_client)
                 windows.build_wheel(
@@ -377,7 +377,7 @@ def get_parser():
     sp.add_argument(
         '--python-version',
         help='Python version to build for',
-        choices={'2.7', '3.7', '3.8', '3.9'},
+        choices={'2.7', '3.7', '3.8', '3.9', '3.10'},
         nargs='*',
         default=['3.8'],
     )
@@ -496,12 +496,12 @@ def get_parser():
     sp.add_argument(
         '--instance-type',
         help='EC2 instance type to use',
-        default='t3.medium',
+        default='m6i.large',
     )
     sp.add_argument(
         '--python-version',
         help='Python version to use',
-        choices={'2.7', '3.5', '3.6', '3.7', '3.8', '3.9'},
+        choices={'2.7', '3.5', '3.6', '3.7', '3.8', '3.9', '3.10'},
         default='2.7',
     )
     sp.add_argument(

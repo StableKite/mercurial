@@ -1,22 +1,18 @@
-== New Features ==
+= Mercurial XXX =
 
+== New Features ==
 
 == Default Format Change ==
 
-These changes affects newly created repositories (or new clone) done with
+These changes affect newly created repositories (or new clones) done with
 Mercurial XXX.
-
 
 == New Experimental Features ==
 
 == Bug Fixes ==
 
-
 == Backwards Compatibility Changes ==
-
 
 == Internal API Changes ==
 
-The following functions have been removed:
-
-Miscellaneous:
+== Miscellaneous ==

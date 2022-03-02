@@ -6702,8 +6702,10 @@ paginate = never
 <span id="patterns"></span><h1><a class="toc-backref" href="#contents">File Name Patterns</a></h1>
 <p>Mercurial accepts several notations for identifying one or more files
 at a time.</p>
-<p>By default, Mercurial treats filenames as shell-style extended glob
-patterns.</p>
+<p>By default, Mercurial treats filenames verbatim without pattern
+matching, relative to the current working directory. Note that your
+system shell might perform pattern matching of its own before passing
+filenames into Mercurial.</p>
 <p>Alternate pattern notations must be specified explicitly.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
@@ -7859,104 +7861,148 @@ keywords are usually available for templating a log-like command:</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">activebookmark:</th><td class="field-body">String. The active bookmark, if it is associated with the changeset.</td>
+<tr class="field"><th class="field-name">_fast_rank:</th><td class="field-body"><p class="first">the rank of a changeset if cached</p>
+<p>The rank of a revision is the size of the sub-graph it defines as a head.
+Equivalently, the rank of a revision <cite>r</cite> is the size of the set
+<cite>ancestors(r)</cite>, <cite>r</cite> included.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">author:</th><td class="field-body">Alias for <tt class="docutils literal">{user}</tt></td>
+<tr class="field"><th class="field-name">activebookmark:</th><td class="field-body"><p class="first">String. The active bookmark, if it is associated with the changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">bisect:</th><td class="field-body">String. The changeset bisection status.</td>
+<tr class="field"><th class="field-name">author:</th><td class="field-body"><p class="first">Alias for <tt class="docutils literal">{user}</tt></p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">bookmarks:</th><td class="field-body">List of strings. Any bookmarks associated with the
-changeset. Also sets 'active', the name of the active bookmark.</td>
+<tr class="field"><th class="field-name">bisect:</th><td class="field-body"><p class="first">String. The changeset bisection status.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">branch:</th><td class="field-body">String. The name of the branch on which the changeset was
-committed.</td>
+<tr class="field"><th class="field-name">bookmarks:</th><td class="field-body"><p class="first">List of strings. Any bookmarks associated with the
+changeset. Also sets 'active', the name of the active bookmark.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">branch:</th><td class="field-body"><p class="first">String. The name of the branch on which the changeset was
+committed.</p>
+</td>
 </tr>
 <tr class="field"><th class="field-name" colspan="2">changessincelatesttag:</th></tr>
-<tr class="field"><td>&nbsp;</td><td class="field-body">Integer. All ancestors not in the latest tag.</td>
+<tr class="field"><td>&nbsp;</td><td class="field-body"><p class="first">Integer. All ancestors not in the latest tag.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">children:</th><td class="field-body">List of strings. The children of the changeset.</td>
+<tr class="field"><th class="field-name">children:</th><td class="field-body"><p class="first">List of strings. The children of the changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">date:</th><td class="field-body">Date information. The date when the changeset was committed.</td>
+<tr class="field"><th class="field-name">date:</th><td class="field-body"><p class="first">Date information. The date when the changeset was committed.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">desc:</th><td class="field-body">String. The text of the changeset description.</td>
+<tr class="field"><th class="field-name">desc:</th><td class="field-body"><p class="first">String. The text of the changeset description.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">diffstat:</th><td class="field-body">String. Statistics of changes with the following format:
-&quot;modified files: +added/-removed lines&quot;</td>
+<tr class="field"><th class="field-name">diffstat:</th><td class="field-body"><p class="first">String. Statistics of changes with the following format:
+&quot;modified files: +added/-removed lines&quot;</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">extras:</th><td class="field-body">List of dicts with key, value entries of the 'extras'
-field of this changeset.</td>
+<tr class="field"><th class="field-name">extras:</th><td class="field-body"><p class="first">List of dicts with key, value entries of the 'extras'
+field of this changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">file_adds:</th><td class="field-body">List of strings. Files added by this changeset.</td>
+<tr class="field"><th class="field-name">file_adds:</th><td class="field-body"><p class="first">List of strings. Files added by this changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">file_copies:</th><td class="field-body">List of strings. Files copied in this changeset with
-their sources.</td>
+<tr class="field"><th class="field-name">file_copies:</th><td class="field-body"><p class="first">List of strings. Files copied in this changeset with
+their sources.</p>
+</td>
 </tr>
 <tr class="field"><th class="field-name" colspan="2">file_copies_switch:</th></tr>
-<tr class="field"><td>&nbsp;</td><td class="field-body">List of strings. Like &quot;file_copies&quot; but displayed
-only if the --copied switch is set.</td>
+<tr class="field"><td>&nbsp;</td><td class="field-body"><p class="first">List of strings. Like &quot;file_copies&quot; but displayed
+only if the --copied switch is set.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">file_dels:</th><td class="field-body">List of strings. Files removed by this changeset.</td>
+<tr class="field"><th class="field-name">file_dels:</th><td class="field-body"><p class="first">List of strings. Files removed by this changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">file_mods:</th><td class="field-body">List of strings. Files modified by this changeset.</td>
+<tr class="field"><th class="field-name">file_mods:</th><td class="field-body"><p class="first">List of strings. Files modified by this changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">files:</th><td class="field-body">List of strings. All files modified, added, or removed by this
-changeset.</td>
+<tr class="field"><th class="field-name">files:</th><td class="field-body"><p class="first">List of strings. All files modified, added, or removed by this
+changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">graphnode:</th><td class="field-body">String. The character representing the changeset node in an ASCII
-revision graph.</td>
+<tr class="field"><th class="field-name">graphnode:</th><td class="field-body"><p class="first">String. The character representing the changeset node in an ASCII
+revision graph.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">graphwidth:</th><td class="field-body">Integer. The width of the graph drawn by 'log --graph' or zero.</td>
+<tr class="field"><th class="field-name">graphwidth:</th><td class="field-body"><p class="first">Integer. The width of the graph drawn by 'log --graph' or zero.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">index:</th><td class="field-body">Integer. The current iteration of the loop. (0 indexed)</td>
+<tr class="field"><th class="field-name">index:</th><td class="field-body"><p class="first">Integer. The current iteration of the loop. (0 indexed)</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">latesttag:</th><td class="field-body">List of strings. The global tags on the most recent globally
+<tr class="field"><th class="field-name">latesttag:</th><td class="field-body"><p class="first">List of strings. The global tags on the most recent globally
 tagged ancestor of this changeset.  If no such tags exist, the list
-consists of the single string &quot;null&quot;.</td>
+consists of the single string &quot;null&quot;.</p>
+</td>
 </tr>
 <tr class="field"><th class="field-name" colspan="2">latesttagdistance:</th></tr>
-<tr class="field"><td>&nbsp;</td><td class="field-body">Integer. Longest path to the latest tag.</td>
+<tr class="field"><td>&nbsp;</td><td class="field-body"><p class="first">Integer. Longest path to the latest tag.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">namespaces:</th><td class="field-body">Dict of lists. Names attached to this changeset per
-namespace.</td>
+<tr class="field"><th class="field-name">namespaces:</th><td class="field-body"><p class="first">Dict of lists. Names attached to this changeset per
+namespace.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">negrev:</th><td class="field-body">Integer. The repository-local changeset negative revision number,
-which counts in the opposite direction.</td>
+<tr class="field"><th class="field-name">negrev:</th><td class="field-body"><p class="first">Integer. The repository-local changeset negative revision number,
+which counts in the opposite direction.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">node:</th><td class="field-body">String. The changeset identification hash, as a 40 hexadecimal
-digit string.</td>
+<tr class="field"><th class="field-name">node:</th><td class="field-body"><p class="first">String. The changeset identification hash, as a 40 hexadecimal
+digit string.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">onelinesummary:</th><td class="field-body">String. A one-line summary for the ctx (not including trailing newline).
-The default template be overridden in command-templates.oneline-summary.</td>
+<tr class="field"><th class="field-name">onelinesummary:</th><td class="field-body"><p class="first">String. A one-line summary for the ctx (not including trailing newline).
+The default template be overridden in command-templates.oneline-summary.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">p1:</th><td class="field-body">Changeset. The changeset's first parent. <tt class="docutils literal">{p1.rev}</tt> for the revision
-number, and <tt class="docutils literal">{p1.node}</tt> for the identification hash.</td>
+<tr class="field"><th class="field-name">p1:</th><td class="field-body"><p class="first">Changeset. The changeset's first parent. <tt class="docutils literal">{p1.rev}</tt> for the revision
+number, and <tt class="docutils literal">{p1.node}</tt> for the identification hash.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">p2:</th><td class="field-body">Changeset. The changeset's second parent. <tt class="docutils literal">{p2.rev}</tt> for the revision
-number, and <tt class="docutils literal">{p2.node}</tt> for the identification hash.</td>
+<tr class="field"><th class="field-name">p2:</th><td class="field-body"><p class="first">Changeset. The changeset's second parent. <tt class="docutils literal">{p2.rev}</tt> for the revision
+number, and <tt class="docutils literal">{p2.node}</tt> for the identification hash.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">parents:</th><td class="field-body">List of strings. The parents of the changeset in &quot;rev:node&quot;
+<tr class="field"><th class="field-name">parents:</th><td class="field-body"><p class="first">List of strings. The parents of the changeset in &quot;rev:node&quot;
 format. If the changeset has only one &quot;natural&quot; parent (the predecessor
-revision) nothing is shown.</td>
+revision) nothing is shown.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">peerurls:</th><td class="field-body">A dictionary of repository locations defined in the [paths] section
-of your configuration file.</td>
+<tr class="field"><th class="field-name">peerurls:</th><td class="field-body"><p class="first">A dictionary of repository locations defined in the [paths] section
+of your configuration file.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">phase:</th><td class="field-body">String. The changeset phase name.</td>
+<tr class="field"><th class="field-name">phase:</th><td class="field-body"><p class="first">String. The changeset phase name.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">reporoot:</th><td class="field-body">String. The root directory of the current repository.</td>
+<tr class="field"><th class="field-name">reporoot:</th><td class="field-body"><p class="first">String. The root directory of the current repository.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">rev:</th><td class="field-body">Integer. The repository-local changeset revision number.</td>
+<tr class="field"><th class="field-name">rev:</th><td class="field-body"><p class="first">Integer. The repository-local changeset revision number.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">subrepos:</th><td class="field-body">List of strings. Updated subrepositories in the changeset.</td>
+<tr class="field"><th class="field-name">subrepos:</th><td class="field-body"><p class="first">List of strings. Updated subrepositories in the changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">tags:</th><td class="field-body">List of strings. Any tags associated with the changeset.</td>
+<tr class="field"><th class="field-name">tags:</th><td class="field-body"><p class="first">List of strings. Any tags associated with the changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">termwidth:</th><td class="field-body">Integer. The width of the current terminal.</td>
+<tr class="field"><th class="field-name">termwidth:</th><td class="field-body"><p class="first">Integer. The width of the current terminal.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">user:</th><td class="field-body">String. The unmodified author of the changeset.</td>
+<tr class="field"><th class="field-name">user:</th><td class="field-body"><p class="first">String. The unmodified author of the changeset.</p>
+</td>
 </tr>
-<tr class="field"><th class="field-name">verbosity:</th><td class="field-body">String. The current output verbosity in 'debug', 'quiet', 'verbose',
-or ''.</td>
+<tr class="field"><th class="field-name">verbosity:</th><td class="field-body"><p class="first last">String. The current output verbosity in 'debug', 'quiet', 'verbose',
+or ''.</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -9002,7 +9048,7 @@ maxsize = 1.5 MB
 maxfiles = 3
 
 [blackbox]
-# Include nanoseconds in log entries with %f (see Python function
+# Include microseconds in log entries with %f (see Python function
 # datetime.datetime.strftime)
 date-format = %Y-%m-%d &#64; %H:%M:%S.%f
 </pre>
@@ -15467,7 +15513,7 @@ below) when you find them.</p>
 </div>
 <div class="section" id="copying">
 <h1><a class="toc-backref" href="#contents">Copying</a></h1>
-<p>Copyright (C) 2005-2021 Olivia Mackall.
+<p>Copyright (C) 2005-2022 Olivia Mackall.
 Free use of this software is granted under the terms of the GNU General
 Public License version 2 or any later version.</p>
 <span class="target" id="common"></span><!-- Common link and substitution definitions. -->

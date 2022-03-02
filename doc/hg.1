@@ -8501,8 +8501,10 @@ which will prevent the pager from running.
 Mercurial accepts several notations for identifying one or more files
 at a time.
 .sp
-By default, Mercurial treats filenames as shell\-style extended glob
-patterns.
+By default, Mercurial treats filenames verbatim without pattern
+matching, relative to the current working directory. Note that your
+system shell might perform pattern matching of its own before passing
+filenames into Mercurial.
 .sp
 Alternate pattern notations must be specified explicitly.
 .IP Note
@@ -10055,6 +10057,14 @@ keywords depends on the exact context of the templater. These
 keywords are usually available for templating a log\-like command:
 .INDENT 0.0
 .TP
+.B _fast_rank
+.
+the rank of a changeset if cached
+.sp
+The rank of a revision is the size of the sub\-graph it defines as a head.
+Equivalently, the rank of a revision \fIr\fP is the size of the set
+\fIancestors(r)\fP, \fIr\fP included.
+.TP
 .B activebookmark
 .
 String. The active bookmark, if it is associated with the changeset.
@@ -11472,7 +11482,7 @@ maxsize = 1.5 MB
 maxfiles = 3
 
 [blackbox]
-# Include nanoseconds in log entries with %f (see Python function
+# Include microseconds in log entries with %f (see Python function
 # datetime.datetime.strftime)
 date\-format = %Y\-%m\-%d @ %H:%M:%S.%f
 .ft P
@@ -19172,7 +19182,7 @@ Source code repository: \%https://www.mercurial\-scm.org/repo/hg\:
 Mailing list: \%https://www.mercurial\-scm.org/mailman/listinfo/mercurial/\:
 .SH COPYING
 .sp
-Copyright (C) 2005\-2021 Olivia Mackall.
+Copyright (C) 2005\-2022 Olivia Mackall.
 Free use of this software is granted under the terms of the GNU General
 Public License version 2 or any later version.
 .\" Common link and substitution definitions.
