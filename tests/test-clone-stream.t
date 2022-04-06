@@ -316,8 +316,8 @@ getbundle requests with stream=1 are uncompressed
 #endif
 #if zstd no-rust
   $ f --size --hex --bytes 256 body
-  body: size=116310
-  body: size=116335 (bigendian !)
+  body: size=116310 (no-bigendian !)
+  body: size=116305 (bigendian !)
   0000: 04 6e 6f 6e 65 48 47 32 30 00 00 00 00 00 00 00 |.noneHG20.......|
   0010: 7c 07 53 54 52 45 41 4d 32 00 00 00 00 03 00 09 ||.STREAM2.......|
   0020: 06 09 04 0c 40 62 79 74 65 63 6f 75 6e 74 31 30 |....@bytecount10|
@@ -817,3 +817,9 @@ Clone non-publishing with obsolescence
   $ killdaemons.py
 
 #endif
+
+Cloning a repo with no requirements doesn't give some obscure error
+
+  $ mkdir -p empty-repo/.hg
+  $ hg clone -q --stream ssh://user@dummy/empty-repo empty-repo2
+  $ hg --cwd empty-repo2 verify -q
