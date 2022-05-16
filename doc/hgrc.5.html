@@ -2400,7 +2400,8 @@ This config overrides the interface specified by ui.interface.</dd>
 <dt><tt class="docutils literal"><span class="pre">large-file-limit</span></tt></dt>
 <dd>Largest file size that gives no memory use warning.
 Possible values are integers or 0 to disable the check.
-(default: 10000000)</dd>
+Value is expressed in bytes by default, one can use standard units for
+convenience (e.g. 10MB, 0.1GB, etc) (default: 10MB)</dd>
 <dt><tt class="docutils literal">logtemplate</tt></dt>
 <dd>(DEPRECATED) Use <tt class="docutils literal"><span class="pre">command-templates.log</span></tt> instead.</dd>
 <dt><tt class="docutils literal">merge</tt></dt>

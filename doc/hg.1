@@ -9533,15 +9533,16 @@ More features are in the works, and improvements on the above listed are still
 in progress. For more experimental work see the "rhg" section.
 .SS Checking for Rust
 .sp
-You may already have the Rust extensions depending on how you install Mercurial.
-.INDENT 0.0
-.INDENT 3.5
+You may already have the Rust extensions depending on how you install
+Mercurial:
 .sp
+.nf
+.ft C
 $ hg debuginstall | grep \-i rust
 checking Rust extensions (installed)
 checking module policy (rust+c\-allow)
-.UNINDENT
-.UNINDENT
+.ft P
+.fi
 .sp
 If those lines don\(aqt even exist, you\(aqre using an old version of \fIhg\fP which does
 not have any Rust extensions yet.
@@ -9552,12 +9553,12 @@ version to use.
 .SS Using pip
 .sp
 Users of \fIpip\fP can install the Rust extensions with the following command:
-.INDENT 0.0
-.INDENT 3.5
 .sp
+.nf
+.ft C
 $ pip install mercurial \-\-global\-option \-\-rust \-\-no\-use\-pep517
-.UNINDENT
-.UNINDENT
+.ft P
+.fi
 .sp
 \fI\-\-no\-use\-pep517\fP is here to tell \fIpip\fP to preserve backwards compatibility with
 the legacy \fIsetup.py\fP system. Mercurial has not yet migrated its complex setup

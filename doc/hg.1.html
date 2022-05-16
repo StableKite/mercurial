@@ -7415,11 +7415,13 @@ in progress. For more experimental work see the &quot;rhg&quot; section.</p>
 </div>
 <div class="section" id="checking-for-rust">
 <h2>Checking for Rust</h2>
-<p>You may already have the Rust extensions depending on how you install Mercurial.</p>
-<blockquote>
+<p>You may already have the Rust extensions depending on how you install
+Mercurial:</p>
+<pre class="literal-block">
 $ hg debuginstall | grep -i rust
 checking Rust extensions (installed)
-checking module policy (rust+c-allow)</blockquote>
+checking module policy (rust+c-allow)
+</pre>
 <p>If those lines don't even exist, you're using an old version of <cite>hg</cite> which does
 not have any Rust extensions yet.</p>
 </div>
@@ -7430,8 +7432,9 @@ version to use.</p>
 <div class="section" id="using-pip">
 <h3>Using pip</h3>
 <p>Users of <cite>pip</cite> can install the Rust extensions with the following command:</p>
-<blockquote>
-$ pip install mercurial --global-option --rust --no-use-pep517</blockquote>
+<pre class="literal-block">
+$ pip install mercurial --global-option --rust --no-use-pep517
+</pre>
 <p><cite>--no-use-pep517</cite> is here to tell <cite>pip</cite> to preserve backwards compatibility with
 the legacy <cite>setup.py</cite> system. Mercurial has not yet migrated its complex setup
 to the new system, so we still need this to add compiled extensions.</p>
