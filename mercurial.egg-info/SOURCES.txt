@@ -17,6 +17,7 @@ hgweb.cgi
 pyproject.toml
 rustfmt.toml
 setup.py
+.gitlab/merge_request_templates/Default.md
 contrib/Makefile.python
 contrib/all-revsets.txt
 contrib/asv.conf.json
@@ -1304,6 +1305,7 @@ tests/test-casefolding.t
 tests/test-cat.t
 tests/test-cbor.py
 tests/test-censor.t
+tests/test-censor2.t
 tests/test-changelog-exec.t
 tests/test-check-cargo-lock.t
 tests/test-check-clang-format.t
@@ -2163,6 +2165,8 @@ tests/bundles/test-keyword.hg
 tests/bundles/test-manifest.hg
 tests/bundles/test-merge-symlinks.hg
 tests/bundles/test-no-symlinks.hg
+tests/bundles/test-revlog-diff-relative-to-nullrev.sh
+tests/bundles/test-revlog-diff-relative-to-nullrev.tar
 tests/gpg/pubring.gpg
 tests/gpg/secring.gpg
 tests/gpg/trustdb.gpg

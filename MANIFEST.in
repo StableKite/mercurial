@@ -1,6 +1,7 @@
 include .arcconfig
 include .clang-format
 include .editorconfig
+include .gitlab/merge_request_templates/Default.md
 include .hgignore
 include .hgsigs
 include .hgtags
@@ -1184,6 +1185,8 @@ include tests/bundles/test-keyword.hg
 include tests/bundles/test-manifest.hg
 include tests/bundles/test-merge-symlinks.hg
 include tests/bundles/test-no-symlinks.hg
+include tests/bundles/test-revlog-diff-relative-to-nullrev.sh
+include tests/bundles/test-revlog-diff-relative-to-nullrev.tar
 include tests/bzr-definitions
 include tests/cgienv
 include tests/check-gendoc
@@ -1376,6 +1379,7 @@ include tests/test-casefolding.t
 include tests/test-cat.t
 include tests/test-cbor.py
 include tests/test-censor.t
+include tests/test-censor2.t
 include tests/test-changelog-exec.t
 include tests/test-check-cargo-lock.t
 include tests/test-check-clang-format.t
