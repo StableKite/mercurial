@@ -5,7 +5,6 @@ use std::ops::Deref;
 use std::path::Path;
 
 use flate2::read::ZlibDecoder;
-use micro_timer::timed;
 use sha1::{Digest, Sha1};
 use zstd;
 
@@ -16,8 +15,8 @@ use super::nodemap::{NodeMap, NodeMapError};
 use super::nodemap_docket::NodeMapDocket;
 use super::patch;
 use crate::errors::HgError;
-use crate::repo::Repo;
 use crate::revlog::Revision;
+use crate::vfs::Vfs;
 use crate::{Node, NULL_REVISION};
 
 const REVISION_FLAG_CENSORED: u16 = 1 << 15;
@@ -34,7 +33,7 @@ const REVIDX_KNOWN_FLAGS: u16 = REVISION_FLAG_CENSORED
 
 const NULL_REVLOG_ENTRY_FLAGS: u16 = 0;
 
-#[derive(derive_more::From)]
+#[derive(Debug, derive_more::From)]
 pub enum RevlogError {
     InvalidRevision,
     /// Working directory is not supported
@@ -49,18 +48,20 @@ impl From<NodeMapError> for RevlogError {
     fn from(error: NodeMapError) -> Self {
         match error {
             NodeMapError::MultipleResults => RevlogError::AmbiguousPrefix,
-            NodeMapError::RevisionNotInIndex(_) => RevlogError::corrupted(),
+            NodeMapError::RevisionNotInIndex(rev) => RevlogError::corrupted(
+                format!("nodemap point to revision {} not in index", rev),
+            ),
         }
     }
 }
 
-fn corrupted() -> HgError {
-    HgError::corrupted("corrupted revlog")
+fn corrupted<S: AsRef<str>>(context: S) -> HgError {
+    HgError::corrupted(format!("corrupted revlog, {}", context.as_ref()))
 }
 
 impl RevlogError {
-    fn corrupted() -> Self {
-        RevlogError::Other(corrupted())
+    fn corrupted<S: AsRef<str>>(context: S) -> Self {
+        RevlogError::Other(corrupted(context))
     }
 }
 
@@ -81,15 +82,15 @@ impl Revlog {
     ///
     /// It will also open the associated data file if index and data are not
     /// interleaved.
-    #[timed]
     pub fn open(
-        repo: &Repo,
+        store_vfs: &Vfs,
         index_path: impl AsRef<Path>,
         data_path: Option<&Path>,
+        use_nodemap: bool,
     ) -> Result<Self, HgError> {
         let index_path = index_path.as_ref();
         let index = {
-            match repo.store_vfs().mmap_open_opt(&index_path)? {
+            match store_vfs.mmap_open_opt(&index_path)? {
                 None => Index::new(Box::new(vec![])),
                 Some(index_mmap) => {
                     let index = Index::new(Box::new(index_mmap))?;
@@ -107,14 +108,16 @@ impl Revlog {
                 None
             } else {
                 let data_path = data_path.unwrap_or(&default_data_path);
-                let data_mmap = repo.store_vfs().mmap_open(data_path)?;
+                let data_mmap = store_vfs.mmap_open(data_path)?;
                 Some(Box::new(data_mmap))
             };
 
         let nodemap = if index.is_inline() {
             None
+        } else if !use_nodemap {
+            None
         } else {
-            NodeMapDocket::read_from_file(repo, index_path)?.map(
+            NodeMapDocket::read_from_file(store_vfs, index_path)?.map(
                 |(docket, data)| {
                     nodemap::NodeTree::load_bytes(
                         Box::new(data),
@@ -152,7 +155,6 @@ impl Revlog {
 
     /// Return the revision number for the given node ID, if it exists in this
     /// revlog
-    #[timed]
     pub fn rev_from_node(
         &self,
         node: NodePrefix,
@@ -202,7 +204,6 @@ impl Revlog {
     /// All entries required to build the final data out of deltas will be
     /// retrieved as needed, and the deltas will be applied to the inital
     /// snapshot to rebuild the final data.
-    #[timed]
     pub fn get_rev_data(
         &self,
         rev: Revision,
@@ -237,7 +238,6 @@ impl Revlog {
 
     /// Build the full data of a revision out its snapshot
     /// and its deltas.
-    #[timed]
     fn build_data_from_deltas(
         snapshot: RevlogEntry,
         deltas: &[RevlogEntry],
@@ -326,7 +326,8 @@ impl Revlog {
         &self,
         rev: Revision,
     ) -> Result<RevlogEntry, HgError> {
-        return self.get_entry(rev).map_err(|_| corrupted());
+        self.get_entry(rev)
+            .map_err(|_| corrupted(format!("revision {} out of range", rev)))
     }
 }
 
@@ -351,6 +352,10 @@ impl<'a> RevlogEntry<'a> {
         self.rev
     }
 
+    pub fn node(&self) -> &Node {
+        &self.hash
+    }
+
     pub fn uncompressed_len(&self) -> Option<u32> {
         u32::try_from(self.uncompressed_len).ok()
     }
@@ -359,7 +364,39 @@ impl<'a> RevlogEntry<'a> {
         self.p1 != NULL_REVISION
     }
 
-    pub fn is_cencored(&self) -> bool {
+    pub fn p1_entry(&self) -> Result<Option<RevlogEntry>, RevlogError> {
+        if self.p1 == NULL_REVISION {
+            Ok(None)
+        } else {
+            Ok(Some(self.revlog.get_entry(self.p1)?))
+        }
+    }
+
+    pub fn p2_entry(&self) -> Result<Option<RevlogEntry>, RevlogError> {
+        if self.p2 == NULL_REVISION {
+            Ok(None)
+        } else {
+            Ok(Some(self.revlog.get_entry(self.p2)?))
+        }
+    }
+
+    pub fn p1(&self) -> Option<Revision> {
+        if self.p1 == NULL_REVISION {
+            None
+        } else {
+            Some(self.p1)
+        }
+    }
+
+    pub fn p2(&self) -> Option<Revision> {
+        if self.p2 == NULL_REVISION {
+            None
+        } else {
+            Some(self.p2)
+        }
+    }
+
+    pub fn is_censored(&self) -> bool {
         (self.flags & REVISION_FLAG_CENSORED) != 0
     }
 
@@ -370,7 +407,7 @@ impl<'a> RevlogEntry<'a> {
     }
 
     /// The data for this entry, after resolving deltas if any.
-    pub fn data(&self) -> Result<Cow<'a, [u8]>, HgError> {
+    pub fn rawdata(&self) -> Result<Cow<'a, [u8]>, HgError> {
         let mut entry = self.clone();
         let mut delta_chain = vec![];
 
@@ -395,6 +432,13 @@ impl<'a> RevlogEntry<'a> {
             Revlog::build_data_from_deltas(entry, &delta_chain)?.into()
         };
 
+        Ok(data)
+    }
+
+    fn check_data(
+        &self,
+        data: Cow<'a, [u8]>,
+    ) -> Result<Cow<'a, [u8]>, HgError> {
         if self.revlog.check_hash(
             self.p1,
             self.p2,
@@ -403,8 +447,19 @@ impl<'a> RevlogEntry<'a> {
         ) {
             Ok(data)
         } else {
-            Err(corrupted())
+            Err(corrupted(format!(
+                "hash check failed for revision {}",
+                self.rev
+            )))
         }
+    }
+
+    pub fn data(&self) -> Result<Cow<'a, [u8]>, HgError> {
+        let data = self.rawdata()?;
+        if self.is_censored() {
+            return Err(HgError::CensoredNodeError);
+        }
+        self.check_data(data)
     }
 
     /// Extract the data contained in the entry.
@@ -424,7 +479,10 @@ impl<'a> RevlogEntry<'a> {
             // zstd data.
             b'\x28' => Ok(Cow::Owned(self.uncompressed_zstd_data()?)),
             // A proper new format should have had a repo/store requirement.
-            _format_type => Err(corrupted()),
+            format_type => Err(corrupted(format!(
+                "unknown compression header '{}'",
+                format_type
+            ))),
         }
     }
 
@@ -432,12 +490,16 @@ impl<'a> RevlogEntry<'a> {
         let mut decoder = ZlibDecoder::new(self.bytes);
         if self.is_delta() {
             let mut buf = Vec::with_capacity(self.compressed_len as usize);
-            decoder.read_to_end(&mut buf).map_err(|_| corrupted())?;
+            decoder
+                .read_to_end(&mut buf)
+                .map_err(|e| corrupted(e.to_string()))?;
             Ok(buf)
         } else {
             let cap = self.uncompressed_len.max(0) as usize;
             let mut buf = vec![0; cap];
-            decoder.read_exact(&mut buf).map_err(|_| corrupted())?;
+            decoder
+                .read_exact(&mut buf)
+                .map_err(|e| corrupted(e.to_string()))?;
             Ok(buf)
         }
     }
@@ -446,15 +508,15 @@ impl<'a> RevlogEntry<'a> {
         if self.is_delta() {
             let mut buf = Vec::with_capacity(self.compressed_len as usize);
             zstd::stream::copy_decode(self.bytes, &mut buf)
-                .map_err(|_| corrupted())?;
+                .map_err(|e| corrupted(e.to_string()))?;
             Ok(buf)
         } else {
             let cap = self.uncompressed_len.max(0) as usize;
             let mut buf = vec![0; cap];
             let len = zstd::block::decompress_to_buffer(self.bytes, &mut buf)
-                .map_err(|_| corrupted())?;
+                .map_err(|e| corrupted(e.to_string()))?;
             if len != self.uncompressed_len as usize {
-                Err(corrupted())
+                Err(corrupted("uncompressed length does not match"))
             } else {
                 Ok(buf)
             }
@@ -485,4 +547,93 @@ fn hash(
     }
     hasher.update(data);
     *hasher.finalize().as_ref()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::index::{IndexEntryBuilder, INDEX_ENTRY_SIZE};
+    use itertools::Itertools;
+
+    #[test]
+    fn test_empty() {
+        let temp = tempfile::tempdir().unwrap();
+        let vfs = Vfs { base: temp.path() };
+        std::fs::write(temp.path().join("foo.i"), b"").unwrap();
+        let revlog = Revlog::open(&vfs, "foo.i", None, false).unwrap();
+        assert!(revlog.is_empty());
+        assert_eq!(revlog.len(), 0);
+        assert!(revlog.get_entry(0).is_err());
+        assert!(!revlog.has_rev(0));
+    }
+
+    #[test]
+    fn test_inline() {
+        let temp = tempfile::tempdir().unwrap();
+        let vfs = Vfs { base: temp.path() };
+        let node0 = Node::from_hex("2ed2a3912a0b24502043eae84ee4b279c18b90dd")
+            .unwrap();
+        let node1 = Node::from_hex("b004912a8510032a0350a74daa2803dadfb00e12")
+            .unwrap();
+        let node2 = Node::from_hex("dd6ad206e907be60927b5a3117b97dffb2590582")
+            .unwrap();
+        let entry0_bytes = IndexEntryBuilder::new()
+            .is_first(true)
+            .with_version(1)
+            .with_inline(true)
+            .with_offset(INDEX_ENTRY_SIZE)
+            .with_node(node0)
+            .build();
+        let entry1_bytes = IndexEntryBuilder::new()
+            .with_offset(INDEX_ENTRY_SIZE)
+            .with_node(node1)
+            .build();
+        let entry2_bytes = IndexEntryBuilder::new()
+            .with_offset(INDEX_ENTRY_SIZE)
+            .with_p1(0)
+            .with_p2(1)
+            .with_node(node2)
+            .build();
+        let contents = vec![entry0_bytes, entry1_bytes, entry2_bytes]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        std::fs::write(temp.path().join("foo.i"), contents).unwrap();
+        let revlog = Revlog::open(&vfs, "foo.i", None, false).unwrap();
+
+        let entry0 = revlog.get_entry(0).ok().unwrap();
+        assert_eq!(entry0.revision(), 0);
+        assert_eq!(*entry0.node(), node0);
+        assert!(!entry0.has_p1());
+        assert_eq!(entry0.p1(), None);
+        assert_eq!(entry0.p2(), None);
+        let p1_entry = entry0.p1_entry().unwrap();
+        assert!(p1_entry.is_none());
+        let p2_entry = entry0.p2_entry().unwrap();
+        assert!(p2_entry.is_none());
+
+        let entry1 = revlog.get_entry(1).ok().unwrap();
+        assert_eq!(entry1.revision(), 1);
+        assert_eq!(*entry1.node(), node1);
+        assert!(!entry1.has_p1());
+        assert_eq!(entry1.p1(), None);
+        assert_eq!(entry1.p2(), None);
+        let p1_entry = entry1.p1_entry().unwrap();
+        assert!(p1_entry.is_none());
+        let p2_entry = entry1.p2_entry().unwrap();
+        assert!(p2_entry.is_none());
+
+        let entry2 = revlog.get_entry(2).ok().unwrap();
+        assert_eq!(entry2.revision(), 2);
+        assert_eq!(*entry2.node(), node2);
+        assert!(entry2.has_p1());
+        assert_eq!(entry2.p1(), Some(0));
+        assert_eq!(entry2.p2(), Some(1));
+        let p1_entry = entry2.p1_entry().unwrap();
+        assert!(p1_entry.is_some());
+        assert_eq!(p1_entry.unwrap().revision(), 0);
+        let p2_entry = entry2.p2_entry().unwrap();
+        assert!(p2_entry.is_some());
+        assert_eq!(p2_entry.unwrap().revision(), 1);
+    }
 }

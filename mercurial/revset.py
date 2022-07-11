@@ -5,8 +5,8 @@
 # This software may be used and distributed according to the terms of the
 # GNU General Public License version 2 or any later version.
 
-from __future__ import absolute_import
 
+import binascii
 import re
 
 from .i18n import _
@@ -595,7 +595,7 @@ def bookmark(repo, subset, x):
             bms.add(repo[bmrev].rev())
         else:
             matchrevs = set()
-            for name, bmrev in pycompat.iteritems(repo._bookmarks):
+            for name, bmrev in repo._bookmarks.items():
                 if matcher(name):
                     matchrevs.add(bmrev)
             for bmrev in matchrevs:
@@ -1338,10 +1338,12 @@ def followlines(repo, subset, x):
 
 @predicate(b'nodefromfile(path)')
 def nodefromfile(repo, subset, x):
-    """
-    An alias for ``::.`` (ancestors of the working directory's first parent).
-    If file pattern is specified, the histories of files matching given
-    pattern in the revision given by startrev are followed, including copies.
+    """Read a list of nodes from the file at `path`.
+
+    This applies `id(LINE)` to each line of the file.
+
+    This is useful when the amount of nodes you need to specify gets too large
+    for the command line.
     """
     path = getstring(x, _(b"nodefromfile require a file path"))
     listed_rev = set()
@@ -1707,7 +1709,7 @@ def named(repo, subset, x):
             )
         namespaces.add(repo.names[pattern])
     else:
-        for name, ns in pycompat.iteritems(repo.names):
+        for name, ns in repo.names.items():
             if matcher(name):
                 namespaces.add(ns)
 
@@ -1729,7 +1731,7 @@ def _node(repo, n):
             rn = repo.changelog.rev(bin(n))
         except error.WdirUnsupported:
             rn = wdirrev
-        except (LookupError, TypeError):
+        except (binascii.Error, LookupError):
             rn = None
     else:
         try:
@@ -2804,7 +2806,7 @@ def makematcher(tree):
 
 def loadpredicate(ui, extname, registrarobj):
     """Load revset predicates from specified registrarobj"""
-    for name, func in pycompat.iteritems(registrarobj._table):
+    for name, func in registrarobj._table.items():
         symbols[name] = func
         if func._safe:
             safesymbols.add(name)

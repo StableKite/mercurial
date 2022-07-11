@@ -25,7 +25,6 @@ include contrib/automation/hgautomation/ssh.py
 include contrib/automation/hgautomation/try_server.py
 include contrib/automation/hgautomation/windows.py
 include contrib/automation/hgautomation/winrm.py
-include contrib/automation/linux-requirements-py2.txt
 include contrib/automation/linux-requirements-py3.5.txt
 include contrib/automation/linux-requirements-py3.txt
 include contrib/automation/linux-requirements.txt.in
@@ -106,6 +105,10 @@ include contrib/install-windows-dependencies.ps1
 include contrib/logo-droplets.svg
 include contrib/memory.py
 include contrib/mercurial.el
+include contrib/merge-lists/Cargo.lock
+include contrib/merge-lists/Cargo.toml
+include contrib/merge-lists/src/main.rs
+include contrib/merge-lists/tests/test-merge-lists.rs
 include contrib/mq.el
 include contrib/packaging/Makefile
 include contrib/packaging/build-linux-wheels.sh
@@ -131,7 +134,6 @@ include contrib/packaging/hgpackaging/__init__.py
 include contrib/packaging/hgpackaging/cli.py
 include contrib/packaging/hgpackaging/downloads.py
 include contrib/packaging/hgpackaging/inno.py
-include contrib/packaging/hgpackaging/py2exe.py
 include contrib/packaging/hgpackaging/pyoxidizer.py
 include contrib/packaging/hgpackaging/util.py
 include contrib/packaging/hgpackaging/wix.py
@@ -145,7 +147,6 @@ include contrib/packaging/macosx/distribution.xml
 include contrib/packaging/mercurial.spec
 include contrib/packaging/packagelib.sh
 include contrib/packaging/packaging.py
-include contrib/packaging/requirements-windows-py2.txt
 include contrib/packaging/requirements-windows-py3.txt
 include contrib/packaging/requirements-windows.txt.in
 include contrib/packaging/requirements.txt
@@ -155,6 +156,7 @@ include contrib/packaging/wix/defines.wxi
 include contrib/packaging/wix/guids.wxi
 include contrib/packaging/wix/mercurial.wxs
 include contrib/packaging/wix/readme.rst
+include contrib/perf-utils/compare-discovery-case
 include contrib/perf-utils/discovery-helper.sh
 include contrib/perf-utils/perf-revlog-write-plot.py
 include contrib/perf-utils/search-discovery-case
@@ -317,7 +319,6 @@ include doc/runrst
 include doc/style.css
 include hg
 include hgdemandimport/__init__.py
-include hgdemandimport/demandimportpy2.py
 include hgdemandimport/demandimportpy3.py
 include hgdemandimport/tracing.py
 include hgeditor
@@ -704,6 +705,7 @@ include mercurial/revlog.py
 include mercurial/revlogutils/__init__.py
 include mercurial/revlogutils/concurrency_checker.py
 include mercurial/revlogutils/constants.py
+include mercurial/revlogutils/debug.py
 include mercurial/revlogutils/deltas.py
 include mercurial/revlogutils/docket.py
 include mercurial/revlogutils/flagutil.py
@@ -939,13 +941,6 @@ include mercurial/thirdparty/cbor/cbor2/compat.py
 include mercurial/thirdparty/cbor/cbor2/decoder.py
 include mercurial/thirdparty/cbor/cbor2/encoder.py
 include mercurial/thirdparty/cbor/cbor2/types.py
-include mercurial/thirdparty/concurrent/LICENSE
-include mercurial/thirdparty/concurrent/__init__.py
-include mercurial/thirdparty/concurrent/futures/__init__.py
-include mercurial/thirdparty/concurrent/futures/_base.py
-include mercurial/thirdparty/concurrent/futures/process.py
-include mercurial/thirdparty/concurrent/futures/thread.py
-include mercurial/thirdparty/selectors2.py
 include mercurial/thirdparty/sha1dc/LICENSE.txt
 include mercurial/thirdparty/sha1dc/README.md
 include mercurial/thirdparty/sha1dc/cext.c
@@ -992,6 +987,7 @@ include mercurial/unionrepo.py
 include mercurial/upgrade.py
 include mercurial/upgrade_utils/__init__.py
 include mercurial/upgrade_utils/actions.py
+include mercurial/upgrade_utils/auto_upgrade.py
 include mercurial/upgrade_utils/engine.py
 include mercurial/url.py
 include mercurial/urllibcompat.py
@@ -1030,6 +1026,7 @@ include relnotes/5.8
 include relnotes/5.9
 include relnotes/6.0
 include relnotes/6.1
+include relnotes/6.2
 include relnotes/next
 include rust/.cargo/config
 include rust/Cargo.lock
@@ -1386,6 +1383,7 @@ include tests/test-check-clang-format.t
 include tests/test-check-code.t
 include tests/test-check-commit.t
 include tests/test-check-config.t
+include tests/test-check-encoding.t
 include tests/test-check-execute.t
 include tests/test-check-format.t
 include tests/test-check-help.t
@@ -1731,6 +1729,7 @@ include tests/test-issue612.t
 include tests/test-issue619.t
 include tests/test-issue6528.t
 include tests/test-issue660.t
+include tests/test-issue6642.t
 include tests/test-issue672.t
 include tests/test-issue842.t
 include tests/test-journal-exists.t
@@ -1789,6 +1788,7 @@ include tests/test-merge-halt.t
 include tests/test-merge-internal-tools-pattern.t
 include tests/test-merge-local.t
 include tests/test-merge-no-file-change.t
+include tests/test-merge-partial-tool.t
 include tests/test-merge-remove.t
 include tests/test-merge-revert.t
 include tests/test-merge-revert2.t
@@ -2137,6 +2137,7 @@ include tests/test-stdio.py
 include tests/test-storage.py
 include tests/test-stream-bundle-v2.t
 include tests/test-strict.t
+include tests/test-strip-branch-cache.t
 include tests/test-strip-cross.t
 include tests/test-strip.t
 include tests/test-subrepo-deep-nested-change.t

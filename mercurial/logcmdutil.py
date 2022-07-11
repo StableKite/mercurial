@@ -5,7 +5,6 @@
 # This software may be used and distributed according to the terms of the
 # GNU General Public License version 2 or any later version.
 
-from __future__ import absolute_import
 
 import itertools
 import os
@@ -228,7 +227,7 @@ def diffordiffstat(
             )
 
 
-class changesetdiffer(object):
+class changesetdiffer:
     """Generate diff of changeset with pre-configured filtering functions"""
 
     def _makefilematcher(self, ctx):
@@ -262,7 +261,7 @@ def changesetlabels(ctx):
     return b' '.join(labels)
 
 
-class changesetprinter(object):
+class changesetprinter:
     '''show changeset information when templating not requested.'''
 
     def __init__(self, ui, repo, differ=None, diffopts=None, buffered=False):
@@ -328,7 +327,7 @@ class changesetprinter(object):
         if branch != b'default':
             self.ui.write(columns[b'branch'] % branch, label=b'log.branch')
 
-        for nsname, ns in pycompat.iteritems(self.repo.names):
+        for nsname, ns in self.repo.names.items():
             # branches has special logic already handled above, so here we just
             # skip it
             if nsname == b'branches':
@@ -377,10 +376,9 @@ class changesetprinter(object):
         self._exthook(ctx)
 
         if self.ui.debugflag:
-            files = ctx.p1().status(ctx)
             for key, value in zip(
                 [b'files', b'files+', b'files-'],
-                [files.modified, files.added, files.removed],
+                [ctx.filesmodified(), ctx.filesadded(), ctx.filesremoved()],
             ):
                 if value:
                     self.ui.write(
@@ -417,7 +415,7 @@ class changesetprinter(object):
                 self.ui.write(b"\n\n")
             else:
                 self.ui.write(
-                    columns[b'summary'] % description.splitlines()[0],
+                    columns[b'summary'] % stringutil.firstline(description),
                     label=b'log.summary',
                 )
         self.ui.write(b"\n")
@@ -512,11 +510,10 @@ class changesetformatter(changesetprinter):
             or b'added' in datahint
             or b'removed' in datahint
         ):
-            files = ctx.p1().status(ctx)
             fm.data(
-                modified=fm.formatlist(files.modified, name=b'file'),
-                added=fm.formatlist(files.added, name=b'file'),
-                removed=fm.formatlist(files.removed, name=b'file'),
+                modified=fm.formatlist(ctx.filesmodified(), name=b'file'),
+                added=fm.formatlist(ctx.filesadded(), name=b'file'),
+                removed=fm.formatlist(ctx.filesremoved(), name=b'file'),
             )
 
         verbose = not self.ui.debugflag and self.ui.verbose
@@ -707,7 +704,7 @@ def changesetdisplayer(ui, repo, opts, differ=None, buffered=False):
 
 
 @attr.s
-class walkopts(object):
+class walkopts:
     """Options to configure a set of revisions and file matcher factory
     to scan revision/file history
     """
@@ -992,7 +989,7 @@ def _makerevset(repo, wopts, slowpath):
         opts[b'_patslog'] = list(wopts.pats)
 
     expr = []
-    for op, val in sorted(pycompat.iteritems(opts)):
+    for op, val in sorted(opts.items()):
         if not val:
             continue
         revop, listop = _opt2logrevset[op]

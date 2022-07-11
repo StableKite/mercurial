@@ -4,7 +4,7 @@ use crate::dirstate::status::StatusPath;
 use crate::dirstate_tree::dirstate_map::BorrowedPath;
 use crate::dirstate_tree::dirstate_map::ChildNodesRef;
 use crate::dirstate_tree::dirstate_map::DirstateMap;
-use crate::dirstate_tree::dirstate_map::NodeData;
+use crate::dirstate_tree::dirstate_map::DirstateVersion;
 use crate::dirstate_tree::dirstate_map::NodeRef;
 use crate::dirstate_tree::on_disk::DirstateV2ParseError;
 use crate::matchers::get_ignore_function;
@@ -14,7 +14,6 @@ use crate::utils::files::get_path_from_bytes;
 use crate::utils::hg_path::HgPath;
 use crate::BadMatch;
 use crate::DirstateStatus;
-use crate::EntryState;
 use crate::HgPathBuf;
 use crate::HgPathCow;
 use crate::PatternFileWarning;
@@ -61,16 +60,29 @@ pub fn status<'dirstate>(
 
     let (ignore_fn, warnings, patterns_changed): (IgnoreFnType, _, _) =
         if options.list_ignored || options.list_unknown {
-            let mut hasher = Sha1::new();
-            let (ignore_fn, warnings) = get_ignore_function(
-                ignore_files,
-                &root_dir,
-                &mut |pattern_bytes| hasher.update(pattern_bytes),
-            )?;
-            let new_hash = *hasher.finalize().as_ref();
-            let changed = new_hash != dmap.ignore_patterns_hash;
-            dmap.ignore_patterns_hash = new_hash;
-            (ignore_fn, warnings, Some(changed))
+            let (ignore_fn, warnings, changed) = match dmap.dirstate_version {
+                DirstateVersion::V1 => {
+                    let (ignore_fn, warnings) = get_ignore_function(
+                        ignore_files,
+                        &root_dir,
+                        &mut |_pattern_bytes| {},
+                    )?;
+                    (ignore_fn, warnings, None)
+                }
+                DirstateVersion::V2 => {
+                    let mut hasher = Sha1::new();
+                    let (ignore_fn, warnings) = get_ignore_function(
+                        ignore_files,
+                        &root_dir,
+                        &mut |pattern_bytes| hasher.update(pattern_bytes),
+                    )?;
+                    let new_hash = *hasher.finalize().as_ref();
+                    let changed = new_hash != dmap.ignore_patterns_hash;
+                    dmap.ignore_patterns_hash = new_hash;
+                    (ignore_fn, warnings, Some(changed))
+                }
+            };
+            (ignore_fn, warnings, changed)
         } else {
             (Box::new(|&_| true), vec![], None)
         };
@@ -135,24 +147,16 @@ pub fn status<'dirstate>(
 
     outcome.dirty = common.ignore_patterns_have_changed == Some(true)
         || !outdated.is_empty()
-        || !new_cachable.is_empty();
+        || (!new_cachable.is_empty()
+            && dmap.dirstate_version == DirstateVersion::V2);
 
     // Remove outdated mtimes before adding new mtimes, in case a given
     // directory is both
     for path in &outdated {
-        let node = dmap.get_or_insert(path)?;
-        if let NodeData::CachedDirectory { .. } = &node.data {
-            node.data = NodeData::None
-        }
+        dmap.clear_cached_mtime(path)?;
     }
     for (path, mtime) in &new_cachable {
-        let node = dmap.get_or_insert(path)?;
-        match &node.data {
-            NodeData::Entry(_) => {} // Don’t overwrite an entry
-            NodeData::CachedDirectory { .. } | NodeData::None => {
-                node.data = NodeData::CachedDirectory { mtime: *mtime }
-            }
-        }
+        dmap.set_cached_mtime(path, *mtime)?;
     }
 
     Ok((outcome, warnings))
@@ -469,17 +473,23 @@ impl<'a, 'tree, 'on_disk> StatusCommon<'a, 'tree, 'on_disk> {
             )?
         } else {
             if file_or_symlink && self.matcher.matches(hg_path) {
-                if let Some(state) = dirstate_node.state()? {
-                    match state {
-                        EntryState::Added => {
-                            self.push_outcome(Outcome::Added, &dirstate_node)?
-                        }
-                        EntryState::Removed => self
-                            .push_outcome(Outcome::Removed, &dirstate_node)?,
-                        EntryState::Merged => self
-                            .push_outcome(Outcome::Modified, &dirstate_node)?,
-                        EntryState::Normal => self
-                            .handle_normal_file(&dirstate_node, fs_metadata)?,
+                if let Some(entry) = dirstate_node.entry()? {
+                    if !entry.any_tracked() {
+                        // Forward-compat if we start tracking unknown/ignored
+                        // files for caching reasons
+                        self.mark_unknown_or_ignored(
+                            has_ignored_ancestor,
+                            hg_path,
+                        );
+                    }
+                    if entry.added() {
+                        self.push_outcome(Outcome::Added, &dirstate_node)?;
+                    } else if entry.removed() {
+                        self.push_outcome(Outcome::Removed, &dirstate_node)?;
+                    } else if entry.modified() {
+                        self.push_outcome(Outcome::Modified, &dirstate_node)?;
+                    } else {
+                        self.handle_normal_file(&dirstate_node, fs_metadata)?;
                     }
                 } else {
                     // `node.entry.is_none()` indicates a "directory"
@@ -589,8 +599,7 @@ impl<'a, 'tree, 'on_disk> StatusCommon<'a, 'tree, 'on_disk> {
         Ok(())
     }
 
-    /// A file with `EntryState::Normal` in the dirstate was found in the
-    /// filesystem
+    /// A file that is clean in the dirstate was found in the filesystem
     fn handle_normal_file(
         &self,
         dirstate_node: &NodeRef<'tree, 'on_disk>,
@@ -663,10 +672,15 @@ impl<'a, 'tree, 'on_disk> StatusCommon<'a, 'tree, 'on_disk> {
         &self,
         dirstate_node: &NodeRef<'tree, 'on_disk>,
     ) -> Result<(), DirstateV2ParseError> {
-        if let Some(state) = dirstate_node.state()? {
+        if let Some(entry) = dirstate_node.entry()? {
+            if !entry.any_tracked() {
+                // Future-compat for when we start storing ignored and unknown
+                // files for caching reasons
+                return Ok(());
+            }
             let path = dirstate_node.full_path(self.dmap.on_disk)?;
             if self.matcher.matches(path) {
-                if let EntryState::Removed = state {
+                if entry.removed() {
                     self.push_outcome(Outcome::Removed, dirstate_node)?
                 } else {
                     self.push_outcome(Outcome::Deleted, &dirstate_node)?

@@ -931,6 +931,25 @@ you can downgrade your repository. To do so run the following command:</p>
 </dl>
 <p class="last">For a more comprehensive guide, see <a class="reference external" href="hg.1.html#internals.dirstate-v2"><tt class="docutils literal">hg help <span class="pre">internals.dirstate-v2</span></tt></a>.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">use-dirstate-v2.automatic-upgrade-of-mismatching-repositories</span></tt></dt>
+<dd><p class="first">When enabled, an automatic upgrade will be triggered when a repository format
+does not match its <cite>use-dirstate-v2</cite> config.</p>
+<p>This is an advanced behavior that most users will not need. We recommend you
+don't use this unless you are a seasoned administrator of a Mercurial install
+base.</p>
+<p>Automatic upgrade means that any process accessing the repository will
+upgrade the repository format to use <cite>dirstate-v2</cite>. This only triggers if a
+change is needed. This also applies to operations that would have been
+read-only (like hg status).</p>
+<p>If the repository cannot be locked, the automatic-upgrade operation will be
+skipped. The next operation will attempt it again.</p>
+<p class="last">This configuration will apply for moves in any direction, either adding the
+<cite>dirstate-v2</cite> format if <cite>format.use-dirstate-v2=yes</cite> or removing the
+<cite>dirstate-v2</cite> requirement if <cite>format.use-dirstate-v2=no</cite>. So we recommend
+setting both this value and <cite>format.use-dirstate-v2</cite> at the same time.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">use-dirstate-v2.automatic-upgrade-of-mismatching-repositories:quiet</span></tt></dt>
+<dd>Hide message when performing such automatic upgrade.</dd>
 <dt><tt class="docutils literal"><span class="pre">use-dirstate-tracked-hint</span></tt></dt>
 <dd><p class="first">Enable or disable the writing of &quot;tracked key&quot; file alongside the dirstate.
 (default to disabled)</p>
@@ -958,6 +977,26 @@ changes, the tracked set might have changed.</p>
 <li>storing the value and comparing it to a later value.</li>
 </ol>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">use-dirstate-tracked-hint.automatic-upgrade-of-mismatching-repositories</span></tt></dt>
+<dd><p class="first">When enabled, an automatic upgrade will be triggered when a repository format
+does not match its <cite>use-dirstate-tracked-hint</cite> config.</p>
+<p>This is an advanced behavior that most users will not need. We recommend you
+don't use this unless you are a seasoned administrator of a Mercurial install
+base.</p>
+<p>Automatic upgrade means that any process accessing the repository will
+upgrade the repository format to use <cite>dirstate-tracked-hint</cite>. This only
+triggers if a change is needed. This also applies to operations that would
+have been read-only (like hg status).</p>
+<p>If the repository cannot be locked, the automatic-upgrade operation will be
+skipped. The next operation will attempt it again.</p>
+<p class="last">This configuration will apply for moves in any direction, either adding the
+<cite>dirstate-tracked-hint</cite> format if <cite>format.use-dirstate-tracked-hint=yes</cite> or
+removing the <cite>dirstate-tracked-hint</cite> requirement if
+<cite>format.use-dirstate-tracked-hint=no</cite>. So we recommend setting both this
+value and <cite>format.use-dirstate-tracked-hint</cite> at the same time.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">use-dirstate-tracked-hint.automatic-upgrade-of-mismatching-repositories:quiet</span></tt></dt>
+<dd>Hide message when performing such automatic upgrade.</dd>
 <dt><tt class="docutils literal"><span class="pre">use-persistent-nodemap</span></tt></dt>
 <dd><p class="first">Enable or disable the &quot;persistent-nodemap&quot; feature which improves
 performance if the Rust extensions are available.</p>
@@ -1004,6 +1043,25 @@ is resolved. See <a class="reference external" href="hgrc.5.html#share"><tt clas
 <p>Introduced in Mercurial 5.7.</p>
 <p class="last">Enabled by default in Mercurial 6.1.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">use-share-safe.automatic-upgrade-of-mismatching-repositories</span></tt></dt>
+<dd><p class="first">When enabled, an automatic upgrade will be triggered when a repository format
+does not match its <cite>use-share-safe</cite> config.</p>
+<p>This is an advanced behavior that most users will not need. We recommend you
+don't use this unless you are a seasoned administrator of a Mercurial install
+base.</p>
+<p>Automatic upgrade means that any process accessing the repository will
+upgrade the repository format to use <cite>share-safe</cite>. This only triggers if a
+change is needed. This also applies to operation that would have been
+read-only (like hg status).</p>
+<p>If the repository cannot be locked, the automatic-upgrade operation will be
+skipped. The next operation will attempt it again.</p>
+<p class="last">This configuration will apply for moves in any direction, either adding the
+<cite>share-safe</cite> format if <cite>format.use-share-safe=yes</cite> or removing the
+<cite>share-safe</cite> requirement if <cite>format.use-share-safe=no</cite>. So we recommend
+setting both this value and <cite>format.use-share-safe</cite> at the same time.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">use-share-safe.automatic-upgrade-of-mismatching-repositories:quiet</span></tt></dt>
+<dd>Hide message when performing such automatic upgrade.</dd>
 <dt><tt class="docutils literal">usestore</tt></dt>
 <dd><p class="first">Enable or disable the &quot;store&quot; repository format which improves
 compatibility with systems that fold case or otherwise mangle
@@ -1955,6 +2013,8 @@ respecting the share source setting</p>
 <p class="last">Check <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-share-safe</span></tt></a> for details about the
 share-safe feature.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">safe-mismatch.source-safe:verbose-upgrade</span></tt></dt>
+<dd>Display a message when upgrading, (default: True)</dd>
 <dt><tt class="docutils literal"><span class="pre">safe-mismatch.source-safe.warn</span></tt></dt>
 <dd>Shows a warning on operations if the shared repository does not use
 share-safe, but the source repository does.
@@ -1976,6 +2036,8 @@ if it fails, continue by respecting the shared source setting</p>
 <p class="last">Check <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-share-safe</span></tt></a> for details about the
 share-safe feature.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">safe-mismatch.source-not-safe:verbose-upgrade</span></tt></dt>
+<dd>Display a message when upgrading, (default: True)</dd>
 <dt><tt class="docutils literal"><span class="pre">safe-mismatch.source-not-safe.warn</span></tt></dt>
 <dd>Shows a warning on operations if the shared repository uses share-safe,
 but the source repository does not.

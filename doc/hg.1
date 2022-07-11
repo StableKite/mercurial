@@ -2422,7 +2422,8 @@ Differences between files are shown using the unified diff format.
 .
 \%\fBhg diff\fP\: may generate unexpected results for merges, as it will
 default to comparing against the working directory\(aqs first
-parent changeset if no revisions are specified.
+parent changeset if no revisions are specified.  To diff against the
+conflict regions, you can use \fI\-\-config diff.merge=yes\fP.
 .RE
 .sp
 By default, the working directory files are compared to its first parent. To
@@ -9220,9 +9221,12 @@ Pattern matching is supported for \fInamespace\fP. See
 .TP
 .B \fBnodefromfile(path)\fP
 .sp
-An alias for \fB::.\fP (ancestors of the working directory\(aqs first parent).
-If file pattern is specified, the histories of files matching given
-pattern in the revision given by startrev are followed, including copies.
+Read a list of nodes from the file at \fIpath\fP.
+.sp
+This applies \fIid(LINE)\fP to each line of the file.
+.sp
+This is useful when the amount of nodes you need to specify gets too large
+for the command line.
 .TP
 .B \fBnone()\fP
 .sp

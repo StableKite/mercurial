@@ -1248,6 +1248,32 @@ you can downgrade your repository. To do so run the following command:
 .sp
 For a more comprehensive guide, see \%\fBhg help internals.dirstate\-v2\fP\:.
 .TP
+.B \fBuse\-dirstate\-v2.automatic\-upgrade\-of\-mismatching\-repositories\fP
+.sp
+When enabled, an automatic upgrade will be triggered when a repository format
+does not match its \fIuse\-dirstate\-v2\fP config.
+.sp
+This is an advanced behavior that most users will not need. We recommend you
+don\(aqt use this unless you are a seasoned administrator of a Mercurial install
+base.
+.sp
+Automatic upgrade means that any process accessing the repository will
+upgrade the repository format to use \fIdirstate\-v2\fP. This only triggers if a
+change is needed. This also applies to operations that would have been
+read\-only (like hg status).
+.sp
+If the repository cannot be locked, the automatic\-upgrade operation will be
+skipped. The next operation will attempt it again.
+.sp
+This configuration will apply for moves in any direction, either adding the
+\fIdirstate\-v2\fP format if \fIformat.use\-dirstate\-v2=yes\fP or removing the
+\fIdirstate\-v2\fP requirement if \fIformat.use\-dirstate\-v2=no\fP. So we recommend
+setting both this value and \fIformat.use\-dirstate\-v2\fP at the same time.
+.TP
+.B \fBuse\-dirstate\-v2.automatic\-upgrade\-of\-mismatching\-repositories:quiet\fP
+.sp
+Hide message when performing such automatic upgrade.
+.TP
 .B \fBuse\-dirstate\-tracked\-hint\fP
 .sp
 Enable or disable the writing of "tracked key" file alongside the dirstate.
@@ -1283,6 +1309,33 @@ changes, the tracked set might have changed.
 .
 storing the value and comparing it to a later value.
 .UNINDENT
+.TP
+.B \fBuse\-dirstate\-tracked\-hint.automatic\-upgrade\-of\-mismatching\-repositories\fP
+.sp
+When enabled, an automatic upgrade will be triggered when a repository format
+does not match its \fIuse\-dirstate\-tracked\-hint\fP config.
+.sp
+This is an advanced behavior that most users will not need. We recommend you
+don\(aqt use this unless you are a seasoned administrator of a Mercurial install
+base.
+.sp
+Automatic upgrade means that any process accessing the repository will
+upgrade the repository format to use \fIdirstate\-tracked\-hint\fP. This only
+triggers if a change is needed. This also applies to operations that would
+have been read\-only (like hg status).
+.sp
+If the repository cannot be locked, the automatic\-upgrade operation will be
+skipped. The next operation will attempt it again.
+.sp
+This configuration will apply for moves in any direction, either adding the
+\fIdirstate\-tracked\-hint\fP format if \fIformat.use\-dirstate\-tracked\-hint=yes\fP or
+removing the \fIdirstate\-tracked\-hint\fP requirement if
+\fIformat.use\-dirstate\-tracked\-hint=no\fP. So we recommend setting both this
+value and \fIformat.use\-dirstate\-tracked\-hint\fP at the same time.
+.TP
+.B \fBuse\-dirstate\-tracked\-hint.automatic\-upgrade\-of\-mismatching\-repositories:quiet\fP
+.sp
+Hide message when performing such automatic upgrade.
 .TP
 .B \fBuse\-persistent\-nodemap\fP
 .sp
@@ -1352,6 +1405,32 @@ is resolved. See \%\fBhg help config.share.safe\-mismatch.source\-safe\fP\: and
 Introduced in Mercurial 5.7.
 .sp
 Enabled by default in Mercurial 6.1.
+.TP
+.B \fBuse\-share\-safe.automatic\-upgrade\-of\-mismatching\-repositories\fP
+.sp
+When enabled, an automatic upgrade will be triggered when a repository format
+does not match its \fIuse\-share\-safe\fP config.
+.sp
+This is an advanced behavior that most users will not need. We recommend you
+don\(aqt use this unless you are a seasoned administrator of a Mercurial install
+base.
+.sp
+Automatic upgrade means that any process accessing the repository will
+upgrade the repository format to use \fIshare\-safe\fP. This only triggers if a
+change is needed. This also applies to operation that would have been
+read\-only (like hg status).
+.sp
+If the repository cannot be locked, the automatic\-upgrade operation will be
+skipped. The next operation will attempt it again.
+.sp
+This configuration will apply for moves in any direction, either adding the
+\fIshare\-safe\fP format if \fIformat.use\-share\-safe=yes\fP or removing the
+\fIshare\-safe\fP requirement if \fIformat.use\-share\-safe=no\fP. So we recommend
+setting both this value and \fIformat.use\-share\-safe\fP at the same time.
+.TP
+.B \fBuse\-share\-safe.automatic\-upgrade\-of\-mismatching\-repositories:quiet\fP
+.sp
+Hide message when performing such automatic upgrade.
 .TP
 .B \fBusestore\fP
 .sp
@@ -2615,6 +2694,10 @@ respecting the share source setting
 Check \%\fBhg help config.format.use\-share\-safe\fP\: for details about the
 share\-safe feature.
 .TP
+.B \fBsafe\-mismatch.source\-safe:verbose\-upgrade\fP
+.sp
+Display a message when upgrading, (default: True)
+.TP
 .B \fBsafe\-mismatch.source\-safe.warn\fP
 .sp
 Shows a warning on operations if the shared repository does not use
@@ -2641,6 +2724,10 @@ if it fails, continue by respecting the shared source setting
 .sp
 Check \%\fBhg help config.format.use\-share\-safe\fP\: for details about the
 share\-safe feature.
+.TP
+.B \fBsafe\-mismatch.source\-not\-safe:verbose\-upgrade\fP
+.sp
+Display a message when upgrading, (default: True)
 .TP
 .B \fBsafe\-mismatch.source\-not\-safe.warn\fP
 .sp

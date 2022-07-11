@@ -73,7 +73,6 @@ contrib/xml.rnc
 contrib/zsh_completion
 contrib/automation/README.rst
 contrib/automation/automation.py
-contrib/automation/linux-requirements-py2.txt
 contrib/automation/linux-requirements-py3.5.txt
 contrib/automation/linux-requirements-py3.txt
 contrib/automation/linux-requirements.txt.in
@@ -132,6 +131,10 @@ contrib/fuzz/standalone_fuzz_target_runner.cc
 contrib/fuzz/xdiff.cc
 contrib/hgsh/Makefile
 contrib/hgsh/hgsh.c
+contrib/merge-lists/Cargo.lock
+contrib/merge-lists/Cargo.toml
+contrib/merge-lists/src/main.rs
+contrib/merge-lists/tests/test-merge-lists.rs
 contrib/packaging/Makefile
 contrib/packaging/build-linux-wheels.sh
 contrib/packaging/builddeb
@@ -143,7 +146,6 @@ contrib/packaging/linux-wheel-centos5-blacklist
 contrib/packaging/mercurial.spec
 contrib/packaging/packagelib.sh
 contrib/packaging/packaging.py
-contrib/packaging/requirements-windows-py2.txt
 contrib/packaging/requirements-windows-py3.txt
 contrib/packaging/requirements-windows.txt.in
 contrib/packaging/requirements.txt
@@ -165,7 +167,6 @@ contrib/packaging/hgpackaging/__init__.py
 contrib/packaging/hgpackaging/cli.py
 contrib/packaging/hgpackaging/downloads.py
 contrib/packaging/hgpackaging/inno.py
-contrib/packaging/hgpackaging/py2exe.py
 contrib/packaging/hgpackaging/pyoxidizer.py
 contrib/packaging/hgpackaging/util.py
 contrib/packaging/hgpackaging/wix.py
@@ -180,6 +181,7 @@ contrib/packaging/wix/defines.wxi
 contrib/packaging/wix/guids.wxi
 contrib/packaging/wix/mercurial.wxs
 contrib/packaging/wix/readme.rst
+contrib/perf-utils/compare-discovery-case
 contrib/perf-utils/discovery-helper.sh
 contrib/perf-utils/perf-revlog-write-plot.py
 contrib/perf-utils/search-discovery-case
@@ -331,7 +333,6 @@ doc/hgrc.5.html
 doc/runrst
 doc/style.css
 hgdemandimport/__init__.py
-hgdemandimport/demandimportpy2.py
 hgdemandimport/demandimportpy3.py
 hgdemandimport/tracing.py
 hgext/__init__.py
@@ -771,6 +772,7 @@ mercurial/pure/parsers.py
 mercurial/revlogutils/__init__.py
 mercurial/revlogutils/concurrency_checker.py
 mercurial/revlogutils/constants.py
+mercurial/revlogutils/debug.py
 mercurial/revlogutils/deltas.py
 mercurial/revlogutils/docket.py
 mercurial/revlogutils/flagutil.py
@@ -956,7 +958,6 @@ mercurial/testing/__init__.py
 mercurial/testing/revlog.py
 mercurial/testing/storage.py
 mercurial/thirdparty/__init__.py
-mercurial/thirdparty/selectors2.py
 mercurial/thirdparty/attr/LICENSE.txt
 mercurial/thirdparty/attr/__init__.py
 mercurial/thirdparty/attr/_compat.py
@@ -976,12 +977,6 @@ mercurial/thirdparty/cbor/cbor2/compat.py
 mercurial/thirdparty/cbor/cbor2/decoder.py
 mercurial/thirdparty/cbor/cbor2/encoder.py
 mercurial/thirdparty/cbor/cbor2/types.py
-mercurial/thirdparty/concurrent/LICENSE
-mercurial/thirdparty/concurrent/__init__.py
-mercurial/thirdparty/concurrent/futures/__init__.py
-mercurial/thirdparty/concurrent/futures/_base.py
-mercurial/thirdparty/concurrent/futures/process.py
-mercurial/thirdparty/concurrent/futures/thread.py
 mercurial/thirdparty/sha1dc/LICENSE.txt
 mercurial/thirdparty/sha1dc/README.md
 mercurial/thirdparty/sha1dc/cext.c
@@ -1022,6 +1017,7 @@ mercurial/thirdparty/zope/interface/common/mapping.py
 mercurial/thirdparty/zope/interface/common/sequence.py
 mercurial/upgrade_utils/__init__.py
 mercurial/upgrade_utils/actions.py
+mercurial/upgrade_utils/auto_upgrade.py
 mercurial/upgrade_utils/engine.py
 mercurial/utils/__init__.py
 mercurial/utils/cborutil.py
@@ -1046,6 +1042,7 @@ relnotes/5.8
 relnotes/5.9
 relnotes/6.0
 relnotes/6.1
+relnotes/6.2
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
@@ -1312,6 +1309,7 @@ tests/test-check-clang-format.t
 tests/test-check-code.t
 tests/test-check-commit.t
 tests/test-check-config.t
+tests/test-check-encoding.t
 tests/test-check-execute.t
 tests/test-check-format.t
 tests/test-check-help.t
@@ -1657,6 +1655,7 @@ tests/test-issue612.t
 tests/test-issue619.t
 tests/test-issue6528.t
 tests/test-issue660.t
+tests/test-issue6642.t
 tests/test-issue672.t
 tests/test-issue842.t
 tests/test-journal-exists.t
@@ -1715,6 +1714,7 @@ tests/test-merge-halt.t
 tests/test-merge-internal-tools-pattern.t
 tests/test-merge-local.t
 tests/test-merge-no-file-change.t
+tests/test-merge-partial-tool.t
 tests/test-merge-remove.t
 tests/test-merge-revert.t
 tests/test-merge-revert2.t
@@ -2063,6 +2063,7 @@ tests/test-stdio.py
 tests/test-storage.py
 tests/test-stream-bundle-v2.t
 tests/test-strict.t
+tests/test-strip-branch-cache.t
 tests/test-strip-cross.t
 tests/test-strip.t
 tests/test-subrepo-deep-nested-change.t

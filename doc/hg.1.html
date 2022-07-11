@@ -2033,7 +2033,8 @@ hg diff [OPTION]... ([-c REV] | [--from REV1] [--to REV2]) [FILE]...
 <p class="first admonition-title">Note</p>
 <p class="last"><a class="reference external" href="hg.1.html#diff"><tt class="docutils literal">hg diff</tt></a> may generate unexpected results for merges, as it will
 default to comparing against the working directory's first
-parent changeset if no revisions are specified.</p>
+parent changeset if no revisions are specified.  To diff against the
+conflict regions, you can use <cite>--config diff.merge=yes</cite>.</p>
 </div>
 <p>By default, the working directory files are compared to its first parent. To
 see the differences from another revision, use --from. To see the difference
@@ -7208,9 +7209,11 @@ directory.</p>
 <a class="reference external" href="hg.1.html#revisions.patterns"><tt class="docutils literal">hg help revisions.patterns</tt></a>.</p>
 </dd>
 <dt><tt class="docutils literal">nodefromfile(path)</tt></dt>
-<dd>An alias for <tt class="docutils literal">::.</tt> (ancestors of the working directory's first parent).
-If file pattern is specified, the histories of files matching given
-pattern in the revision given by startrev are followed, including copies.</dd>
+<dd><p class="first">Read a list of nodes from the file at <cite>path</cite>.</p>
+<p>This applies <cite>id(LINE)</cite> to each line of the file.</p>
+<p class="last">This is useful when the amount of nodes you need to specify gets too large
+for the command line.</p>
+</dd>
 <dt><tt class="docutils literal">none()</tt></dt>
 <dd>No changesets.</dd>
 <dt><tt class="docutils literal">only(set, [set])</tt></dt>
