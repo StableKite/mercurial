@@ -1926,6 +1926,7 @@ include tests/test-pull-permission.t
 include tests/test-pull-pull-corruption.t
 include tests/test-pull-r.t
 include tests/test-pull-update.t
+include tests/test-purge-ignored-directory.t
 include tests/test-purge.t
 include tests/test-push-cgi.t
 include tests/test-push-checkheads-multibranches-E1.t

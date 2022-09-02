@@ -1852,6 +1852,7 @@ tests/test-pull-permission.t
 tests/test-pull-pull-corruption.t
 tests/test-pull-r.t
 tests/test-pull-update.t
+tests/test-purge-ignored-directory.t
 tests/test-purge.t
 tests/test-push-cgi.t
 tests/test-push-checkheads-multibranches-E1.t
