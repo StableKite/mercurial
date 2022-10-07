@@ -31,6 +31,7 @@ contrib/check-code.py
 contrib/check-commit
 contrib/check-config.py
 contrib/check-py3-compat.py
+contrib/check-pytype.sh
 contrib/clang-format-ignorelist
 contrib/debugcmdserver.py
 contrib/debugshell.py
@@ -1320,7 +1321,6 @@ tests/test-check-module-imports.t
 tests/test-check-py3-compat.t
 tests/test-check-pyflakes.t
 tests/test-check-pylint.t
-tests/test-check-pytype.t
 tests/test-check-rust-format.t
 tests/test-check-shbang.t
 tests/test-chg.t

@@ -43,6 +43,7 @@ include contrib/check-code.py
 include contrib/check-commit
 include contrib/check-config.py
 include contrib/check-py3-compat.py
+include contrib/check-pytype.sh
 include contrib/chg/Makefile
 include contrib/chg/README
 include contrib/chg/chg.1
@@ -1394,7 +1395,6 @@ include tests/test-check-module-imports.t
 include tests/test-check-py3-compat.t
 include tests/test-check-pyflakes.t
 include tests/test-check-pylint.t
-include tests/test-check-pytype.t
 include tests/test-check-rust-format.t
 include tests/test-check-shbang.t
 include tests/test-chg.t
