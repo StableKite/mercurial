@@ -314,6 +314,8 @@ lazy_static! {
         m.insert(b"rootglob".as_ref(), b"rootglob:".as_ref());
         m.insert(b"include".as_ref(), b"include:".as_ref());
         m.insert(b"subinclude".as_ref(), b"subinclude:".as_ref());
+        m.insert(b"path".as_ref(), b"path:".as_ref());
+        m.insert(b"rootfilesin".as_ref(), b"rootfilesin:".as_ref());
         m
     };
 }
@@ -329,6 +331,7 @@ pub enum PatternFileWarning {
 pub fn parse_pattern_file_contents(
     lines: &[u8],
     file_path: &Path,
+    default_syntax_override: Option<&[u8]>,
     warn: bool,
 ) -> Result<(Vec<IgnorePattern>, Vec<PatternFileWarning>), PatternError> {
     let comment_regex = Regex::new(r"((?:^|[^\\])(?:\\\\)*)#.*").unwrap();
@@ -338,7 +341,8 @@ pub fn parse_pattern_file_contents(
     let mut inputs: Vec<IgnorePattern> = vec![];
     let mut warnings: Vec<PatternFileWarning> = vec![];
 
-    let mut current_syntax = b"relre:".as_ref();
+    let mut current_syntax =
+        default_syntax_override.unwrap_or(b"relre:".as_ref());
 
     for (line_number, mut line) in lines.split(|c| *c == b'\n').enumerate() {
         let line_number = line_number + 1;
@@ -408,12 +412,12 @@ pub fn parse_pattern_file_contents(
 pub fn read_pattern_file(
     file_path: &Path,
     warn: bool,
-    inspect_pattern_bytes: &mut impl FnMut(&[u8]),
+    inspect_pattern_bytes: &mut impl FnMut(&Path, &[u8]),
 ) -> Result<(Vec<IgnorePattern>, Vec<PatternFileWarning>), PatternError> {
     match std::fs::read(file_path) {
         Ok(contents) => {
-            inspect_pattern_bytes(&contents);
-            parse_pattern_file_contents(&contents, file_path, warn)
+            inspect_pattern_bytes(file_path, &contents);
+            parse_pattern_file_contents(&contents, file_path, None, warn)
         }
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok((
             vec![],
@@ -451,7 +455,7 @@ pub type PatternResult<T> = Result<T, PatternError>;
 pub fn get_patterns_from_file(
     pattern_file: &Path,
     root_dir: &Path,
-    inspect_pattern_bytes: &mut impl FnMut(&[u8]),
+    inspect_pattern_bytes: &mut impl FnMut(&Path, &[u8]),
 ) -> PatternResult<(Vec<IgnorePattern>, Vec<PatternFileWarning>)> {
     let (patterns, mut warnings) =
         read_pattern_file(pattern_file, true, inspect_pattern_bytes)?;
@@ -601,9 +605,14 @@ mod tests {
         let lines = b"syntax: glob\n*.elc";
 
         assert_eq!(
-            parse_pattern_file_contents(lines, Path::new("file_path"), false)
-                .unwrap()
-                .0,
+            parse_pattern_file_contents(
+                lines,
+                Path::new("file_path"),
+                None,
+                false
+            )
+            .unwrap()
+            .0,
             vec![IgnorePattern::new(
                 PatternSyntax::RelGlob,
                 b"*.elc",
@@ -614,16 +623,26 @@ mod tests {
         let lines = b"syntax: include\nsyntax: glob";
 
         assert_eq!(
-            parse_pattern_file_contents(lines, Path::new("file_path"), false)
-                .unwrap()
-                .0,
+            parse_pattern_file_contents(
+                lines,
+                Path::new("file_path"),
+                None,
+                false
+            )
+            .unwrap()
+            .0,
             vec![]
         );
         let lines = b"glob:**.o";
         assert_eq!(
-            parse_pattern_file_contents(lines, Path::new("file_path"), false)
-                .unwrap()
-                .0,
+            parse_pattern_file_contents(
+                lines,
+                Path::new("file_path"),
+                None,
+                false
+            )
+            .unwrap()
+            .0,
             vec![IgnorePattern::new(
                 PatternSyntax::RelGlob,
                 b"**.o",

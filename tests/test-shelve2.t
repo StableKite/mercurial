@@ -1,6 +1,16 @@
 #testcases stripbased phasebased
 #testcases abortflag abortcommand
 #testcases continueflag continuecommand
+#testcases dirstate-v1 dirstate-v2
+
+#if dirstate-v2
+  $ cat >> $HGRCPATH << EOF
+  > [format]
+  > use-dirstate-v2=1
+  > [storage]
+  > dirstate-v2.slow-path=allow
+  > EOF
+#endif
 
   $ cat <<EOF >> $HGRCPATH
   > [extensions]
@@ -16,7 +26,7 @@
 
   $ cat <<EOF >> $HGRCPATH
   > [format]
-  > internal-phase = yes
+  > use-internal-phase = yes
   > EOF
 
 #endif

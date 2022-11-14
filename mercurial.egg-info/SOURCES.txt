@@ -57,6 +57,7 @@ contrib/mq.el
 contrib/perf.py
 contrib/phab-clean.py
 contrib/phab-refresh-stack.sh
+contrib/pull_logger.py
 contrib/pylintrc
 contrib/python-hook-examples.py
 contrib/python3-ratchet.py
@@ -163,6 +164,7 @@ contrib/packaging/docker/debian.template
 contrib/packaging/docker/fedora.template
 contrib/packaging/docker/rhel7
 contrib/packaging/docker/rhel8
+contrib/packaging/docker/rhel9
 contrib/packaging/docker/ubuntu.template
 contrib/packaging/hgpackaging/__init__.py
 contrib/packaging/hgpackaging/cli.py
@@ -1044,6 +1046,7 @@ relnotes/5.9
 relnotes/6.0
 relnotes/6.1
 relnotes/6.2
+relnotes/6.3
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
@@ -1080,15 +1083,18 @@ rust/hg-core/src/lib.rs
 rust/hg-core/src/lock.rs
 rust/hg-core/src/logging.rs
 rust/hg-core/src/matchers.rs
+rust/hg-core/src/narrow.rs
 rust/hg-core/src/repo.rs
 rust/hg-core/src/requirements.rs
 rust/hg-core/src/revlog.rs
 rust/hg-core/src/revset.rs
+rust/hg-core/src/sparse.rs
 rust/hg-core/src/testing.rs
 rust/hg-core/src/utils.rs
 rust/hg-core/src/vfs.rs
 rust/hg-core/src/config/config.rs
 rust/hg-core/src/config/layer.rs
+rust/hg-core/src/config/plain_info.rs
 rust/hg-core/src/config/values.rs
 rust/hg-core/src/copy_tracing/tests.rs
 rust/hg-core/src/copy_tracing/tests_support.rs
@@ -1158,6 +1164,7 @@ rust/rhg/src/commands/config.rs
 rust/rhg/src/commands/debugdata.rs
 rust/rhg/src/commands/debugignorerhg.rs
 rust/rhg/src/commands/debugrequirements.rs
+rust/rhg/src/commands/debugrhgsparse.rs
 rust/rhg/src/commands/files.rs
 rust/rhg/src/commands/root.rs
 rust/rhg/src/commands/status.rs
@@ -1358,6 +1365,7 @@ tests/test-contrib-check-commit.t
 tests/test-contrib-dumprevlog.t
 tests/test-contrib-emacs.t
 tests/test-contrib-perf.t
+tests/test-contrib-pull-logger.t
 tests/test-contrib-relnotes.t
 tests/test-contrib-testparseutil.t
 tests/test-contrib.t

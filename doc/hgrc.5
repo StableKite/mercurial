@@ -2670,6 +2670,60 @@ Currently, only the rebase and absorb commands consider this configuration.
 (EXPERIMENTAL)
 .UNINDENT
 .UNINDENT
+.SS \fBrhg\fP
+.sp
+The pure Rust fast\-path for Mercurial. See \fIrust/README.rst\fP in the Mercurial repository.
+.INDENT 0.0
+.TP
+.B \fBfallback\-executable\fP
+.sp
+Path to the executable to run in a sub\-process when falling back to
+another implementation of Mercurial.
+.TP
+.B \fBfallback\-immediately\fP
+.sp
+Fall back to \fBfallback\-executable\fP as soon as possible, regardless of
+the \fIrhg.on\-unsupported\fP configuration. Useful for debugging, for example to
+bypass \fIrhg\fP if the deault \fIhg\fP points to \fIrhg\fP.
+.sp
+Note that because this requires loading the configuration, it is possible
+that \fIrhg\fP error out before being able to fall back.
+.TP
+.B \fBignored\-extensions\fP
+.sp
+Controls which extensions should be ignored by \fIrhg\fP. By default, \fIrhg\fP
+triggers the \fIrhg.on\-unsupported\fP behavior any unsupported extensions.
+Users can disable that behavior when they know that a given extension
+does not need support from \fIrhg\fP.
+.sp
+Expects a list of extension names, or \fB*\fP to ignore all extensions.
+.sp
+Note: \fB*:<suboption>\fP is also a valid extension name for this
+configuration option.
+As of this writing, the only valid "global" suboption is \fBrequired\fP.
+.TP
+.B \fBon\-unsupported\fP
+.sp
+Controls the behavior of \fIrhg\fP when detecting unsupported features.
+.sp
+Possible values are \fIabort\fP (default), \fIabort\-silent\fP and \fIfallback\fP.
+.INDENT 7.0
+.TP
+.B \fBabort\fP
+.sp
+Print an error message describing what feature is not supported,
+and exit with code 252
+.TP
+.B \fBabort\-silent\fP
+.sp
+Silently exit with code 252
+.TP
+.B \fBfallback\fP
+.sp
+Try running the fallback executable with the same parameters
+(and trace the fallback reason, use \fIRUST_LOG=trace\fP to see).
+.UNINDENT
+.UNINDENT
 .SS \fBshare\fP
 .INDENT 0.0
 .TP
@@ -2680,16 +2734,25 @@ share\-safe mechanism but its source repository does.
 .sp
 Possible values are \fIabort\fP (default), \fIallow\fP, \fIupgrade\-abort\fP and
 \fIupgrade\-allow\fP.
+.INDENT 7.0
+.TP
+.B \fBabort\fP
 .sp
-\fBabort\fP
 Disallows running any command and aborts
-\fBallow\fP
+.TP
+.B \fBallow\fP
+.sp
 Respects the feature presence in the share source
-\fBupgrade\-abort\fP
-tries to upgrade the share to use share\-safe; if it fails, aborts
-\fBupgrade\-allow\fP
-tries to upgrade the share; if it fails, continue by
+.TP
+.B \fBupgrade\-abort\fP
+.sp
+Tries to upgrade the share to use share\-safe; if it fails, aborts
+.TP
+.B \fBupgrade\-allow\fP
+.sp
+Tries to upgrade the share; if it fails, continue by
 respecting the share source setting
+.UNINDENT
 .sp
 Check \%\fBhg help config.format.use\-share\-safe\fP\: for details about the
 share\-safe feature.
@@ -2711,16 +2774,25 @@ mechanism but its source does not.
 .sp
 Possible values are \fIabort\fP (default), \fIallow\fP, \fIdowngrade\-abort\fP and
 \fIdowngrade\-allow\fP.
+.INDENT 7.0
+.TP
+.B \fBabort\fP
 .sp
-\fBabort\fP
 Disallows running any command and aborts
-\fBallow\fP
+.TP
+.B \fBallow\fP
+.sp
 Respects the feature presence in the share source
-\fBdowngrade\-abort\fP
-tries to downgrade the share to not use share\-safe; if it fails, aborts
-\fBdowngrade\-allow\fP
-tries to downgrade the share to not use share\-safe;
+.TP
+.B \fBdowngrade\-abort\fP
+.sp
+Tries to downgrade the share to not use share\-safe; if it fails, aborts
+.TP
+.B \fBdowngrade\-allow\fP
+.sp
+Tries to downgrade the share to not use share\-safe;
 if it fails, continue by respecting the shared source setting
+.UNINDENT
 .sp
 Check \%\fBhg help config.format.use\-share\-safe\fP\: for details about the
 share\-safe feature.

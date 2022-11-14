@@ -5146,6 +5146,10 @@ Returns 0 on success, 1 if no changes found.
 Options:
 .INDENT 0.0
 .TP
+.B \-\-exact
+.
+compute the base from the revision specified
+.TP
 .B \-f,  \-\-force
 .
 run even when the destination is unrelated
@@ -6050,6 +6054,37 @@ and size.
 No compression is performed.
 .sp
 Use this compression engine to explicitly disable compression.
+.UNINDENT
+.SS Available Options
+.sp
+The following options exist:
+.INDENT 0.0
+.TP
+.B changegroup
+.
+Include the changegroup data in the bundle (default to True).
+.TP
+.B cg.version
+.
+Select the version of the changegroup to use. Available options are : 01, 02
+or 03. By default it will be automatically selected according to the current
+repository format.
+.TP
+.B obsolescence
+.
+Include obsolescence\-markers relevant to the bundled changesets.
+.TP
+.B phases
+.
+Include phase information relevant to the bundled changesets.
+.TP
+.B revbranchcache
+.
+Include the "tags\-fnodes" cache inside the bundle.
+.TP
+.B tagsfnodescache
+.
+Include the "tags\-fnodes" cache inside the bundle.
 .UNINDENT
 .SS Examples
 .INDENT 0.0
@@ -9346,11 +9381,17 @@ The keys can be:
 .IP \(bu 2
 .
 \fBnode\fP the nodeid of the revision
+.IP \(bu 2
+.
+\fBrandom\fP randomly shuffle revisions
 .UNINDENT
 .sp
 The \fBtopo\fP sort order cannot be combined with other sort keys. This sort
 takes one optional argument, \fBtopo.firstbranch\fP, which takes a revset that
 specifies what topographical branches to prioritize in the sort.
+.sp
+The \fBrandom\fP sort takes one optional \fBrandom.seed\fP argument to control
+the pseudo\-randomness of the result.
 .TP
 .B \fBsubrepo([pattern])\fP
 .sp
@@ -9593,6 +9634,8 @@ execution of certain commands while adding no discernable overhead for the rest.
 .sp
 The only way of trying it out is by building it from source. Please refer to
 \fIrust/README.rst\fP in the Mercurial repository.
+.sp
+See \fIhg help config.rhg\fP for configuration options.
 .SS Contributing
 .sp
 If you would like to help the Rust endeavor, please refer to \fIrust/README.rst\fP
@@ -10378,6 +10421,10 @@ XML entities.
 .
 Any text. Returns the name before an email address,
 interpreting it as per RFC 5322.
+.TP
+.B reverse
+.
+List. Reverses the order of list items.
 .TP
 .B revescape
 .

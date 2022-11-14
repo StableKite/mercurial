@@ -68,25 +68,26 @@
 <li><a class="reference internal" href="#rebase" id="toc-entry-35"><tt class="docutils literal">rebase</tt></a></li>
 <li><a class="reference internal" href="#revsetalias" id="toc-entry-36"><tt class="docutils literal">revsetalias</tt></a></li>
 <li><a class="reference internal" href="#rewrite" id="toc-entry-37"><tt class="docutils literal">rewrite</tt></a></li>
-<li><a class="reference internal" href="#share" id="toc-entry-38"><tt class="docutils literal">share</tt></a></li>
-<li><a class="reference internal" href="#storage" id="toc-entry-39"><tt class="docutils literal">storage</tt></a></li>
-<li><a class="reference internal" href="#server" id="toc-entry-40"><tt class="docutils literal">server</tt></a></li>
-<li><a class="reference internal" href="#smtp" id="toc-entry-41"><tt class="docutils literal">smtp</tt></a></li>
-<li><a class="reference internal" href="#subpaths" id="toc-entry-42"><tt class="docutils literal">subpaths</tt></a></li>
-<li><a class="reference internal" href="#subrepos" id="toc-entry-43"><tt class="docutils literal">subrepos</tt></a></li>
-<li><a class="reference internal" href="#templatealias" id="toc-entry-44"><tt class="docutils literal">templatealias</tt></a></li>
-<li><a class="reference internal" href="#templates" id="toc-entry-45"><tt class="docutils literal">templates</tt></a></li>
-<li><a class="reference internal" href="#trusted" id="toc-entry-46"><tt class="docutils literal">trusted</tt></a></li>
-<li><a class="reference internal" href="#ui" id="toc-entry-47"><tt class="docutils literal">ui</tt></a></li>
-<li><a class="reference internal" href="#command-templates" id="toc-entry-48"><tt class="docutils literal"><span class="pre">command-templates</span></tt></a></li>
-<li><a class="reference internal" href="#web" id="toc-entry-49"><tt class="docutils literal">web</tt></a></li>
-<li><a class="reference internal" href="#websub" id="toc-entry-50"><tt class="docutils literal">websub</tt></a></li>
-<li><a class="reference internal" href="#worker" id="toc-entry-51"><tt class="docutils literal">worker</tt></a></li>
+<li><a class="reference internal" href="#rhg" id="toc-entry-38"><tt class="docutils literal">rhg</tt></a></li>
+<li><a class="reference internal" href="#share" id="toc-entry-39"><tt class="docutils literal">share</tt></a></li>
+<li><a class="reference internal" href="#storage" id="toc-entry-40"><tt class="docutils literal">storage</tt></a></li>
+<li><a class="reference internal" href="#server" id="toc-entry-41"><tt class="docutils literal">server</tt></a></li>
+<li><a class="reference internal" href="#smtp" id="toc-entry-42"><tt class="docutils literal">smtp</tt></a></li>
+<li><a class="reference internal" href="#subpaths" id="toc-entry-43"><tt class="docutils literal">subpaths</tt></a></li>
+<li><a class="reference internal" href="#subrepos" id="toc-entry-44"><tt class="docutils literal">subrepos</tt></a></li>
+<li><a class="reference internal" href="#templatealias" id="toc-entry-45"><tt class="docutils literal">templatealias</tt></a></li>
+<li><a class="reference internal" href="#templates" id="toc-entry-46"><tt class="docutils literal">templates</tt></a></li>
+<li><a class="reference internal" href="#trusted" id="toc-entry-47"><tt class="docutils literal">trusted</tt></a></li>
+<li><a class="reference internal" href="#ui" id="toc-entry-48"><tt class="docutils literal">ui</tt></a></li>
+<li><a class="reference internal" href="#command-templates" id="toc-entry-49"><tt class="docutils literal"><span class="pre">command-templates</span></tt></a></li>
+<li><a class="reference internal" href="#web" id="toc-entry-50"><tt class="docutils literal">web</tt></a></li>
+<li><a class="reference internal" href="#websub" id="toc-entry-51"><tt class="docutils literal">websub</tt></a></li>
+<li><a class="reference internal" href="#worker" id="toc-entry-52"><tt class="docutils literal">worker</tt></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#author" id="toc-entry-52">Author</a></li>
-<li><a class="reference internal" href="#see-also" id="toc-entry-53">See Also</a></li>
-<li><a class="reference internal" href="#copying" id="toc-entry-54">Copying</a></li>
+<li><a class="reference internal" href="#author" id="toc-entry-53">Author</a></li>
+<li><a class="reference internal" href="#see-also" id="toc-entry-54">See Also</a></li>
+<li><a class="reference internal" href="#copying" id="toc-entry-55">Copying</a></li>
 </ul>
 </div>
 <div class="section" id="description">
@@ -1993,6 +1994,46 @@ operations. If set to <tt class="docutils literal">skip</tt>, the successor is n
 (EXPERIMENTAL)</p>
 </blockquote>
 </div>
+<div class="section" id="rhg">
+<h2><a class="toc-backref" href="#contents"><tt class="docutils literal">rhg</tt></a></h2>
+<p>The pure Rust fast-path for Mercurial. See <cite>rust/README.rst</cite> in the Mercurial repository.</p>
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">fallback-executable</span></tt></dt>
+<dd>Path to the executable to run in a sub-process when falling back to
+another implementation of Mercurial.</dd>
+<dt><tt class="docutils literal"><span class="pre">fallback-immediately</span></tt></dt>
+<dd><p class="first">Fall back to <tt class="docutils literal"><span class="pre">fallback-executable</span></tt> as soon as possible, regardless of
+the <cite>rhg.on-unsupported</cite> configuration. Useful for debugging, for example to
+bypass <cite>rhg</cite> if the deault <cite>hg</cite> points to <cite>rhg</cite>.</p>
+<p class="last">Note that because this requires loading the configuration, it is possible
+that <cite>rhg</cite> error out before being able to fall back.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">ignored-extensions</span></tt></dt>
+<dd><p class="first">Controls which extensions should be ignored by <cite>rhg</cite>. By default, <cite>rhg</cite>
+triggers the <cite>rhg.on-unsupported</cite> behavior any unsupported extensions.
+Users can disable that behavior when they know that a given extension
+does not need support from <cite>rhg</cite>.</p>
+<p>Expects a list of extension names, or <tt class="docutils literal">*</tt> to ignore all extensions.</p>
+<p class="last">Note: <tt class="docutils literal"><span class="pre">*:&lt;suboption&gt;</span></tt> is also a valid extension name for this
+configuration option.
+As of this writing, the only valid &quot;global&quot; suboption is <tt class="docutils literal">required</tt>.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">on-unsupported</span></tt></dt>
+<dd><p class="first">Controls the behavior of <cite>rhg</cite> when detecting unsupported features.</p>
+<p>Possible values are <cite>abort</cite> (default), <cite>abort-silent</cite> and <cite>fallback</cite>.</p>
+<dl class="last docutils">
+<dt><tt class="docutils literal">abort</tt></dt>
+<dd>Print an error message describing what feature is not supported,
+and exit with code 252</dd>
+<dt><tt class="docutils literal"><span class="pre">abort-silent</span></tt></dt>
+<dd>Silently exit with code 252</dd>
+<dt><tt class="docutils literal">fallback</tt></dt>
+<dd>Try running the fallback executable with the same parameters
+(and trace the fallback reason, use <cite>RUST_LOG=trace</cite> to see).</dd>
+</dl>
+</dd>
+</dl>
+</div>
 <div class="section" id="share">
 <h2><a class="toc-backref" href="#contents"><tt class="docutils literal">share</tt></a></h2>
 <dl class="docutils">
@@ -2001,15 +2042,17 @@ operations. If set to <tt class="docutils literal">skip</tt>, the successor is n
 share-safe mechanism but its source repository does.</p>
 <p>Possible values are <cite>abort</cite> (default), <cite>allow</cite>, <cite>upgrade-abort</cite> and
 <cite>upgrade-allow</cite>.</p>
-<p><tt class="docutils literal">abort</tt>
-Disallows running any command and aborts
-<tt class="docutils literal">allow</tt>
-Respects the feature presence in the share source
-<tt class="docutils literal"><span class="pre">upgrade-abort</span></tt>
-tries to upgrade the share to use share-safe; if it fails, aborts
-<tt class="docutils literal"><span class="pre">upgrade-allow</span></tt>
-tries to upgrade the share; if it fails, continue by
-respecting the share source setting</p>
+<dl class="docutils">
+<dt><tt class="docutils literal">abort</tt></dt>
+<dd>Disallows running any command and aborts</dd>
+<dt><tt class="docutils literal">allow</tt></dt>
+<dd>Respects the feature presence in the share source</dd>
+<dt><tt class="docutils literal"><span class="pre">upgrade-abort</span></tt></dt>
+<dd>Tries to upgrade the share to use share-safe; if it fails, aborts</dd>
+<dt><tt class="docutils literal"><span class="pre">upgrade-allow</span></tt></dt>
+<dd>Tries to upgrade the share; if it fails, continue by
+respecting the share source setting</dd>
+</dl>
 <p class="last">Check <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-share-safe</span></tt></a> for details about the
 share-safe feature.</p>
 </dd>
@@ -2024,15 +2067,17 @@ share-safe, but the source repository does.
 mechanism but its source does not.</p>
 <p>Possible values are <cite>abort</cite> (default), <cite>allow</cite>, <cite>downgrade-abort</cite> and
 <cite>downgrade-allow</cite>.</p>
-<p><tt class="docutils literal">abort</tt>
-Disallows running any command and aborts
-<tt class="docutils literal">allow</tt>
-Respects the feature presence in the share source
-<tt class="docutils literal"><span class="pre">downgrade-abort</span></tt>
-tries to downgrade the share to not use share-safe; if it fails, aborts
-<tt class="docutils literal"><span class="pre">downgrade-allow</span></tt>
-tries to downgrade the share to not use share-safe;
-if it fails, continue by respecting the shared source setting</p>
+<dl class="docutils">
+<dt><tt class="docutils literal">abort</tt></dt>
+<dd>Disallows running any command and aborts</dd>
+<dt><tt class="docutils literal">allow</tt></dt>
+<dd>Respects the feature presence in the share source</dd>
+<dt><tt class="docutils literal"><span class="pre">downgrade-abort</span></tt></dt>
+<dd>Tries to downgrade the share to not use share-safe; if it fails, aborts</dd>
+<dt><tt class="docutils literal"><span class="pre">downgrade-allow</span></tt></dt>
+<dd>Tries to downgrade the share to not use share-safe;
+if it fails, continue by respecting the shared source setting</dd>
+</dl>
 <p class="last">Check <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-share-safe</span></tt></a> for details about the
 share-safe feature.</p>
 </dd>

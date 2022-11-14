@@ -637,8 +637,15 @@ using ui.statuscopies setting
   M a
     b
   R b
+  $ hg st --config ui.statuscopies=true --no-copies
+  M a
+  R b
   $ hg st --config ui.statuscopies=false
   M a
+  R b
+  $ hg st --config ui.statuscopies=false --copies
+  M a
+    b
   R b
   $ hg st --config ui.tweakdefaults=yes
   M a
@@ -937,7 +944,7 @@ It is still not set when there are unknown files
   $ hg debugdirstate --all --no-dates | grep '^ '
       0         -1 unset               subdir
 
-Now the directory is eligible for caching, so its mtime is save in the dirstate
+Now the directory is eligible for caching, so its mtime is saved in the dirstate
 
   $ rm subdir/unknown
   $ sleep 0.1 # ensure the kernel’s internal clock for mtimes has ticked
@@ -968,5 +975,28 @@ Removing a node from the dirstate resets the cache for its parent directory
       0         -1 unset               subdir
   $ hg status
   ? subdir/a
+
+Changing the hgignore rules makes us recompute the status (and rewrite the dirstate).
+
+  $ rm subdir/a
+  $ mkdir another-subdir
+  $ touch another-subdir/something-else
+
+  $ cat > "$TESTDIR"/extra-hgignore <<EOF
+  > something-else
+  > EOF
+
+  $ hg status --config ui.ignore.global="$TESTDIR"/extra-hgignore
+  $ hg debugdirstate --all --no-dates | grep '^ '
+      0         -1 set                 subdir
+
+  $ hg status
+  ? another-subdir/something-else
+
+One invocation of status is enough to populate the cache even if it's invalidated
+in the same run.
+
+  $ hg debugdirstate --all --no-dates | grep '^ '
+      0         -1 set                 subdir
 
 #endif

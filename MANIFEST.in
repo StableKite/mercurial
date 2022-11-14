@@ -127,6 +127,7 @@ include contrib/packaging/docker/debian.template
 include contrib/packaging/docker/fedora.template
 include contrib/packaging/docker/rhel7
 include contrib/packaging/docker/rhel8
+include contrib/packaging/docker/rhel9
 include contrib/packaging/docker/ubuntu.template
 include contrib/packaging/dockerdeb
 include contrib/packaging/dockerrpm
@@ -173,6 +174,7 @@ include contrib/plan9/hgrc.d/9mail.rc
 include contrib/plan9/hgrc.d/factotum.rc
 include contrib/plan9/mkfile
 include contrib/plan9/proto
+include contrib/pull_logger.py
 include contrib/pylintrc
 include contrib/python-hook-examples.py
 include contrib/python-zstandard/LICENSE
@@ -1028,6 +1030,7 @@ include relnotes/5.9
 include relnotes/6.0
 include relnotes/6.1
 include relnotes/6.2
+include relnotes/6.3
 include relnotes/next
 include rust/.cargo/config
 include rust/Cargo.lock
@@ -1054,6 +1057,7 @@ include rust/hg-core/src/ancestors.rs
 include rust/hg-core/src/config.rs
 include rust/hg-core/src/config/config.rs
 include rust/hg-core/src/config/layer.rs
+include rust/hg-core/src/config/plain_info.rs
 include rust/hg-core/src/config/values.rs
 include rust/hg-core/src/copy_tracing.rs
 include rust/hg-core/src/copy_tracing/tests.rs
@@ -1078,6 +1082,7 @@ include rust/hg-core/src/lib.rs
 include rust/hg-core/src/lock.rs
 include rust/hg-core/src/logging.rs
 include rust/hg-core/src/matchers.rs
+include rust/hg-core/src/narrow.rs
 include rust/hg-core/src/operations/cat.rs
 include rust/hg-core/src/operations/debugdata.rs
 include rust/hg-core/src/operations/list_tracked_files.rs
@@ -1096,6 +1101,7 @@ include rust/hg-core/src/revlog/patch.rs
 include rust/hg-core/src/revlog/path_encode.rs
 include rust/hg-core/src/revlog/revlog.rs
 include rust/hg-core/src/revset.rs
+include rust/hg-core/src/sparse.rs
 include rust/hg-core/src/testing.rs
 include rust/hg-core/src/utils.rs
 include rust/hg-core/src/utils/files.rs
@@ -1139,6 +1145,7 @@ include rust/rhg/src/commands/config.rs
 include rust/rhg/src/commands/debugdata.rs
 include rust/rhg/src/commands/debugignorerhg.rs
 include rust/rhg/src/commands/debugrequirements.rs
+include rust/rhg/src/commands/debugrhgsparse.rs
 include rust/rhg/src/commands/files.rs
 include rust/rhg/src/commands/root.rs
 include rust/rhg/src/commands/status.rs
@@ -1432,6 +1439,7 @@ include tests/test-contrib-check-commit.t
 include tests/test-contrib-dumprevlog.t
 include tests/test-contrib-emacs.t
 include tests/test-contrib-perf.t
+include tests/test-contrib-pull-logger.t
 include tests/test-contrib-relnotes.t
 include tests/test-contrib-testparseutil.t
 include tests/test-contrib.t
