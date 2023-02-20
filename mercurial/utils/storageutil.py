@@ -374,6 +374,7 @@ def emitrevisions(
 
     fnode = store.node
     frev = store.rev
+    parents = store.parentrevs
 
     if nodesorder == b'nodes':
         revs = [frev(n) for n in nodes]
@@ -386,17 +387,28 @@ def emitrevisions(
     prevrev = None
 
     if deltamode == repository.CG_DELTAMODE_PREV or assumehaveparentrevisions:
-        prevrev = store.parentrevs(revs[0])[0]
+        prevrev = parents(revs[0])[0]
 
-    # Set of revs available to delta against.
+    # Sets of revs available to delta against.
+    emitted = set()
     available = set()
+    if assumehaveparentrevisions:
+        common_heads = set(p for r in revs for p in parents(r))
+        common_heads.difference_update(revs)
+        available = store.ancestors(common_heads, inclusive=True)
+
+    def is_usable_base(rev):
+        """Is a delta against this revision usable over the wire"""
+        if rev == nullrev:
+            return False
+        return rev in emitted or rev in available
 
     for rev in revs:
         if rev == nullrev:
             continue
 
         node = fnode(rev)
-        p1rev, p2rev = store.parentrevs(rev)
+        p1rev, p2rev = parents(rev)
 
         if deltaparentfn:
             deltaparentrev = deltaparentfn(rev)
@@ -417,34 +429,30 @@ def emitrevisions(
         # There is a delta in storage. We try to use that because it
         # amounts to effectively copying data from storage and is
         # therefore the fastest.
-        elif deltaparentrev != nullrev:
-            # Base revision was already emitted in this group. We can
-            # always safely use the delta.
-            if deltaparentrev in available:
-                baserev = deltaparentrev
-
-            # Base revision is a parent that hasn't been emitted already.
-            # Use it if we can assume the receiver has the parent revision.
-            elif assumehaveparentrevisions and deltaparentrev in (p1rev, p2rev):
-                baserev = deltaparentrev
-
-            # No guarantee the receiver has the delta parent. Send delta
-            # against last revision (if possible), which in the common case
-            # should be similar enough to this revision that the delta is
-            # reasonable.
+        elif is_usable_base(deltaparentrev):
+            baserev = deltaparentrev
+        else:
+            # No guarantee the receiver has the delta parent, or Storage has a
+            # fulltext revision.
+            #
+            # We compute a delta on the fly to send over the wire.
+            #
+            # We start with a try against p1, which in the common case should
+            # be close to this revision content.
+            #
+            # note: we could optimize between p1 and p2 in merges cases.
+            if is_usable_base(p1rev):
+                baserev = p1rev
+            # if p1 was not an option, try p2
+            elif is_usable_base(p2rev):
+                baserev = p2rev
+            # Send delta against prev in despair
+            #
+            # using the closest available ancestors first might be better?
             elif prevrev is not None:
                 baserev = prevrev
             else:
                 baserev = nullrev
-
-        # Storage has a fulltext revision.
-
-        # Let's use the previous revision, which is as good a guess as any.
-        # There is definitely room to improve this logic.
-        elif prevrev is not None:
-            baserev = prevrev
-        else:
-            baserev = nullrev
 
         # But we can't actually use our chosen delta base for whatever
         # reason. Reset to fulltext.
@@ -472,7 +480,7 @@ def emitrevisions(
                 baserev == nullrev and deltamode != repository.CG_DELTAMODE_PREV
             ):
                 revision = store.rawdata(node)
-                available.add(rev)
+                emitted.add(rev)
             else:
                 if revdifffn:
                     delta = revdifffn(baserev, rev)
@@ -481,7 +489,7 @@ def emitrevisions(
                         store.rawdata(baserev), store.rawdata(rev)
                     )
 
-                available.add(rev)
+                emitted.add(rev)
 
         serialized_sidedata = None
         sidedata_flags = (0, 0)

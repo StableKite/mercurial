@@ -149,6 +149,8 @@ include contrib/packaging/macosx/distribution.xml
 include contrib/packaging/mercurial.spec
 include contrib/packaging/packagelib.sh
 include contrib/packaging/packaging.py
+include contrib/packaging/requirements-macos.txt
+include contrib/packaging/requirements-macos.txt.in
 include contrib/packaging/requirements-windows-py3.txt
 include contrib/packaging/requirements-windows.txt.in
 include contrib/packaging/requirements.txt

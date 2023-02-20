@@ -148,6 +148,8 @@ contrib/packaging/linux-wheel-centos5-blacklist
 contrib/packaging/mercurial.spec
 contrib/packaging/packagelib.sh
 contrib/packaging/packaging.py
+contrib/packaging/requirements-macos.txt
+contrib/packaging/requirements-macos.txt.in
 contrib/packaging/requirements-windows-py3.txt
 contrib/packaging/requirements-windows.txt.in
 contrib/packaging/requirements.txt
