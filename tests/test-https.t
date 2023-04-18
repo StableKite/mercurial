@@ -137,12 +137,7 @@ Inability to verify peer certificate will result in abort
   new changesets 8b6053c928fe
   updating to branch default
   4 files updated, 0 files merged, 0 files removed, 0 files unresolved
-  $ hg verify -R copy-pull
-  checking changesets
-  checking manifests
-  crosschecking files in changesets and manifests
-  checking files
-  checked 1 changesets with 4 changes to 4 files
+  $ hg verify -R copy-pull -q
   $ cd test
   $ echo bar > bar
   $ hg commit -A -d '1 0' -m 2
@@ -349,21 +344,21 @@ Start servers running supported TLS versions
 
   $ cd test
   $ hg serve -p $HGPORT -d --pid-file=../hg0.pid --certificate=$PRIV \
-  > --config devel.serverexactprotocol=tls1.0
+  > --config devel.server-insecure-exact-protocol=tls1.0
   $ cat ../hg0.pid >> $DAEMON_PIDS
   $ hg serve -p $HGPORT1 -d --pid-file=../hg1.pid --certificate=$PRIV \
-  > --config devel.serverexactprotocol=tls1.1
+  > --config devel.server-insecure-exact-protocol=tls1.1
   $ cat ../hg1.pid >> $DAEMON_PIDS
   $ hg serve -p $HGPORT2 -d --pid-file=../hg2.pid --certificate=$PRIV \
-  > --config devel.serverexactprotocol=tls1.2
+  > --config devel.server-insecure-exact-protocol=tls1.2
   $ cat ../hg2.pid >> $DAEMON_PIDS
   $ cd ..
 
 Clients talking same TLS versions work
 
-  $ P="$CERTSDIR" hg --config hostsecurity.minimumprotocol=tls1.0 --config hostsecurity.ciphers=DEFAULT id https://localhost:$HGPORT/
+  $ P="$CERTSDIR" hg --config hostsecurity.minimumprotocol=tls1.0 --config hostsecurity.ciphers="DEFAULT:@SECLEVEL=0" id https://localhost:$HGPORT/
   5fed3813f7f5
-  $ P="$CERTSDIR" hg --config hostsecurity.minimumprotocol=tls1.1 --config hostsecurity.ciphers=DEFAULT id https://localhost:$HGPORT1/
+  $ P="$CERTSDIR" hg --config hostsecurity.minimumprotocol=tls1.1 --config hostsecurity.ciphers="DEFAULT:@SECLEVEL=0" id https://localhost:$HGPORT1/
   5fed3813f7f5
   $ P="$CERTSDIR" hg --config hostsecurity.minimumprotocol=tls1.2 id https://localhost:$HGPORT2/
   5fed3813f7f5
@@ -405,7 +400,7 @@ Clients requiring newer TLS version than what server supports fail
 The per-host config option overrides the default
 
   $ P="$CERTSDIR" hg id https://localhost:$HGPORT/ \
-  > --config hostsecurity.ciphers=DEFAULT \
+  > --config hostsecurity.ciphers="DEFAULT:@SECLEVEL=0" \
   > --config hostsecurity.minimumprotocol=tls1.2 \
   > --config hostsecurity.localhost:minimumprotocol=tls1.0
   5fed3813f7f5

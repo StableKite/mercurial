@@ -581,7 +581,7 @@ class histeditaction:
         with repo.ui.silent():
             hg.update(repo, self.state.parentctxnode, quietempty=True)
         stats = applychanges(repo.ui, repo, rulectx, {})
-        repo.dirstate.setbranch(rulectx.branch())
+        repo.dirstate.setbranch(rulectx.branch(), repo.currenttransaction())
         if stats.unresolvedcount:
             raise error.InterventionRequired(
                 _(b'Fix up the change (%s %s)') % (self.verb, short(self.node)),
@@ -996,7 +996,7 @@ class base(histeditaction):
 @action(
     [b'_multifold'],
     _(
-        """fold subclass used for when multiple folds happen in a row
+        b"""fold subclass used for when multiple folds happen in a row
 
     We only want to fire the editor for the folded message once when
     (say) four changes are folded down into a single change. This is
@@ -1051,12 +1051,11 @@ def findoutgoing(ui, repo, remote=None, force=False, opts=None):
     if opts is None:
         opts = {}
     path = urlutil.get_unique_push_path(b'histedit', repo, ui, remote)
-    dest = path.pushloc or path.loc
 
-    ui.status(_(b'comparing with %s\n') % urlutil.hidepassword(dest))
+    ui.status(_(b'comparing with %s\n') % urlutil.hidepassword(path.loc))
 
     revs, checkout = hg.addbranchrevs(repo, repo, (path.branch, []), None)
-    other = hg.peer(repo, opts, dest)
+    other = hg.peer(repo, opts, path)
 
     if revs:
         revs = [repo.lookup(rev) for rev in revs]
@@ -1428,11 +1427,11 @@ pgup/K: move patch up, pgdn/J: move patch down, c: commit, q: abort
         for y in range(0, length):
             line = output[y]
             if diffcolors:
-                if line and line[0] == b'+':
+                if line.startswith(b'+'):
                     win.addstr(
                         y, 0, line, curses.color_pair(COLOR_DIFF_ADD_LINE)
                     )
-                elif line and line[0] == b'-':
+                elif line.startswith(b'-'):
                     win.addstr(
                         y, 0, line, curses.color_pair(COLOR_DIFF_DEL_LINE)
                     )

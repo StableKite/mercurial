@@ -72,12 +72,6 @@ import unittest
 import uuid
 import xml.dom.minidom as minidom
 
-try:
-    # PEP 632 recommend the use of `packaging.version` to replace the
-    # deprecated `distutil.version`. So lets do it.
-    import packaging.version as version
-except ImportError:
-    import distutils.version as version
 
 if sys.version_info < (3, 5, 0):
     print(
@@ -272,13 +266,10 @@ def checkportisavailable(port):
         with contextlib.closing(socket.socket(family, socket.SOCK_STREAM)) as s:
             s.bind(('localhost', port))
         return True
+    except PermissionError:
+        return False
     except socket.error as exc:
         if WINDOWS and exc.errno == errno.WSAEACCES:
-            return False
-        # TODO: make a proper exception handler after dropping py2.  This
-        #       works because socket.error is an alias for OSError on py3,
-        #       which is also the baseclass of PermissionError.
-        elif isinstance(exc, PermissionError):
             return False
         if exc.errno not in (
             errno.EADDRINUSE,
@@ -802,9 +793,7 @@ def parseargs(args, parser):
         try:
             import coverage
 
-            covver = version.StrictVersion(coverage.__version__).version
-            if covver < (3, 3):
-                parser.error('coverage options require coverage 3.3 or later')
+            coverage.__version__  # silence unused import warning
         except ImportError:
             parser.error('coverage options now require the coverage package')
 
@@ -1834,8 +1823,44 @@ class TTest(Test):
 
         pos = prepos = -1
 
-        # True or False when in a true or false conditional section
-        skipping = None
+        # The current stack of conditionnal section.
+        # Each relevant conditionnal section can have the following value:
+        #  - True:  we should run this block
+        #  - False: we should skip this block
+        #  - None:  The parent block is skipped,
+        #           (no branch of this one will ever run)
+        condition_stack = []
+
+        def run_line():
+            """return True if the current line should be run"""
+            if not condition_stack:
+                return True
+            return bool(condition_stack[-1])
+
+        def push_conditional_block(should_run):
+            """Push a new conditional context, with its initial state
+
+            i.e. entry a #if block"""
+            if not run_line():
+                condition_stack.append(None)
+            else:
+                condition_stack.append(should_run)
+
+        def flip_conditional():
+            """reverse the current condition state
+
+            i.e. enter a #else
+            """
+            assert condition_stack
+            if condition_stack[-1] is not None:
+                condition_stack[-1] = not condition_stack[-1]
+
+        def pop_conditional():
+            """exit the current skipping context
+
+            i.e. reach the #endif"""
+            assert condition_stack
+            condition_stack.pop()
 
         # We keep track of whether or not we're in a Python block so we
         # can generate the surrounding doctest magic.
@@ -1891,7 +1916,7 @@ class TTest(Test):
                     after.setdefault(pos, []).append(
                         b'  !!! invalid #require\n'
                     )
-                if not skipping:
+                if run_line():
                     haveresult, message = self._hghave(lsplit[1:])
                     if not haveresult:
                         script = [b'echo "%s"\nexit 80\n' % message]
@@ -1901,21 +1926,19 @@ class TTest(Test):
                 lsplit = l.split()
                 if len(lsplit) < 2 or lsplit[0] != b'#if':
                     after.setdefault(pos, []).append(b'  !!! invalid #if\n')
-                if skipping is not None:
-                    after.setdefault(pos, []).append(b'  !!! nested #if\n')
-                skipping = not self._iftest(lsplit[1:])
+                push_conditional_block(self._iftest(lsplit[1:]))
                 after.setdefault(pos, []).append(l)
             elif l.startswith(b'#else'):
-                if skipping is None:
+                if not condition_stack:
                     after.setdefault(pos, []).append(b'  !!! missing #if\n')
-                skipping = not skipping
+                flip_conditional()
                 after.setdefault(pos, []).append(l)
             elif l.startswith(b'#endif'):
-                if skipping is None:
+                if not condition_stack:
                     after.setdefault(pos, []).append(b'  !!! missing #if\n')
-                skipping = None
+                pop_conditional()
                 after.setdefault(pos, []).append(l)
-            elif skipping:
+            elif not run_line():
                 after.setdefault(pos, []).append(l)
             elif l.startswith(b'  >>> '):  # python inlines
                 after.setdefault(pos, []).append(l)
@@ -1960,7 +1983,7 @@ class TTest(Test):
 
         if inpython:
             script.append(b'EOF\n')
-        if skipping is not None:
+        if condition_stack:
             after.setdefault(pos, []).append(b'  !!! missing #endif\n')
         addsalt(n + 1, False)
         # Need to end any current per-command trace
@@ -3255,6 +3278,18 @@ class TestRunner:
         # adds an extension to HGRC. Also include run-test.py directory to
         # import modules like heredoctest.
         pypath = [self._pythondir, self._testdir, runtestdir]
+
+        # Setting PYTHONPATH with an activated venv causes the modules installed
+        # in it to be ignored.  Therefore, include the related paths in sys.path
+        # in PYTHONPATH.
+        virtual_env = osenvironb.get(b"VIRTUAL_ENV")
+        if virtual_env:
+            virtual_env = os.path.join(virtual_env, b'')
+            for p in sys.path:
+                p = _sys2bytes(p)
+                if p.startswith(virtual_env):
+                    pypath.append(p)
+
         # We have to augment PYTHONPATH, rather than simply replacing
         # it, in case external libraries are only available via current
         # PYTHONPATH.  (In particular, the Subversion bindings on OS X

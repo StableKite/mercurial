@@ -19,38 +19,24 @@
 
   $ hg commit -m "1"
 
-  $ hg verify
-  checking changesets
-  checking manifests
-  crosschecking files in changesets and manifests
-  checking files
-  checked 1 changesets with 1 changes to 1 files
+  $ hg verify -q
 
   $ chmod -r .hg/store/data/a.i
 
-  $ hg verify
-  checking changesets
-  checking manifests
-  crosschecking files in changesets and manifests
-  checking files
-  abort: Permission denied: '$TESTTMP/t/.hg/store/data/a.i'
+  $ hg verify -q
+  abort: $EACCES$: '$TESTTMP/t/.hg/store/data/a.i'
   [255]
 
   $ chmod +r .hg/store/data/a.i
 
-  $ hg verify
-  checking changesets
-  checking manifests
-  crosschecking files in changesets and manifests
-  checking files
-  checked 1 changesets with 1 changes to 1 files
+  $ hg verify -q
 
   $ chmod -w .hg/store/data/a.i
 
   $ echo barber > a
   $ hg commit -m "2"
   trouble committing a!
-  abort: Permission denied: '$TESTTMP/t/.hg/store/data/a.i'
+  abort: $EACCES$: '$TESTTMP/t/.hg/store/data/a.i'
   [255]
 
   $ chmod -w .
@@ -78,7 +64,7 @@
 (fsmonitor makes "hg status" avoid accessing to "dir")
 
   $ hg status
-  dir: Permission denied* (glob)
+  dir: $EACCES$* (glob)
   M a
 
 #endif

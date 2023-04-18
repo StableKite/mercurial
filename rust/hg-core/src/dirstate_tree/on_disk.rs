@@ -4,7 +4,9 @@
 
 use crate::dirstate::{DirstateV2Data, TruncatedTimestamp};
 use crate::dirstate_tree::dirstate_map::DirstateVersion;
-use crate::dirstate_tree::dirstate_map::{self, DirstateMap, NodeRef};
+use crate::dirstate_tree::dirstate_map::{
+    self, DirstateMap, DirstateMapWriteMode, NodeRef,
+};
 use crate::dirstate_tree::path_with_basename::WithBasename;
 use crate::errors::HgError;
 use crate::utils::hg_path::HgPath;
@@ -17,7 +19,6 @@ use bytes_cast::BytesCast;
 use format_bytes::format_bytes;
 use rand::Rng;
 use std::borrow::Cow;
-use std::convert::{TryFrom, TryInto};
 use std::fmt::Write;
 
 /// Added at the start of `.hg/dirstate` when the "v2" format is used.
@@ -247,11 +248,9 @@ impl<'on_disk> Docket<'on_disk> {
     pub fn parents(&self) -> DirstateParents {
         use crate::Node;
         let p1 = Node::try_from(&self.header.parent_1[..USED_NODE_ID_BYTES])
-            .unwrap()
-            .clone();
+            .unwrap();
         let p2 = Node::try_from(&self.header.parent_2[..USED_NODE_ID_BYTES])
-            .unwrap()
-            .clone();
+            .unwrap();
         DirstateParents { p1, p2 }
     }
 
@@ -288,6 +287,8 @@ pub fn read_docket(
 pub(super) fn read<'on_disk>(
     on_disk: &'on_disk [u8],
     metadata: &[u8],
+    uuid: Vec<u8>,
+    identity: Option<u64>,
 ) -> Result<DirstateMap<'on_disk>, DirstateV2ParseError> {
     if on_disk.is_empty() {
         let mut map = DirstateMap::empty(on_disk);
@@ -310,7 +311,10 @@ pub(super) fn read<'on_disk>(
         ignore_patterns_hash: meta.ignore_patterns_hash,
         unreachable_bytes: meta.unreachable_bytes.get(),
         old_data_size: on_disk.len(),
+        old_uuid: Some(uuid),
+        identity,
         dirstate_version: DirstateVersion::V2,
+        write_mode: DirstateMapWriteMode::Auto,
     };
     Ok(dirstate_map)
 }
@@ -323,7 +327,7 @@ impl Node {
         read_hg_path(on_disk, self.full_path)
     }
 
-    pub(super) fn base_name_start<'on_disk>(
+    pub(super) fn base_name_start(
         &self,
     ) -> Result<usize, DirstateV2ParseError> {
         let start = self.base_name_start.get();
@@ -356,7 +360,7 @@ impl Node {
         ))
     }
 
-    pub(super) fn has_copy_source<'on_disk>(&self) -> bool {
+    pub(super) fn has_copy_source(&self) -> bool {
         self.copy_source.start.get() != 0
     }
 
@@ -411,16 +415,16 @@ impl Node {
 
     fn synthesize_unix_mode(&self) -> u32 {
         let file_type = if self.flags().contains(Flags::MODE_IS_SYMLINK) {
-            libc::S_IFLNK
+            libc::S_IFLNK as u32
         } else {
-            libc::S_IFREG
+            libc::S_IFREG as u32
         };
-        let permisions = if self.flags().contains(Flags::MODE_EXEC_PERM) {
+        let permissions = if self.flags().contains(Flags::MODE_EXEC_PERM) {
             0o755
         } else {
             0o644
         };
-        (file_type | permisions).into()
+        file_type | permissions
     }
 
     fn mtime(&self) -> Result<TruncatedTimestamp, DirstateV2ParseError> {
@@ -602,41 +606,24 @@ where
         .map(|(slice, _rest)| slice)
 }
 
-pub(crate) fn for_each_tracked_path<'on_disk>(
-    on_disk: &'on_disk [u8],
-    metadata: &[u8],
-    mut f: impl FnMut(&'on_disk HgPath),
-) -> Result<(), DirstateV2ParseError> {
-    let (meta, _) = TreeMetadata::from_bytes(metadata).map_err(|e| {
-        DirstateV2ParseError::new(format!("when parsing tree metadata, {}", e))
-    })?;
-    fn recur<'on_disk>(
-        on_disk: &'on_disk [u8],
-        nodes: ChildNodes,
-        f: &mut impl FnMut(&'on_disk HgPath),
-    ) -> Result<(), DirstateV2ParseError> {
-        for node in read_nodes(on_disk, nodes)? {
-            if let Some(entry) = node.entry()? {
-                if entry.tracked() {
-                    f(node.full_path(on_disk)?)
-                }
-            }
-            recur(on_disk, node.children, f)?
-        }
-        Ok(())
-    }
-    recur(on_disk, meta.root_nodes, &mut f)
-}
-
 /// Returns new data and metadata, together with whether that data should be
 /// appended to the existing data file whose content is at
 /// `dirstate_map.on_disk` (true), instead of written to a new data file
 /// (false), and the previous size of data on disk.
 pub(super) fn write(
     dirstate_map: &DirstateMap,
-    can_append: bool,
+    write_mode: DirstateMapWriteMode,
 ) -> Result<(Vec<u8>, TreeMetadata, bool, usize), DirstateError> {
-    let append = can_append && dirstate_map.write_should_append();
+    let append = match write_mode {
+        DirstateMapWriteMode::Auto => dirstate_map.write_should_append(),
+        DirstateMapWriteMode::ForceNewDataFile => false,
+        DirstateMapWriteMode::ForceAppend => true,
+    };
+    if append {
+        log::trace!("appending to the dirstate data file");
+    } else {
+        log::trace!("creating new dirstate data file");
+    }
 
     // This ignores the space for paths, and for nodes without an entry.
     // TODO: better estimate? Skip the `Vec` and write to a file directly?

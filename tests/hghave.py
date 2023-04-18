@@ -27,26 +27,17 @@ except ImportError:
 stdout = getattr(sys.stdout, 'buffer', sys.stdout)
 stderr = getattr(sys.stderr, 'buffer', sys.stderr)
 
-is_not_python2 = sys.version_info[0] >= 3
-if is_not_python2:
 
-    def _sys2bytes(p):
-        if p is None:
-            return p
-        return p.encode('utf-8')
-
-    def _bytes2sys(p):
-        if p is None:
-            return p
-        return p.decode('utf-8')
-
-
-else:
-
-    def _sys2bytes(p):
+def _sys2bytes(p):
+    if p is None:
         return p
+    return p.encode('utf-8')
 
-    _bytes2sys = _sys2bytes
+
+def _bytes2sys(p):
+    if p is None:
+        return p
+    return p.decode('utf-8')
 
 
 def check(name, desc):
@@ -168,8 +159,6 @@ def has_baz():
 
 @check("bzr", "Breezy library and executable version >= 3.1")
 def has_bzr():
-    if not is_not_python2:
-        return False
     try:
         # Test the Breezy python lib
         import breezy
@@ -206,7 +195,7 @@ def has_pyoxidizer():
     "pyoxidizer-in-memory",
     "running with pyoxidizer build as 'hg' with embedded resources",
 )
-def has_pyoxidizer():
+def has_pyoxidizer_mem():
     return 'PYOXIDIZED_IN_MEMORY_RSRC' in os.environ
 
 
@@ -214,7 +203,7 @@ def has_pyoxidizer():
     "pyoxidizer-in-filesystem",
     "running with pyoxidizer build as 'hg' with external resources",
 )
-def has_pyoxidizer():
+def has_pyoxidizer_fs():
     return 'PYOXIDIZED_FILESYSTEM_RSRC' in os.environ
 
 
@@ -333,7 +322,7 @@ def has_cacheable_fs():
     fd, path = tempfile.mkstemp(dir='.', prefix=tempprefix)
     os.close(fd)
     try:
-        return util.cachestat(path).cacheable()
+        return util.cachestat(_sys2bytes(path)).cacheable()
     finally:
         os.remove(path)
 
@@ -661,36 +650,22 @@ def has_pygments():
         return False
 
 
-@check("pygments25", "Pygments version >= 2.5")
-def pygments25():
+def getpygmentsversion():
     try:
         import pygments
 
         v = pygments.__version__
+
+        parts = v.split(".")
+        return (int(parts[0]), int(parts[1]))
     except ImportError:
-        return False
-
-    parts = v.split(".")
-    major = int(parts[0])
-    minor = int(parts[1])
-
-    return (major, minor) >= (2, 5)
+        return (0, 0)
 
 
-@check("pygments211", "Pygments version >= 2.11")
-def pygments211():
-    try:
-        import pygments
-
-        v = pygments.__version__
-    except ImportError:
-        return False
-
-    parts = v.split(".")
-    major = int(parts[0])
-    minor = int(parts[1])
-
-    return (major, minor) >= (2, 11)
+@checkvers("pygments", "Pygments version >= %s", (2.5, 2.11, 2.14))
+def has_pygments_range(v):
+    major, minor = v.split('.')[0:2]
+    return getpygmentsversion() >= (int(major), int(minor))
 
 
 @check("outer-repo", "outer repo")
@@ -891,9 +866,9 @@ def has_demandimport():
     return (not has_chg()) and os.environ.get('HGDEMANDIMPORT') != 'disable'
 
 
-# Add "py27", "py35", ... as possible feature checks. Note that there's no
+# Add "py36", "py37", ... as possible feature checks. Note that there's no
 # punctuation here.
-@checkvers("py", "Python >= %s", (2.7, 3.5, 3.6, 3.7, 3.8, 3.9, 3.10, 3.11))
+@checkvers("py", "Python >= %s", (3.6, 3.7, 3.8, 3.9, 3.10, 3.11))
 def has_python_range(v):
     major, minor = v.split('.')[0:2]
     py_major, py_minor = sys.version_info.major, sys.version_info.minor
@@ -911,7 +886,7 @@ def has_python3exe():
     py = 'python3'
     if os.name == 'nt':
         py = 'py -3'
-    return matchoutput('%s -V' % py, br'^Python 3.(5|6|7|8|9|10|11)')
+    return matchoutput('%s -V' % py, br'^Python 3.(6|7|8|9|10|11)')
 
 
 @check("pure", "running with pure Python code")

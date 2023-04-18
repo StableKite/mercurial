@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 <title>hg</title>
 <meta name="author" content="Olivia Mackall &lt;olivia&#64;selenic.com&gt;" />
 <meta name="organization" content="Mercurial" />
@@ -923,7 +923,7 @@ number it uses.</p>
 <tr><td>&nbsp;</td><td>template style to use</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-6</span>, <span class="option">--ipv6</span></kbd></td>
-<td>use IPv6 in addition to IPv4</td></tr>
+<td>use IPv6 instead of IPv4</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">--certificate <var>&lt;FILE&gt;</var></span></kbd></td>
 </tr>
@@ -1012,6 +1012,9 @@ hg commit --amend --date now
 <tr><td class="option-group">
 <kbd><span class="option">-s</span>, <span class="option">--secret</span></kbd></td>
 <td>use the secret phase for committing</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--draft</span></kbd></td>
+<td>use the draft phase for committing</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-e</span>, <span class="option">--edit</span></kbd></td>
 <td>invoke editor on commit messages</td></tr>
@@ -6573,8 +6576,11 @@ keep as the merged version.</p>
 <dd>Uses the internal tag merge algorithm (experimental).</dd>
 <dt><tt class="docutils literal">:union</tt></dt>
 <dd>Uses the internal non-interactive simple merge algorithm for merging
-files. It will use both left and right sides for conflict regions.
+files. It will use both local and other sides for conflict regions by
+adding local on top of other.
 No markers are inserted.</dd>
+<dt><tt class="docutils literal"><span class="pre">:union-other-first</span></tt></dt>
+<dd>Like :union, but add other on top of local.</dd>
 </dl>
 <p>Internal tools are always available and do not require a GUI but will
 by default not handle symlinks or binary files. See next section for
@@ -7485,8 +7491,8 @@ instructions on how to install from source.</p>
 </div>
 <div class="section" id="msrv">
 <h2>MSRV</h2>
-<p>The minimum supported Rust version is currently 1.48.0. The project's policy is
-to follow the version from Debian stable, to make the distributions' job easier.</p>
+<p>The minimum supported Rust version is currently 1.61.0. The project's policy is
+to follow the version from Debian testing, to make the distributions' job easier.</p>
 </div>
 <div class="section" id="rhg-1">
 <h2>rhg</h2>
@@ -8996,6 +9002,9 @@ invoking editor, unless <tt class="docutils literal"><span class="pre">--edit</s
 <tr><td class="option-group">
 <kbd><span class="option">-s</span>, <span class="option">--secret</span></kbd></td>
 <td>use the secret phase for committing</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--draft</span></kbd></td>
+<td>use the draft phase for committing</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-n</span>, <span class="option">--note <var>&lt;VALUE&gt;</var></span></kbd></td>
 </tr>
@@ -12536,6 +12545,9 @@ hg qcommit [OPTION]... [FILE]...
 <kbd><span class="option">-s</span>, <span class="option">--secret</span></kbd></td>
 <td>use the secret phase for committing</td></tr>
 <tr><td class="option-group">
+<kbd><span class="option">--draft</span></kbd></td>
+<td>use the draft phase for committing</td></tr>
+<tr><td class="option-group">
 <kbd><span class="option">-e</span>, <span class="option">--edit</span></kbd></td>
 <td>invoke editor on commit messages</td></tr>
 <tr><td class="option-group" colspan="2">
@@ -14439,6 +14451,9 @@ q - quit, recording no changes
 <tr><td class="option-group">
 <kbd><span class="option">-s</span>, <span class="option">--secret</span></kbd></td>
 <td>use the secret phase for committing</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--draft</span></kbd></td>
+<td>use the draft phase for committing</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-e</span>, <span class="option">--edit</span></kbd></td>
 <td>invoke editor on commit messages</td></tr>

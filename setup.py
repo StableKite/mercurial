@@ -21,6 +21,11 @@ def sysstr(s):
     return s.decode('latin-1')
 
 
+def eprint(*args, **kwargs):
+    kwargs['file'] = sys.stderr
+    print(*args, **kwargs)
+
+
 import ssl
 
 # ssl.HAS_TLSv1* are preferred to check support but they were added in Python
@@ -126,11 +131,7 @@ from distutils.errors import (
     DistutilsError,
     DistutilsExecError,
 )
-from distutils.sysconfig import get_python_inc, get_config_var
-from distutils.version import StrictVersion
-
-# Explain to distutils.StrictVersion how our release candidates are versioned
-StrictVersion.version_re = re.compile(r'^(\d+)\.(\d+)(\.(\d+))?-?(rc(\d+))?$')
+from distutils.sysconfig import get_python_inc
 
 
 def write_if_changed(path, content):
@@ -221,9 +222,10 @@ class hgcommand:
         cmd = self.cmd + args
         returncode, out, err = runcmd(cmd, self.env)
         err = filterhgerr(err)
-        if err or returncode != 0:
+        if err:
             print("stderr from '%s':" % (' '.join(cmd)), file=sys.stderr)
             print(err, file=sys.stderr)
+        if returncode != 0:
             return b''
         return out
 
@@ -291,10 +293,11 @@ def findhg():
     if retcode == 0 and not filterhgerr(err):
         return hgcommand(hgcmd, hgenv)
 
-    raise SystemExit(
-        'Unable to find a working hg binary to extract the '
-        'version from the repository tags'
-    )
+    eprint("/!\\")
+    eprint(r"/!\ Unable to find a working hg binary")
+    eprint(r"/!\ Version cannot be extract from the repository")
+    eprint(r"/!\ Re-run the setup once a first version is built")
+    return None
 
 
 def localhgenv():
@@ -319,29 +322,54 @@ def localhgenv():
 
 version = ''
 
-if os.path.isdir('.hg'):
+
+def _try_get_version():
     hg = findhg()
+    if hg is None:
+        return ''
+    hgid = None
+    numerictags = []
     cmd = ['log', '-r', '.', '--template', '{tags}\n']
-    numerictags = [t for t in sysstr(hg.run(cmd)).split() if t[0:1].isdigit()]
+    pieces = sysstr(hg.run(cmd)).split()
+    numerictags = [t for t in pieces if t[0:1].isdigit()]
     hgid = sysstr(hg.run(['id', '-i'])).strip()
+    if hgid.count('+') == 2:
+        hgid = hgid.replace("+", ".", 1)
     if not hgid:
-        # Bail out if hg is having problems interacting with this repository,
-        # rather than falling through and producing a bogus version number.
-        # Continuing with an invalid version number will break extensions
-        # that define minimumhgversion.
-        raise SystemExit('Unable to determine hg version from local repository')
+        eprint("/!\\")
+        eprint(r"/!\ Unable to determine hg version from local repository")
+        eprint(r"/!\ Failed to retrieve current revision tags")
+        return ''
     if numerictags:  # tag(s) found
         version = numerictags[-1]
         if hgid.endswith('+'):  # propagate the dirty status to the tag
             version += '+'
-    else:  # no tag found
-        ltagcmd = ['parents', '--template', '{latesttag}']
+    else:  # no tag found on the checked out revision
+        ltagcmd = ['log', '--rev', 'wdir()', '--template', '{latesttag}']
         ltag = sysstr(hg.run(ltagcmd))
-        changessincecmd = ['log', '-T', 'x\n', '-r', "only(.,'%s')" % ltag]
+        if not ltag:
+            eprint("/!\\")
+            eprint(r"/!\ Unable to determine hg version from local repository")
+            eprint(
+                r"/!\ Failed to retrieve current revision distance to lated tag"
+            )
+            return ''
+        changessincecmd = [
+            'log',
+            '-T',
+            'x\n',
+            '-r',
+            "only(parents(),'%s')" % ltag,
+        ]
         changessince = len(hg.run(changessincecmd).splitlines())
         version = '%s+hg%s.%s' % (ltag, changessince, hgid)
     if version.endswith('+'):
         version = version[:-1] + 'local' + time.strftime('%Y%m%d')
+    return version
+
+
+if os.path.isdir('.hg'):
+    version = _try_get_version()
 elif os.path.exists('.hg_archival.txt'):
     kw = dict(
         [[t.strip() for t in l.split(':', 1)] for l in open('.hg_archival.txt')]
@@ -361,21 +389,35 @@ elif os.path.exists('mercurial/__version__.py'):
     with open('mercurial/__version__.py') as f:
         data = f.read()
     version = re.search('version = b"(.*)"', data).group(1)
+if not version:
+    if os.environ.get("MERCURIAL_SETUP_MAKE_LOCAL") == "1":
+        version = "0.0+0"
+        eprint("/!\\")
+        eprint(r"/!\ Using '0.0+0' as the default version")
+        eprint(r"/!\ Re-run make local once that first version is built")
+        eprint("/!\\")
+    else:
+        eprint("/!\\")
+        eprint(r"/!\ Could not determine the Mercurial version")
+        eprint(r"/!\ You need to build a local version first")
+        eprint(r"/!\ Run `make local` and try again")
+        eprint("/!\\")
+        msg = "Run `make local` first to get a working local version"
+        raise SystemExit(msg)
 
-if version:
-    versionb = version
-    if not isinstance(versionb, bytes):
-        versionb = versionb.encode('ascii')
+versionb = version
+if not isinstance(versionb, bytes):
+    versionb = versionb.encode('ascii')
 
-    write_if_changed(
-        'mercurial/__version__.py',
-        b''.join(
-            [
-                b'# this file is autogenerated by setup.py\n'
-                b'version = b"%s"\n' % versionb,
-            ]
-        ),
-    )
+write_if_changed(
+    'mercurial/__version__.py',
+    b''.join(
+        [
+            b'# this file is autogenerated by setup.py\n'
+            b'version = b"%s"\n' % versionb,
+        ]
+    ),
+)
 
 
 class hgbuild(build):
@@ -1458,11 +1500,13 @@ class RustStandaloneExtension(RustExtension):
         target = [target_dir]
         target.extend(self.name.split('.'))
         target[-1] += DYLIB_SUFFIX
+        target = os.path.join(*target)
+        os.makedirs(os.path.dirname(target), exist_ok=True)
         shutil.copy2(
             os.path.join(
                 self.rusttargetdir, self.dylibname + self.rustdylibsuffix()
             ),
-            os.path.join(*target),
+            target,
         )
 
 
@@ -1607,6 +1651,10 @@ packagedata = {
     'mercurial.helptext.internals': [
         '*.txt',
     ],
+    'mercurial.thirdparty.attr': [
+        '*.pyi',
+        'py.typed',
+    ],
 }
 
 
@@ -1691,39 +1739,6 @@ if os.name == 'nt':
     # Windows binary file versions for exe/dll files must have the
     # form W.X.Y.Z, where W,X,Y,Z are numbers in the range 0..65535
     setupversion = setupversion.split(r'+', 1)[0]
-
-if sys.platform == 'darwin' and os.path.exists('/usr/bin/xcodebuild'):
-    version = runcmd(['/usr/bin/xcodebuild', '-version'], {})[1].splitlines()
-    if version:
-        version = version[0].decode('utf-8')
-        xcode4 = version.startswith('Xcode') and StrictVersion(
-            version.split()[1]
-        ) >= StrictVersion('4.0')
-        xcode51 = re.match(r'^Xcode\s+5\.1', version) is not None
-    else:
-        # xcodebuild returns empty on OS X Lion with XCode 4.3 not
-        # installed, but instead with only command-line tools. Assume
-        # that only happens on >= Lion, thus no PPC support.
-        xcode4 = True
-        xcode51 = False
-
-    # XCode 4.0 dropped support for ppc architecture, which is hardcoded in
-    # distutils.sysconfig
-    if xcode4:
-        os.environ['ARCHFLAGS'] = ''
-
-    # XCode 5.1 changes clang such that it now fails to compile if the
-    # -mno-fused-madd flag is passed, but the version of Python shipped with
-    # OS X 10.9 Mavericks includes this flag. This causes problems in all
-    # C extension modules, and a bug has been filed upstream at
-    # http://bugs.python.org/issue21244. We also need to patch this here
-    # so Mercurial can continue to compile in the meantime.
-    if xcode51:
-        cflags = get_config_var('CFLAGS')
-        if cflags and re.search(r'-mno-fused-madd\b', cflags) is not None:
-            os.environ['CFLAGS'] = (
-                os.environ.get('CFLAGS', '') + ' -Qunused-arguments'
-            )
 
 setup(
     name='mercurial',

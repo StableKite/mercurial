@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 <title>hgrc</title>
 <meta name="author" content="Bryan O'Sullivan &lt;bos&#64;serpentine.com&gt;" />
 <meta name="organization" content="Mercurial" />
@@ -1785,6 +1785,36 @@ is useful to replicate a repository, or as an optimization.</li>
 </ul>
 </dd>
 </dl>
+<div class="verbose docutils container">
+<p><tt class="docutils literal"><span class="pre">pulled-delta-reuse-policy</span></tt>
+Control the policy regarding deltas sent by the remote during pulls.</p>
+<p>This is an advanced option that non-admin users should not need to understand
+or set. This option can be used to speed up pulls from trusted central
+servers, or to fix-up deltas from older servers.</p>
+<p>It supports the following values:</p>
+<ul class="simple">
+<li><tt class="docutils literal">default</tt>: use the policy defined by
+<cite>storage.revlog.reuse-external-delta-parent</cite>,</li>
+<li><tt class="docutils literal"><span class="pre">no-reuse</span></tt>: start a new optimal delta search for each new revision we add
+to the repository. The deltas from the server will be reused when the base
+it applies to is tested (this can be frequent if that base is the one and
+unique parent of that revision). This can significantly slowdown pulls but
+will result in an optimized storage space if the remote peer is sending poor
+quality deltas.</li>
+<li><tt class="docutils literal"><span class="pre">try-base</span></tt>: try to reuse the deltas from the remote peer as long as they
+create a valid delta-chain in the local repository. This speeds up the
+unbundling process, but can result in sub-optimal storage space if the
+remote peer is sending poor quality deltas.</li>
+<li><tt class="docutils literal">forced</tt>: the deltas from the peer will be reused in all cases, even if
+the resulting delta-chain is &quot;invalid&quot;. This setting will ensure the bundle
+is applied at minimal CPU cost, but it can result in longer delta chains
+being created on the client, making revisions potentially slower to access
+in the future. If you think you need this option, you should make sure you
+are also talking to the Mercurial developer community to get confirmation.</li>
+</ul>
+<p>See <cite>hg help config.storage.revlog.reuse-external-delta-parent</cite> for a similar
+global option. That option defines the behavior of <cite>default</cite>.</p>
+</div>
 <p>The following special named paths exist:</p>
 <dl class="docutils">
 <dt><tt class="docutils literal">default</tt></dt>
@@ -2107,6 +2137,23 @@ through push, pull, clone and unbundle.</p>
 <p class="last">To fix affected revisions that already exist within the repository, one can
 use <a class="reference external" href="hg.1.html#debug-repair-issue-6528"><tt class="docutils literal">hg <span class="pre">debug-repair-issue-6528</span></tt></a>.</p>
 </dd>
+</dl>
+<div class="verbose docutils container">
+<dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">revlog.delta-parent-search.candidate-group-chunk-size</span></tt></dt>
+<dd><p class="first">Tune the number of delta bases the storage will consider in the
+same &quot;round&quot; of search. In some very rare cases, using a smaller value
+might result in faster processing at the possible expense of storage
+space, while using larger values might result in slower processing at the
+possible benefit of storage space. A value of &quot;0&quot; means no limitation.</p>
+<p>default: no limitation</p>
+<p class="last">This is unlikely that you'll have to tune this configuration. If you think
+you do, consider talking with the mercurial developer community about your
+repositories.</p>
+</dd>
+</dl>
+</div>
+<dl class="docutils">
 <dt><tt class="docutils literal"><span class="pre">revlog.optimize-delta-parent-choice</span></tt></dt>
 <dd><p class="first">When storing a merge revision, both parents will be equally considered as
 a possible delta base. This results in better delta selection and improved

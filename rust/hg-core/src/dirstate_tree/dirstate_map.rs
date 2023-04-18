@@ -1,5 +1,4 @@
 use bytes_cast::BytesCast;
-use micro_timer::timed;
 use std::borrow::Cow;
 use std::path::PathBuf;
 
@@ -16,6 +15,7 @@ use crate::dirstate::ParentFileData;
 use crate::dirstate::StateMapIter;
 use crate::dirstate::TruncatedTimestamp;
 use crate::matchers::Matcher;
+use crate::utils::filter_map_results;
 use crate::utils::hg_path::{HgPath, HgPathBuf};
 use crate::DirstateEntry;
 use crate::DirstateError;
@@ -36,6 +36,13 @@ const ACCEPTABLE_UNREACHABLE_BYTES_RATIO: f32 = 0.5;
 pub enum DirstateVersion {
     V1,
     V2,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum DirstateMapWriteMode {
+    Auto,
+    ForceNewDataFile,
+    ForceAppend,
 }
 
 #[derive(Debug)]
@@ -59,10 +66,28 @@ pub struct DirstateMap<'on_disk> {
     pub(super) unreachable_bytes: u32,
 
     /// Size of the data used to first load this `DirstateMap`. Used in case
-    /// we need to write some new metadata, but no new data on disk.
+    /// we need to write some new metadata, but no new data on disk,
+    /// as well as to detect writes that have happened in another process
+    /// since first read.
     pub(super) old_data_size: usize,
 
+    /// UUID used when first loading this `DirstateMap`. Used to check if
+    /// the UUID has been changed by another process since first read.
+    /// Can be `None` if using dirstate v1 or if it's a brand new dirstate.
+    pub(super) old_uuid: Option<Vec<u8>>,
+
+    /// Identity of the dirstate file (for dirstate-v1) or the docket file
+    /// (v2). Used to detect if the file has changed from another process.
+    /// Since it's always written atomically, we can compare the inode to
+    /// check the file identity.
+    ///
+    /// TODO On non-Unix systems, something like hashing is a possibility?
+    pub(super) identity: Option<u64>,
+
     pub(super) dirstate_version: DirstateVersion,
+
+    /// Controlled by config option `devel.dirstate.v2.data_update_mode`
+    pub(super) write_mode: DirstateMapWriteMode,
 }
 
 /// Using a plain `HgPathBuf` of the full path from the repository root as a
@@ -321,9 +346,7 @@ impl<'tree, 'on_disk> NodeRef<'tree, 'on_disk> {
         on_disk: &'on_disk [u8],
     ) -> Result<Option<&'tree HgPath>, DirstateV2ParseError> {
         match self {
-            NodeRef::InMemory(_path, node) => {
-                Ok(node.copy_source.as_ref().map(|s| &**s))
-            }
+            NodeRef::InMemory(_path, node) => Ok(node.copy_source.as_deref()),
             NodeRef::OnDisk(node) => node.copy_source(on_disk),
         }
     }
@@ -341,9 +364,9 @@ impl<'tree, 'on_disk> NodeRef<'tree, 'on_disk> {
                     Cow::Owned(in_memory) => BorrowedPath::InMemory(in_memory),
                 })
             }
-            NodeRef::OnDisk(node) => node
-                .copy_source(on_disk)?
-                .map(|source| BorrowedPath::OnDisk(source)),
+            NodeRef::OnDisk(node) => {
+                node.copy_source(on_disk)?.map(BorrowedPath::OnDisk)
+            }
         })
     }
 
@@ -419,10 +442,7 @@ impl Default for NodeData {
 
 impl NodeData {
     fn has_entry(&self) -> bool {
-        match self {
-            NodeData::Entry(_) => true,
-            _ => false,
-        }
+        matches!(self, NodeData::Entry(_))
     }
 
     fn as_entry(&self) -> Option<&DirstateEntry> {
@@ -450,26 +470,32 @@ impl<'on_disk> DirstateMap<'on_disk> {
             ignore_patterns_hash: [0; on_disk::IGNORE_PATTERNS_HASH_LEN],
             unreachable_bytes: 0,
             old_data_size: 0,
+            old_uuid: None,
+            identity: None,
             dirstate_version: DirstateVersion::V1,
+            write_mode: DirstateMapWriteMode::Auto,
         }
     }
 
-    #[timed]
+    #[logging_timer::time("trace")]
     pub fn new_v2(
         on_disk: &'on_disk [u8],
         data_size: usize,
         metadata: &[u8],
+        uuid: Vec<u8>,
+        identity: Option<u64>,
     ) -> Result<Self, DirstateError> {
         if let Some(data) = on_disk.get(..data_size) {
-            Ok(on_disk::read(data, metadata)?)
+            Ok(on_disk::read(data, metadata, uuid, identity)?)
         } else {
             Err(DirstateV2ParseError::new("not enough bytes on disk").into())
         }
     }
 
-    #[timed]
+    #[logging_timer::time("trace")]
     pub fn new_v1(
         on_disk: &'on_disk [u8],
+        identity: Option<u64>,
     ) -> Result<(Self, Option<DirstateParents>), DirstateError> {
         let mut map = Self::empty(on_disk);
         if map.on_disk.is_empty() {
@@ -510,7 +536,8 @@ impl<'on_disk> DirstateMap<'on_disk> {
                 Ok(())
             },
         )?;
-        let parents = Some(parents.clone());
+        let parents = Some(*parents);
+        map.identity = identity;
 
         Ok((map, parents))
     }
@@ -519,8 +546,15 @@ impl<'on_disk> DirstateMap<'on_disk> {
     /// append to the existing data file that contains `self.on_disk` (true),
     /// or create a new data file from scratch (false).
     pub(super) fn write_should_append(&self) -> bool {
-        let ratio = self.unreachable_bytes as f32 / self.on_disk.len() as f32;
-        ratio < ACCEPTABLE_UNREACHABLE_BYTES_RATIO
+        match self.write_mode {
+            DirstateMapWriteMode::ForceAppend => true,
+            DirstateMapWriteMode::ForceNewDataFile => false,
+            DirstateMapWriteMode::Auto => {
+                let ratio =
+                    self.unreachable_bytes as f32 / self.on_disk.len() as f32;
+                ratio < ACCEPTABLE_UNREACHABLE_BYTES_RATIO
+            }
+        }
     }
 
     fn get_node<'tree>(
@@ -656,6 +690,7 @@ impl<'on_disk> DirstateMap<'on_disk> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn reset_state(
         &mut self,
         filename: &HgPath,
@@ -681,10 +716,8 @@ impl<'on_disk> DirstateMap<'on_disk> {
                         .checked_sub(1)
                         .expect("tracked count to be >= 0");
                 }
-            } else {
-                if wc_tracked {
-                    ancestor.tracked_descendants_count += 1;
-                }
+            } else if wc_tracked {
+                ancestor.tracked_descendants_count += 1;
             }
         })?;
 
@@ -734,7 +767,7 @@ impl<'on_disk> DirstateMap<'on_disk> {
             ancestor.tracked_descendants_count += tracked_count_increment;
         })?;
         if let Some(old_entry) = old_entry_opt {
-            let mut e = old_entry.clone();
+            let mut e = old_entry;
             if e.tracked() {
                 // XXX
                 // This is probably overkill for more case, but we need this to
@@ -775,7 +808,7 @@ impl<'on_disk> DirstateMap<'on_disk> {
                     .expect("tracked_descendants_count should be >= 0");
             })?
             .expect("node should exist");
-        let mut new_entry = old_entry.clone();
+        let mut new_entry = old_entry;
         new_entry.set_untracked();
         node.data = NodeData::Entry(new_entry);
         Ok(())
@@ -803,7 +836,7 @@ impl<'on_disk> DirstateMap<'on_disk> {
                 }
             })?
             .expect("node should exist");
-        let mut new_entry = old_entry.clone();
+        let mut new_entry = old_entry;
         new_entry.set_clean(mode, size, mtime);
         node.data = NodeData::Entry(new_entry);
         Ok(())
@@ -912,32 +945,18 @@ impl<'on_disk> DirstateMap<'on_disk> {
         })
     }
 
-    fn count_dropped_path(unreachable_bytes: &mut u32, path: &Cow<HgPath>) {
+    fn count_dropped_path(unreachable_bytes: &mut u32, path: Cow<HgPath>) {
         if let Cow::Borrowed(path) = path {
             *unreachable_bytes += path.len() as u32
         }
     }
+
+    pub(crate) fn set_write_mode(&mut self, write_mode: DirstateMapWriteMode) {
+        self.write_mode = write_mode;
+    }
 }
 
-/// Like `Iterator::filter_map`, but over a fallible iterator of `Result`s.
-///
-/// The callback is only called for incoming `Ok` values. Errors are passed
-/// through as-is. In order to let it use the `?` operator the callback is
-/// expected to return a `Result` of `Option`, instead of an `Option` of
-/// `Result`.
-fn filter_map_results<'a, I, F, A, B, E>(
-    iter: I,
-    f: F,
-) -> impl Iterator<Item = Result<B, E>> + 'a
-where
-    I: Iterator<Item = Result<A, E>> + 'a,
-    F: Fn(A) -> Result<Option<B>, E> + 'a,
-{
-    iter.filter_map(move |result| match result {
-        Ok(node) => f(node).transpose(),
-        Err(e) => Some(Err(e)),
-    })
-}
+type DebugDirstateTuple<'a> = (&'a HgPath, (u8, i32, i32, i32));
 
 impl OwningDirstateMap {
     pub fn clear(&mut self) {
@@ -1124,7 +1143,10 @@ impl OwningDirstateMap {
                 }
                 let mut had_copy_source = false;
                 if let Some(source) = &node.copy_source {
-                    DirstateMap::count_dropped_path(unreachable_bytes, source);
+                    DirstateMap::count_dropped_path(
+                        unreachable_bytes,
+                        Cow::Borrowed(source),
+                    );
                     had_copy_source = true;
                     node.copy_source = None
                 }
@@ -1144,7 +1166,7 @@ impl OwningDirstateMap {
                     nodes.remove_entry(first_path_component).unwrap();
                 DirstateMap::count_dropped_path(
                     unreachable_bytes,
-                    key.full_path(),
+                    Cow::Borrowed(key.full_path()),
                 )
             }
             Ok(Some((dropped, remove)))
@@ -1208,7 +1230,7 @@ impl OwningDirstateMap {
         })
     }
 
-    #[timed]
+    #[logging_timer::time("trace")]
     pub fn pack_v1(
         &self,
         parents: DirstateParents,
@@ -1248,14 +1270,14 @@ impl OwningDirstateMap {
     /// appended to the existing data file whose content is at
     /// `map.on_disk` (true), instead of written to a new data file
     /// (false), and the previous size of data on disk.
-    #[timed]
+    #[logging_timer::time("trace")]
     pub fn pack_v2(
         &self,
-        can_append: bool,
+        write_mode: DirstateMapWriteMode,
     ) -> Result<(Vec<u8>, on_disk::TreeMetadata, bool, usize), DirstateError>
     {
         let map = self.get_map();
-        on_disk::write(map, can_append)
+        on_disk::write(map, write_mode)
     }
 
     /// `callback` allows the caller to process and do something with the
@@ -1343,7 +1365,10 @@ impl OwningDirstateMap {
                     *count = count
                         .checked_sub(1)
                         .expect("nodes_with_copy_source_count should be >= 0");
-                    DirstateMap::count_dropped_path(unreachable_bytes, source);
+                    DirstateMap::count_dropped_path(
+                        unreachable_bytes,
+                        Cow::Borrowed(source),
+                    );
                 }
                 node.copy_source.take().map(Cow::into_owned)
             }))
@@ -1356,7 +1381,7 @@ impl OwningDirstateMap {
         value: &HgPath,
     ) -> Result<Option<HgPathBuf>, DirstateV2ParseError> {
         self.with_dmap_mut(|map| {
-            let node = map.get_or_insert_node(&key, |_ancestor| {})?;
+            let node = map.get_or_insert_node(key, |_ancestor| {})?;
             let had_copy_source = node.copy_source.is_none();
             let old = node
                 .copy_source
@@ -1372,6 +1397,10 @@ impl OwningDirstateMap {
     pub fn len(&self) -> usize {
         let map = self.get_map();
         map.nodes_with_entry_count as usize
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn contains_key(
@@ -1467,12 +1496,8 @@ impl OwningDirstateMap {
         &self,
         all: bool,
     ) -> Box<
-        dyn Iterator<
-                Item = Result<
-                    (&HgPath, (u8, i32, i32, i32)),
-                    DirstateV2ParseError,
-                >,
-            > + Send
+        dyn Iterator<Item = Result<DebugDirstateTuple, DirstateV2ParseError>>
+            + Send
             + '_,
     > {
         let map = self.get_map();
@@ -1812,7 +1837,7 @@ mod tests {
         )?;
 
         let (packed, metadata, _should_append, _old_data_size) =
-            map.pack_v2(false)?;
+            map.pack_v2(DirstateMapWriteMode::ForceNewDataFile)?;
         let packed_len = packed.len();
         assert!(packed_len > 0);
 
@@ -1821,6 +1846,8 @@ mod tests {
             packed,
             packed_len,
             metadata.as_bytes(),
+            vec![],
+            None,
         )?;
 
         // Check that everything is accounted for
@@ -1856,11 +1883,8 @@ mod tests {
         map.set_untracked(p(b"some/nested/removed"))?;
         assert_eq!(map.get_map().unreachable_bytes, 0);
 
-        match map.get_map().root {
-            ChildNodes::InMemory(_) => {
-                panic!("root should not have been mutated")
-            }
-            _ => (),
+        if let ChildNodes::InMemory(_) = map.get_map().root {
+            panic!("root should not have been mutated")
         }
         // We haven't mutated enough (nothing, actually), we should still be in
         // the append strategy
@@ -1871,9 +1895,8 @@ mod tests {
         let unreachable_bytes = map.get_map().unreachable_bytes;
         assert!(unreachable_bytes > 0);
 
-        match map.get_map().root {
-            ChildNodes::OnDisk(_) => panic!("root should have been mutated"),
-            _ => (),
+        if let ChildNodes::OnDisk(_) = map.get_map().root {
+            panic!("root should have been mutated")
         }
 
         // This should not mutate the structure either, since `root` has
@@ -1881,22 +1904,20 @@ mod tests {
         map.set_untracked(p(b"merged"))?;
         assert_eq!(map.get_map().unreachable_bytes, unreachable_bytes);
 
-        match map.get_map().get_node(p(b"other/added_with_p2"))?.unwrap() {
-            NodeRef::InMemory(_, _) => {
-                panic!("'other/added_with_p2' should not have been mutated")
-            }
-            _ => (),
+        if let NodeRef::InMemory(_, _) =
+            map.get_map().get_node(p(b"other/added_with_p2"))?.unwrap()
+        {
+            panic!("'other/added_with_p2' should not have been mutated")
         }
         // But this should, since it's in a different path
         // than `<root>some/nested/add`
         map.set_untracked(p(b"other/added_with_p2"))?;
         assert!(map.get_map().unreachable_bytes > unreachable_bytes);
 
-        match map.get_map().get_node(p(b"other/added_with_p2"))?.unwrap() {
-            NodeRef::OnDisk(_) => {
-                panic!("'other/added_with_p2' should have been mutated")
-            }
-            _ => (),
+        if let NodeRef::OnDisk(_) =
+            map.get_map().get_node(p(b"other/added_with_p2"))?.unwrap()
+        {
+            panic!("'other/added_with_p2' should have been mutated")
         }
 
         // We have rewritten most of the tree, we should create a new file

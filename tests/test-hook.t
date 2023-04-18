@@ -462,13 +462,11 @@ more there after
   00manifest.i
   data
   fncache (repofncache !)
-  journal.phaseroots
   phaseroots
   requires
   undo
   undo.backup.fncache (repofncache !)
   undo.backupfiles
-  undo.phaseroots
 
 
 precommit hook can prevent commit
@@ -639,6 +637,15 @@ test that prepushkey can prevent incoming keys
   HG_NAMESPACE=bookmarks
   HG_NEW=0000000000000000000000000000000000000000
   HG_PUSHKEYCOMPAT=1
+  HG_SOURCE=push
+  HG_TXNID=TXN:$ID$
+  HG_TXNNAME=push
+  HG_URL=file:$TESTTMP/a
+  
+  txnabort Python hook: bundle2,changes,source,txnid,txnname,url
+  txnabort hook: HG_BUNDLE2=1
+  HG_HOOKNAME=txnabort.1
+  HG_HOOKTYPE=txnabort
   HG_SOURCE=push
   HG_TXNID=TXN:$ID$
   HG_TXNNAME=push
@@ -975,19 +982,19 @@ test python hooks
   Traceback (most recent call last):
   SyntaxError: * (glob)
   exception from second failed import attempt:
-  Traceback (most recent call last): (py3 !)
-  SyntaxError: * (glob) (py3 !)
   Traceback (most recent call last):
-  ImportError: No module named 'hgext_syntaxerror' (py3 no-py36 !)
+  SyntaxError: * (glob)
+  Traceback (most recent call last):
+  ImportError: No module named 'hgext_syntaxerror' (no-py36 !)
   ModuleNotFoundError: No module named 'hgext_syntaxerror' (py36 !)
   Traceback (most recent call last):
-  SyntaxError: * (glob) (py3 !)
-  Traceback (most recent call last): (py3 !)
-  ImportError: No module named 'hgext_syntaxerror' (py3 no-py36 !)
+  SyntaxError: * (glob)
+  Traceback (most recent call last):
+  ImportError: No module named 'hgext_syntaxerror' (no-py36 !)
   ModuleNotFoundError: No module named 'hgext_syntaxerror' (py36 !)
-  Traceback (most recent call last): (py3 !)
+  Traceback (most recent call last):
       raise error.HookLoadError( (py38 !)
-  mercurial.error.HookLoadError: preoutgoing.syntaxerror hook is invalid: import of "syntaxerror" failed (py3 !)
+  mercurial.error.HookLoadError: preoutgoing.syntaxerror hook is invalid: import of "syntaxerror" failed
   abort: preoutgoing.syntaxerror hook is invalid: import of "syntaxerror" failed
 
   $ echo '[hooks]' > ../a/.hg/hgrc
@@ -1120,7 +1127,7 @@ test python hook configured with python:[file]:[hook] syntax
 
   $ hg id
   loading pre-identify.npmd hook failed:
-  abort: No module named 'repo' (py3 !)
+  abort: No module named 'repo'
   [255]
 
   $ cd ../../b
@@ -1140,24 +1147,24 @@ make sure --traceback works on hook import failure
   $ hg --traceback commit -ma 2>&1 | egrep '^exception|ImportError|ModuleNotFoundError|Traceback|HookLoadError|abort'
   exception from first failed import attempt:
   Traceback (most recent call last):
-  ImportError: No module named 'somebogusmodule' (py3 no-py36 !)
+  ImportError: No module named 'somebogusmodule' (no-py36 !)
   ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
   exception from second failed import attempt:
-  Traceback (most recent call last): (py3 !)
-  ImportError: No module named 'somebogusmodule' (py3 no-py36 !)
-  ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
-  Traceback (most recent call last): (py3 !)
-  ImportError: No module named 'hgext_importfail' (py3 no-py36 !)
-  ModuleNotFoundError: No module named 'hgext_importfail' (py36 !)
-  Traceback (most recent call last): (py3 !)
-  ImportError: No module named 'somebogusmodule' (py3 no-py36 !)
+  Traceback (most recent call last):
+  ImportError: No module named 'somebogusmodule' (no-py36 !)
   ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
   Traceback (most recent call last):
-  ImportError: No module named 'hgext_importfail' (py3 no-py36 !)
+  ImportError: No module named 'hgext_importfail' (no-py36 !)
+  ModuleNotFoundError: No module named 'hgext_importfail' (py36 !)
+  Traceback (most recent call last):
+  ImportError: No module named 'somebogusmodule' (no-py36 !)
+  ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
+  Traceback (most recent call last):
+  ImportError: No module named 'hgext_importfail' (no-py36 !)
   ModuleNotFoundError: No module named 'hgext_importfail' (py36 !)
   Traceback (most recent call last):
       raise error.HookLoadError( (py38 !)
-  mercurial.error.HookLoadError: precommit.importfail hook is invalid: import of "importfail" failed (py3 !)
+  mercurial.error.HookLoadError: precommit.importfail hook is invalid: import of "importfail" failed
   abort: precommit.importfail hook is invalid: import of "importfail" failed
 
 Issue1827: Hooks Update & Commit not completely post operation
@@ -1423,3 +1430,41 @@ HGPLAIN setting in hooks
   ### no ######## plain: <unset>
   ### auto ###### plain: 1
   Mercurial Distributed SCM (*) (glob)
+
+Test hook that change the underlying repo
+=========================================
+
+blackbox access the dirstate afterward and can see a changelog / dirstate
+desync.
+
+
+  $ cd $TESTTMP
+  $ cat <<EOF >> $HGRCPATH
+  > [extensions]
+  > blackbox=
+  > [hooks]
+  > post-merge = hg commit -m "auto merge"
+  > EOF
+
+  $ hg init t
+  $ cd t
+  $ touch ".hgignore"
+  $ hg commit -Am "initial" -d'0 0'
+  adding .hgignore
+
+  $ echo This is file a1 > a
+  $ hg commit -Am "commit #1" -d'0 0'
+  adding a
+
+  $ hg update 0
+  0 files updated, 0 files merged, 1 files removed, 0 files unresolved
+  $ echo This is file b1 > b
+  $ hg commit -Am "commit #2" -d'0 0'
+  adding b
+  created new head
+
+  $ hg merge 1
+  1 files updated, 0 files merged, 0 files removed, 0 files unresolved
+  (branch merge, don't forget to commit)
+
+  $ cd ..

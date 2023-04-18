@@ -588,6 +588,18 @@ coreconfigitem(
     b'revlog.debug-delta',
     default=False,
 )
+# display extra information about the bundling process
+coreconfigitem(
+    b'debug',
+    b'bundling-stats',
+    default=False,
+)
+# display extra information about the unbundling process
+coreconfigitem(
+    b'debug',
+    b'unbundling-stats',
+    default=False,
+)
 coreconfigitem(
     b'defaults',
     b'.*',
@@ -640,6 +652,15 @@ coreconfigitem(
     b'deprec-warn',
     default=False,
 )
+# possible values:
+# - auto (the default)
+# - force-append
+# - force-new
+coreconfigitem(
+    b'devel',
+    b'dirstate.v2.data_update_mode',
+    default="auto",
+)
 coreconfigitem(
     b'devel',
     b'disableloaddefaultcerts',
@@ -667,15 +688,53 @@ coreconfigitem(
     b'servercafile',
     default=b'',
 )
+# This config option is intended for use in tests only. It is a giant
+# footgun to kill security. Don't define it.
 coreconfigitem(
     b'devel',
-    b'serverexactprotocol',
+    b'server-insecure-exact-protocol',
     default=b'',
 )
 coreconfigitem(
     b'devel',
     b'serverrequirecert',
     default=False,
+)
+# Makes the status algorithm wait for the existence of this file
+# (or until a timeout of `devel.sync.status.pre-dirstate-write-file-timeout`
+# seconds) before taking the lock and writing the dirstate.
+# Status signals that it's ready to wait by creating a file
+# with the same name + `.waiting`.
+# Useful when testing race conditions.
+coreconfigitem(
+    b'devel',
+    b'sync.status.pre-dirstate-write-file',
+    default=None,
+)
+coreconfigitem(
+    b'devel',
+    b'sync.status.pre-dirstate-write-file-timeout',
+    default=2,
+)
+coreconfigitem(
+    b'devel',
+    b'sync.dirstate.post-docket-read-file',
+    default=None,
+)
+coreconfigitem(
+    b'devel',
+    b'sync.dirstate.post-docket-read-file-timeout',
+    default=2,
+)
+coreconfigitem(
+    b'devel',
+    b'sync.dirstate.pre-read-file',
+    default=None,
+)
+coreconfigitem(
+    b'devel',
+    b'sync.dirstate.pre-read-file-timeout',
+    default=2,
 )
 coreconfigitem(
     b'devel',
@@ -733,6 +792,14 @@ coreconfigitem(
     b'devel',
     b'discovery.exchange-heads',
     default=True,
+)
+# If devel.debug.abort-update is True, then any merge with the working copy,
+# e.g. [hg update], will be aborted after figuring out what needs to be done,
+# but before spawning the parallel worker
+coreconfigitem(
+    b'devel',
+    b'debug.abort-update',
+    default=False,
 )
 # If discovery.grow-sample is False, the sample size used in set discovery will
 # not be increased through the process
@@ -910,6 +977,13 @@ coreconfigitem(
     b'experimental',
     b'changegroup4',
     default=False,
+)
+
+# might remove rank configuration once the computation has no impact
+coreconfigitem(
+    b'experimental',
+    b'changelog-v2.compute-rank',
+    default=True,
 )
 coreconfigitem(
     b'experimental',
@@ -1774,6 +1848,13 @@ coreconfigitem(
 )
 coreconfigitem(
     b'merge-tools',
+    br'.*\.regappend$',
+    default=b"",
+    generic=True,
+    priority=-1,
+)
+coreconfigitem(
+    b'merge-tools',
     br'.*\.symlink$',
     default=False,
     generic=True,
@@ -1817,7 +1898,7 @@ coreconfigitem(
 )
 coreconfigitem(
     b'paths',
-    b'.*',
+    b'[^:]*',
     default=None,
     generic=True,
 )
@@ -1842,6 +1923,12 @@ coreconfigitem(
 coreconfigitem(
     b'paths',
     b'.*:pushurl',
+    default=None,
+    generic=True,
+)
+coreconfigitem(
+    b'paths',
+    b'.*:pulled-delta-reuse-policy',
     default=None,
     generic=True,
 )
@@ -2023,6 +2110,11 @@ coreconfigitem(
 )
 coreconfigitem(
     b'storage',
+    b'revlog.delta-parent-search.candidate-group-chunk-size',
+    default=20,
+)
+coreconfigitem(
+    b'storage',
     b'revlog.issue6528.fix-incoming',
     default=True,
 )
@@ -2044,6 +2136,7 @@ coreconfigitem(
     b'revlog.reuse-external-delta',
     default=True,
 )
+# This option is True unless `format.generaldelta` is set.
 coreconfigitem(
     b'storage',
     b'revlog.reuse-external-delta-parent',
@@ -2123,7 +2216,7 @@ coreconfigitem(
 coreconfigitem(
     b'server',
     b'pullbundle',
-    default=False,
+    default=True,
 )
 coreconfigitem(
     b'server',

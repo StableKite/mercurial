@@ -48,7 +48,7 @@ impl Vfs<'_> {
         match self.read(relative_path) {
             Err(e) => match &e {
                 HgError::IoError { error, .. } => match error.kind() {
-                    ErrorKind::NotFound => return Ok(None),
+                    ErrorKind::NotFound => Ok(None),
                     _ => Err(e),
                 },
                 _ => Err(e),
@@ -171,4 +171,35 @@ pub(crate) fn is_dir(path: impl AsRef<Path>) -> Result<bool, HgError> {
 
 pub(crate) fn is_file(path: impl AsRef<Path>) -> Result<bool, HgError> {
     Ok(fs_metadata(path)?.map_or(false, |meta| meta.is_file()))
+}
+
+/// Returns whether the given `path` is on a network file system.
+/// Taken from `cargo`'s codebase.
+#[cfg(target_os = "linux")]
+pub(crate) fn is_on_nfs_mount(path: impl AsRef<Path>) -> bool {
+    use std::ffi::CString;
+    use std::mem;
+    use std::os::unix::prelude::*;
+
+    let path = match CString::new(path.as_ref().as_os_str().as_bytes()) {
+        Ok(path) => path,
+        Err(_) => return false,
+    };
+
+    unsafe {
+        let mut buf: libc::statfs = mem::zeroed();
+        let r = libc::statfs(path.as_ptr(), &mut buf);
+
+        r == 0 && buf.f_type as u32 == libc::NFS_SUPER_MAGIC as u32
+    }
+}
+
+/// Similar to what Cargo does; although detecting NFS (or non-local
+/// file systems) _should_ be possible on other operating systems,
+/// we'll just assume that mmap() works there, for now; after all,
+/// _some_ functionality is better than a compile error, i.e. none at
+/// all
+#[cfg(not(target_os = "linux"))]
+pub(crate) fn is_on_nfs_mount(_path: impl AsRef<Path>) -> bool {
+    false
 }

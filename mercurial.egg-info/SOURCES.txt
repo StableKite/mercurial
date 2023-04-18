@@ -64,6 +64,7 @@ contrib/python3-ratchet.py
 contrib/python3-whitelist
 contrib/relnotes
 contrib/revsetbenchmarks.py
+contrib/setup-pytype.sh
 contrib/showstack.py
 contrib/simplemerge
 contrib/synthrepo.py
@@ -549,7 +550,6 @@ mercurial/destutil.py
 mercurial/diffhelper.py
 mercurial/diffutil.py
 mercurial/dirstate.py
-mercurial/dirstateguard.py
 mercurial/dirstatemap.py
 mercurial/discovery.py
 mercurial/dispatch.py
@@ -654,6 +654,7 @@ mercurial/templateutil.py
 mercurial/transaction.py
 mercurial/treediscovery.py
 mercurial/txnutil.py
+mercurial/typelib.py
 mercurial/ui.py
 mercurial/unionrepo.py
 mercurial/upgrade.py
@@ -690,6 +691,7 @@ mercurial/cext/osutil.pyi
 mercurial/cext/parsers.c
 mercurial/cext/parsers.pyi
 mercurial/cext/pathencode.c
+mercurial/cext/py.typed
 mercurial/cext/revlog.c
 mercurial/cext/revlog.h
 mercurial/cext/util.h
@@ -963,16 +965,29 @@ mercurial/testing/__init__.py
 mercurial/testing/revlog.py
 mercurial/testing/storage.py
 mercurial/thirdparty/__init__.py
-mercurial/thirdparty/attr/LICENSE.txt
+mercurial/thirdparty/attr/LICENSE
 mercurial/thirdparty/attr/__init__.py
+mercurial/thirdparty/attr/__init__.pyi
+mercurial/thirdparty/attr/_cmp.py
+mercurial/thirdparty/attr/_cmp.pyi
 mercurial/thirdparty/attr/_compat.py
 mercurial/thirdparty/attr/_config.py
 mercurial/thirdparty/attr/_funcs.py
 mercurial/thirdparty/attr/_make.py
+mercurial/thirdparty/attr/_next_gen.py
+mercurial/thirdparty/attr/_version_info.py
+mercurial/thirdparty/attr/_version_info.pyi
 mercurial/thirdparty/attr/converters.py
+mercurial/thirdparty/attr/converters.pyi
 mercurial/thirdparty/attr/exceptions.py
+mercurial/thirdparty/attr/exceptions.pyi
 mercurial/thirdparty/attr/filters.py
+mercurial/thirdparty/attr/filters.pyi
+mercurial/thirdparty/attr/py.typed
+mercurial/thirdparty/attr/setters.py
+mercurial/thirdparty/attr/setters.pyi
 mercurial/thirdparty/attr/validators.py
+mercurial/thirdparty/attr/validators.pyi
 mercurial/thirdparty/cbor/.travis.yml
 mercurial/thirdparty/cbor/LICENSE.txt
 mercurial/thirdparty/cbor/README.rst
@@ -1049,6 +1064,7 @@ relnotes/6.0
 relnotes/6.1
 relnotes/6.2
 relnotes/6.3
+relnotes/6.4
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
@@ -1072,7 +1088,7 @@ rust/hg-core/Cargo.toml
 rust/hg-core/examples/nodemap/index.rs
 rust/hg-core/examples/nodemap/main.rs
 rust/hg-core/src/ancestors.rs
-rust/hg-core/src/config.rs
+rust/hg-core/src/checkexec.rs
 rust/hg-core/src/copy_tracing.rs
 rust/hg-core/src/dagops.rs
 rust/hg-core/src/dirstate.rs
@@ -1088,7 +1104,6 @@ rust/hg-core/src/matchers.rs
 rust/hg-core/src/narrow.rs
 rust/hg-core/src/repo.rs
 rust/hg-core/src/requirements.rs
-rust/hg-core/src/revlog.rs
 rust/hg-core/src/revset.rs
 rust/hg-core/src/sparse.rs
 rust/hg-core/src/testing.rs
@@ -1096,6 +1111,7 @@ rust/hg-core/src/utils.rs
 rust/hg-core/src/vfs.rs
 rust/hg-core/src/config/config.rs
 rust/hg-core/src/config/layer.rs
+rust/hg-core/src/config/mod.rs
 rust/hg-core/src/config/plain_info.rs
 rust/hg-core/src/config/values.rs
 rust/hg-core/src/copy_tracing/tests.rs
@@ -1117,12 +1133,13 @@ rust/hg-core/src/revlog/changelog.rs
 rust/hg-core/src/revlog/filelog.rs
 rust/hg-core/src/revlog/index.rs
 rust/hg-core/src/revlog/manifest.rs
+rust/hg-core/src/revlog/mod.rs
 rust/hg-core/src/revlog/node.rs
 rust/hg-core/src/revlog/nodemap.rs
 rust/hg-core/src/revlog/nodemap_docket.rs
 rust/hg-core/src/revlog/patch.rs
 rust/hg-core/src/revlog/path_encode.rs
-rust/hg-core/src/revlog/revlog.rs
+rust/hg-core/src/utils/debug.rs
 rust/hg-core/src/utils/files.rs
 rust/hg-core/src/utils/hg_path.rs
 rust/hg-core/src/utils/path_auditor.rs
@@ -1199,7 +1216,6 @@ tests/flagprocessorext.py
 tests/fsmonitor-run-tests.py
 tests/generate-working-copy-states.py
 tests/get-with-headers.py
-tests/helper-killhook.py
 tests/helper-runtests.sh
 tests/helpers-testrepo.sh
 tests/heredoctest.py
@@ -1418,6 +1434,7 @@ tests/test-copy.t
 tests/test-copytrace-heuristics.t
 tests/test-custom-filters.t
 tests/test-debian-packages.t
+tests/test-debug-revlog-stats.t
 tests/test-debugbackupbundle.t
 tests/test-debugbuilddag.t
 tests/test-debugbundle.t
@@ -1449,6 +1466,8 @@ tests/test-dirs.py
 tests/test-dirstate-backup.t
 tests/test-dirstate-race.t
 tests/test-dirstate-race2.t
+tests/test-dirstate-read-race.t
+tests/test-dirstate-status-write-race.t
 tests/test-dirstate.t
 tests/test-dispatch.py
 tests/test-dispatch.py.out
@@ -1583,6 +1602,7 @@ tests/test-hgweb-descend-empties.t
 tests/test-hgweb-diffs.t
 tests/test-hgweb-empty.t
 tests/test-hgweb-filelog.t
+tests/test-hgweb-head.t
 tests/test-hgweb-json.t
 tests/test-hgweb-no-path-info.t
 tests/test-hgweb-no-request-uri.t
@@ -1914,6 +1934,7 @@ tests/test-rebase-collapse.t
 tests/test-rebase-conflicts.t
 tests/test-rebase-dest.t
 tests/test-rebase-detach.t
+tests/test-rebase-dry-run.t
 tests/test-rebase-empty-successor.t
 tests/test-rebase-emptycommit.t
 tests/test-rebase-inmemory.t
@@ -1995,6 +2016,7 @@ tests/test-revert.t
 tests/test-revisions.t
 tests/test-revlog-ancestry.py
 tests/test-revlog-ancestry.py.out
+tests/test-revlog-delta-find.t
 tests/test-revlog-group-emptyiter.t
 tests/test-revlog-mmapindex.t
 tests/test-revlog-packentry.t
@@ -2064,6 +2086,8 @@ tests/test-stack.t
 tests/test-state-extension.t
 tests/test-static-http.t
 tests/test-status-color.t
+tests/test-status-committed-and-ignored.t
+tests/test-status-eacces.t
 tests/test-status-inprocess.py
 tests/test-status-inprocess.py.out
 tests/test-status-rev.t
@@ -2100,6 +2124,7 @@ tests/test-tools.t
 tests/test-transaction-rollback-on-revlog-split.t
 tests/test-transaction-rollback-on-sigpipe.t
 tests/test-transaction-safety.t
+tests/test-transaction-wc-rollback-race.t
 tests/test-transplant.t
 tests/test-treediscovery-legacy.t
 tests/test-treediscovery.t

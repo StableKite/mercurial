@@ -10,6 +10,7 @@ from . import (
     error,
     pathutil,
     policy,
+    testing,
     txnutil,
     util,
 )
@@ -30,6 +31,13 @@ else:
     DirstateItem = rustmod.DirstateItem
 
 rangemask = 0x7FFFFFFF
+
+WRITE_MODE_AUTO = 0
+WRITE_MODE_FORCE_NEW = 1
+WRITE_MODE_FORCE_APPEND = 2
+
+
+V2_MAX_READ_ATTEMPTS = 5
 
 
 class _dirstatemapcommon:
@@ -54,9 +62,47 @@ class _dirstatemapcommon:
         self._parents = None
         self._dirtyparents = False
         self._docket = None
+        write_mode = ui.config(b"devel", b"dirstate.v2.data_update_mode")
+        if write_mode == b"auto":
+            self._write_mode = WRITE_MODE_AUTO
+        elif write_mode == b"force-append":
+            self._write_mode = WRITE_MODE_FORCE_APPEND
+        elif write_mode == b"force-new":
+            self._write_mode = WRITE_MODE_FORCE_NEW
+        else:
+            # unknown value, fallback to default
+            self._write_mode = WRITE_MODE_AUTO
 
         # for consistent view between _pl() and _read() invocations
         self._pendingmode = None
+
+    def _set_identity(self):
+        self.identity = self._get_current_identity()
+
+    def _get_current_identity(self):
+        try:
+            return util.cachestat(self._opener.join(self._filename))
+        except FileNotFoundError:
+            return None
+
+    def may_need_refresh(self):
+        if 'identity' not in vars(self):
+            # no existing identity, we need a refresh
+            return True
+        if self.identity is None:
+            return True
+        if not self.identity.cacheable():
+            # We cannot trust the entry
+            # XXX this is a problem on windows, NFS, or other inode less system
+            return True
+        current_identity = self._get_current_identity()
+        if current_identity is None:
+            return True
+        if not current_identity.cacheable():
+            # We cannot trust the entry
+            # XXX this is a problem on windows, NFS, or other inode less system
+            return True
+        return current_identity != self.identity
 
     def preload(self):
         """Loads the underlying data, if it's not already loaded"""
@@ -104,18 +150,43 @@ class _dirstatemapcommon:
                 raise error.ProgrammingError(
                     b'dirstate only has a docket in v2 format'
                 )
+            self._set_identity()
             self._docket = docketmod.DirstateDocket.parse(
                 self._readdirstatefile(), self._nodeconstants
             )
         return self._docket
+
+    def _read_v2_data(self):
+        data = None
+        attempts = 0
+        while attempts < V2_MAX_READ_ATTEMPTS:
+            attempts += 1
+            try:
+                # TODO: use mmap when possible
+                data = self._opener.read(self.docket.data_filename())
+            except FileNotFoundError:
+                # read race detected between docket and data file
+                # reload the docket and retry
+                self._docket = None
+        if data is None:
+            assert attempts >= V2_MAX_READ_ATTEMPTS
+            msg = b"dirstate read race happened %d times in a row"
+            msg %= attempts
+            raise error.Abort(msg)
+        return self._opener.read(self.docket.data_filename())
 
     def write_v2_no_append(self, tr, st, meta, packed):
         old_docket = self.docket
         new_docket = docketmod.DirstateDocket.with_new_uuid(
             self.parents(), len(packed), meta
         )
+        if old_docket.uuid == new_docket.uuid:
+            raise error.ProgrammingError(b'dirstate docket name collision')
         data_filename = new_docket.data_filename()
         self._opener.write(data_filename, packed)
+        # tell the transaction that we are adding a new file
+        if tr is not None:
+            tr.addbackup(data_filename, location=b'plain')
         # Write the new docket after the new data file has been
         # written. Because `st` was opened with `atomictemp=True`,
         # the actual `.hg/dirstate` file is only affected on close.
@@ -125,6 +196,8 @@ class _dirstatemapcommon:
         # the new data file was written.
         if old_docket.uuid:
             data_filename = old_docket.data_filename()
+            if tr is not None:
+                tr.addbackup(data_filename, location=b'plain')
             unlink = lambda _tr=None: self._opener.unlink(data_filename)
             if tr:
                 category = b"dirstate-v2-clean-" + old_docket.uuid
@@ -255,16 +328,15 @@ class dirstatemap(_dirstatemapcommon):
     ### disk interaction
 
     def read(self):
-        # ignore HG_PENDING because identity is used only for writing
-        self.identity = util.filestat.frompath(
-            self._opener.join(self._filename)
-        )
-
+        testing.wait_on_cfg(self._ui, b'dirstate.pre-read-file')
         if self._use_dirstate_v2:
+
             if not self.docket.uuid:
                 return
-            st = self._opener.read(self.docket.data_filename())
+            testing.wait_on_cfg(self._ui, b'dirstate.post-docket-read-file')
+            st = self._read_v2_data()
         else:
+            self._set_identity()
             st = self._readdirstatefile()
 
         if not st:
@@ -521,23 +593,41 @@ if rustmod is not None:
             Fills the Dirstatemap when called.
             """
             # ignore HG_PENDING because identity is used only for writing
-            self.identity = util.filestat.frompath(
-                self._opener.join(self._filename)
-            )
+            self._set_identity()
 
+            testing.wait_on_cfg(self._ui, b'dirstate.pre-read-file')
             if self._use_dirstate_v2:
-                if self.docket.uuid:
-                    # TODO: use mmap when possible
-                    data = self._opener.read(self.docket.data_filename())
-                else:
-                    data = b''
-                self._map = rustmod.DirstateMap.new_v2(
-                    data, self.docket.data_size, self.docket.tree_metadata
+                self.docket  # load the data if needed
+                inode = (
+                    self.identity.stat.st_ino
+                    if self.identity is not None
+                    and self.identity.stat is not None
+                    else None
                 )
+                testing.wait_on_cfg(self._ui, b'dirstate.post-docket-read-file')
+                if not self.docket.uuid:
+                    data = b''
+                    self._map = rustmod.DirstateMap.new_empty()
+                else:
+                    data = self._read_v2_data()
+                    self._map = rustmod.DirstateMap.new_v2(
+                        data,
+                        self.docket.data_size,
+                        self.docket.tree_metadata,
+                        self.docket.uuid,
+                        inode,
+                    )
                 parents = self.docket.parents
             else:
+                self._set_identity()
+                inode = (
+                    self.identity.stat.st_ino
+                    if self.identity is not None
+                    and self.identity.stat is not None
+                    else None
+                )
                 self._map, parents = rustmod.DirstateMap.new_v1(
-                    self._readdirstatefile()
+                    self._readdirstatefile(), inode
                 )
 
             if parents and not self._dirtyparents:
@@ -607,11 +697,21 @@ if rustmod is not None:
                 return
 
             # We can only append to an existing data file if there is one
-            can_append = self.docket.uuid is not None
-            packed, meta, append = self._map.write_v2(can_append)
+            write_mode = self._write_mode
+            if self.docket.uuid is None:
+                write_mode = WRITE_MODE_FORCE_NEW
+            packed, meta, append = self._map.write_v2(write_mode)
             if append:
                 docket = self.docket
                 data_filename = docket.data_filename()
+                # We mark it for backup to make sure a future `hg rollback` (or
+                # `hg recover`?) call find the data it needs to restore a
+                # working repository.
+                #
+                # The backup can use a hardlink because the format is resistant
+                # to trailing "dead" data.
+                if tr is not None:
+                    tr.addbackup(data_filename, location=b'plain')
                 with self._opener(data_filename, b'r+b') as fp:
                     fp.seek(docket.data_size)
                     assert fp.tell() == docket.data_size

@@ -1,12 +1,13 @@
 Metadata-Version: 2.1
 Name: mercurial
-Version: 6.3.2
+Version: 6.4.2
 Summary: Fast scalable distributed SCM (revision control, version control) system
 Home-page: https://mercurial-scm.org/
 Download-URL: https://mercurial-scm.org/release/
 Author: Olivia Mackall and many others
 Author-email: mercurial@mercurial-scm.org
 License: GNU GPLv2 or any later version
+Platform: UNKNOWN
 Classifier: Development Status :: 6 - Mature
 Classifier: Environment :: Console
 Classifier: Intended Audience :: Developers
@@ -27,3 +28,4 @@ Classifier: Topic :: Software Development :: Version Control
 License-File: COPYING
 
 Mercurial is a distributed SCM tool written in Python. It is used by a number of large projects that require fast, reliable distributed revision control, such as Mozilla.
+

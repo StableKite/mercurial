@@ -11,6 +11,8 @@
 # This software may be used and distributed according to the terms of the
 # GNU General Public License version 2 or any later version.
 
+import errno
+import os
 
 from .i18n import _
 from . import (
@@ -38,6 +40,61 @@ def active(func):
     return _active
 
 
+UNDO_BACKUP = b'%s.backupfiles'
+
+UNDO_FILES_MAY_NEED_CLEANUP = [
+    # legacy entries that might exists on disk from previous version:
+    (b'store', b'%s.narrowspec'),
+    (b'plain', b'%s.narrowspec.dirstate'),
+    (b'plain', b'%s.branch'),
+    (b'plain', b'%s.bookmarks'),
+    (b'store', b'%s.phaseroots'),
+    (b'plain', b'%s.dirstate'),
+    # files actually in uses today:
+    (b'plain', b'%s.desc'),
+    # Always delete undo last to make sure we detect that a clean up is needed if
+    # the process is interrupted.
+    (b'store', b'%s'),
+]
+
+
+def cleanup_undo_files(report, vfsmap, undo_prefix=b'undo'):
+    """remove "undo" files used by the rollback logic
+
+    This is useful to prevent rollback running in situation were it does not
+    make sense. For example after a strip.
+    """
+    backup_listing = UNDO_BACKUP % undo_prefix
+
+    backup_entries = []
+    undo_files = []
+    svfs = vfsmap[b'store']
+    try:
+        with svfs(backup_listing) as f:
+            backup_entries = read_backup_files(report, f)
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            msg = _(b'could not read %s: %s\n')
+            msg %= (svfs.join(backup_listing), stringutil.forcebytestr(e))
+            report(msg)
+
+    for location, f, backup_path, c in backup_entries:
+        if location in vfsmap and backup_path:
+            undo_files.append((vfsmap[location], backup_path))
+
+    undo_files.append((svfs, backup_listing))
+    for location, undo_path in UNDO_FILES_MAY_NEED_CLEANUP:
+        undo_files.append((vfsmap[location], undo_path % undo_prefix))
+    for undovfs, undofile in undo_files:
+        try:
+            undovfs.unlink(undofile)
+        except OSError as e:
+            if e.errno != errno.ENOENT:
+                msg = _(b'error removing %s: %s\n')
+                msg %= (undovfs.join(undofile), stringutil.forcebytestr(e))
+                report(msg)
+
+
 def _playback(
     journal,
     report,
@@ -48,7 +105,48 @@ def _playback(
     unlink=True,
     checkambigfiles=None,
 ):
+    """rollback a transaction :
+    - truncate files that have been appended to
+    - restore file backups
+    - delete temporary files
+    """
+    backupfiles = []
+
+    def restore_one_backup(vfs, f, b, checkambig):
+        filepath = vfs.join(f)
+        backuppath = vfs.join(b)
+        try:
+            util.copyfile(backuppath, filepath, checkambig=checkambig)
+            backupfiles.append((vfs, b))
+        except IOError as exc:
+            e_msg = stringutil.forcebytestr(exc)
+            report(_(b"failed to recover %s (%s)\n") % (f, e_msg))
+            raise
+
+    # gather all backup files that impact the store
+    # (we need this to detect files that are both backed up and truncated)
+    store_backup = {}
+    for entry in backupentries:
+        location, file_path, backup_path, cache = entry
+        vfs = vfsmap[location]
+        is_store = vfs.join(b'') == opener.join(b'')
+        if is_store and file_path and backup_path:
+            store_backup[file_path] = entry
+    copy_done = set()
+
+    # truncate all file `f` to offset `o`
     for f, o in sorted(dict(entries).items()):
+        # if we have a backup for `f`, we should restore it first and truncate
+        # the restored file
+        bck_entry = store_backup.get(f)
+        if bck_entry is not None:
+            location, file_path, backup_path, cache = bck_entry
+            checkambig = False
+            if checkambigfiles:
+                checkambig = (file_path, location) in checkambigfiles
+            restore_one_backup(opener, file_path, backup_path, checkambig)
+            copy_done.add(bck_entry)
+        # truncate the file to its pre-transaction size
         if o or not unlink:
             checkambig = checkambigfiles and (f, b'') in checkambigfiles
             try:
@@ -67,45 +165,52 @@ def _playback(
                 report(_(b"failed to truncate %s\n") % f)
                 raise
         else:
+            # delete empty file
             try:
                 opener.unlink(f)
             except FileNotFoundError:
                 pass
-
-    backupfiles = []
-    for l, f, b, c in backupentries:
+    # restore backed up files and clean up temporary files
+    for entry in backupentries:
+        if entry in copy_done:
+            continue
+        l, f, b, c = entry
         if l not in vfsmap and c:
             report(b"couldn't handle %s: unknown cache location %s\n" % (b, l))
         vfs = vfsmap[l]
         try:
+            checkambig = checkambigfiles and (f, l) in checkambigfiles
             if f and b:
-                filepath = vfs.join(f)
-                backuppath = vfs.join(b)
-                checkambig = checkambigfiles and (f, l) in checkambigfiles
-                try:
-                    util.copyfile(backuppath, filepath, checkambig=checkambig)
-                    backupfiles.append(b)
-                except IOError as exc:
-                    e_msg = stringutil.forcebytestr(exc)
-                    report(_(b"failed to recover %s (%s)\n") % (f, e_msg))
+                restore_one_backup(vfs, f, b, checkambig)
             else:
                 target = f or b
                 try:
                     vfs.unlink(target)
                 except FileNotFoundError:
+                    # This is fine because
+                    #
+                    # either we are trying to delete the main file, and it is
+                    # already deleted.
+                    #
+                    # or we are trying to delete a temporary file and it is
+                    # already deleted.
+                    #
+                    # in both case, our target result (delete the file) is
+                    # already achieved.
                     pass
         except (IOError, OSError, error.Abort):
             if not c:
                 raise
 
+    # cleanup transaction state file and the backups file
     backuppath = b"%s.backupfiles" % journal
     if opener.exists(backuppath):
         opener.unlink(backuppath)
     opener.unlink(journal)
     try:
-        for f in backupfiles:
-            if opener.exists(f):
-                opener.unlink(f)
+        for vfs, f in backupfiles:
+            if vfs.exists(f):
+                vfs.unlink(f)
     except (IOError, OSError, error.Abort):
         # only pure backup file remains, it is sage to ignore any error
         pass
@@ -152,6 +257,7 @@ class transaction(util.transactional):
         self._offsetmap = {}
         self._newfiles = set()
         self._journal = journalname
+        self._journal_files = []
         self._undoname = undoname
         self._queue = []
         # A callback to do something just after releasing transaction.
@@ -273,7 +379,7 @@ class transaction(util.transactional):
         self._file.flush()
 
     @active
-    def addbackup(self, file, hardlink=True, location=b''):
+    def addbackup(self, file, hardlink=True, location=b'', for_offset=False):
         """Adds a backup of the file to the transaction
 
         Calling addbackup() creates a hardlink backup of the specified file
@@ -282,17 +388,25 @@ class transaction(util.transactional):
 
         * `file`: the file path, relative to .hg/store
         * `hardlink`: use a hardlink to quickly create the backup
+
+        If `for_offset` is set, we expect a offset for this file to have been previously recorded
         """
         if self._queue:
             msg = b'cannot use transaction.addbackup inside "group"'
             raise error.ProgrammingError(msg)
 
-        if (
-            file in self._newfiles
-            or file in self._offsetmap
-            or file in self._backupmap
-        ):
+        if file in self._newfiles or file in self._backupmap:
             return
+        elif file in self._offsetmap and not for_offset:
+            return
+        elif for_offset and file not in self._offsetmap:
+            msg = (
+                'calling `addbackup` with `for_offmap=True`, '
+                'but no offset recorded: [%r] %r'
+            )
+            msg %= (location, file)
+            raise error.ProgrammingError(msg)
+
         vfs = self._vfsmap[location]
         dirname, filename = vfs.split(file)
         backupfilename = b"%s.backup.%s" % (self._journal, filename)
@@ -632,10 +746,25 @@ class transaction(util.transactional):
         scope)"""
         self._abort()
 
+    @active
+    def add_journal(self, vfs_id, path):
+        self._journal_files.append((vfs_id, path))
+
     def _writeundo(self):
         """write transaction data for possible future undo call"""
         if self._undoname is None:
             return
+        cleanup_undo_files(
+            self._report,
+            self._vfsmap,
+            undo_prefix=self._undoname,
+        )
+
+        def undoname(fn: bytes) -> bytes:
+            base, name = os.path.split(fn)
+            assert name.startswith(self._journal)
+            new_name = name.replace(self._journal, self._undoname, 1)
+            return os.path.join(base, new_name)
 
         undo_backup_path = b"%s.backupfiles" % self._undoname
         undobackupfile = self._opener.open(undo_backup_path, b'w')
@@ -653,13 +782,20 @@ class transaction(util.transactional):
                     )
                     continue
                 vfs = self._vfsmap[l]
-                base, name = vfs.split(b)
-                assert name.startswith(self._journal), name
-                uname = name.replace(self._journal, self._undoname, 1)
-                u = vfs.reljoin(base, uname)
+                u = undoname(b)
                 util.copyfile(vfs.join(b), vfs.join(u), hardlink=True)
             undobackupfile.write(b"%s\0%s\0%s\0%d\n" % (l, f, u, c))
         undobackupfile.close()
+        for vfs, src in self._journal_files:
+            dest = undoname(src)
+            # if src and dest refer to a same file, vfs.rename is a no-op,
+            # leaving both src and dest on disk. delete dest to make sure
+            # the rename couldn't be such a no-op.
+            vfs.tryunlink(dest)
+            try:
+                vfs.rename(src, dest)
+            except FileNotFoundError:  # journal file does not yet exist
+                pass
 
     def _abort(self):
         entries = self.readjournal()
@@ -668,41 +804,68 @@ class transaction(util.transactional):
         self._file.close()
         self._backupsfile.close()
 
+        quick = self._can_quick_abort(entries)
         try:
-            if not entries and not self._backupentries:
-                if self._backupjournal:
-                    self._opener.unlink(self._backupjournal)
-                if self._journal:
-                    self._opener.unlink(self._journal)
-                return
-
-            self._report(_(b"transaction abort!\n"))
-
-            try:
-                for cat in sorted(self._abortcallback):
-                    self._abortcallback[cat](self)
-                # Prevent double usage and help clear cycles.
-                self._abortcallback = None
-                _playback(
-                    self._journal,
-                    self._report,
-                    self._opener,
-                    self._vfsmap,
-                    entries,
-                    self._backupentries,
-                    False,
-                    checkambigfiles=self._checkambigfiles,
-                )
-                self._report(_(b"rollback completed\n"))
-            except BaseException as exc:
-                self._report(_(b"rollback failed - please run hg recover\n"))
-                self._report(
-                    _(b"(failure reason: %s)\n") % stringutil.forcebytestr(exc)
-                )
+            if not quick:
+                self._report(_(b"transaction abort!\n"))
+            for cat in sorted(self._abortcallback):
+                self._abortcallback[cat](self)
+            # Prevent double usage and help clear cycles.
+            self._abortcallback = None
+            if quick:
+                self._do_quick_abort(entries)
+            else:
+                self._do_full_abort(entries)
         finally:
             self._journal = None
             self._releasefn(self, False)  # notify failure of transaction
             self._releasefn = None  # Help prevent cycles.
+
+    def _can_quick_abort(self, entries):
+        """False if any semantic content have been written on disk
+
+        True if nothing, except temporary files has been writen on disk."""
+        if entries:
+            return False
+        for e in self._backupentries:
+            if e[1]:
+                return False
+        return True
+
+    def _do_quick_abort(self, entries):
+        """(Silently) do a quick cleanup (see _can_quick_abort)"""
+        assert self._can_quick_abort(entries)
+        tmp_files = [e for e in self._backupentries if not e[1]]
+        for vfs_id, old_path, tmp_path, xxx in tmp_files:
+            vfs = self._vfsmap[vfs_id]
+            try:
+                vfs.unlink(tmp_path)
+            except FileNotFoundError:
+                pass
+        if self._backupjournal:
+            self._opener.unlink(self._backupjournal)
+        if self._journal:
+            self._opener.unlink(self._journal)
+
+    def _do_full_abort(self, entries):
+        """(Noisily) rollback all the change introduced by the transaction"""
+        try:
+            _playback(
+                self._journal,
+                self._report,
+                self._opener,
+                self._vfsmap,
+                entries,
+                self._backupentries,
+                False,
+                checkambigfiles=self._checkambigfiles,
+            )
+            self._report(_(b"rollback completed\n"))
+        except BaseException as exc:
+            self._report(_(b"rollback failed - please run hg recover\n"))
+            self._report(
+                _(b"(failure reason: %s)\n") % stringutil.forcebytestr(exc)
+            )
 
 
 BAD_VERSION_MSG = _(
@@ -710,7 +873,40 @@ BAD_VERSION_MSG = _(
 )
 
 
-def rollback(opener, vfsmap, file, report, checkambigfiles=None):
+def read_backup_files(report, fp):
+    """parse an (already open) backup file an return contained backup entries
+
+    entries are in the form: (location, file, backupfile, xxx)
+
+    :location:   the vfs identifier (vfsmap's key)
+    :file:       original file path (in the vfs)
+    :backupfile: path of the backup (in the vfs)
+    :cache:      a boolean currently always set to False
+    """
+    lines = fp.readlines()
+    backupentries = []
+    if lines:
+        ver = lines[0][:-1]
+        if ver != (b'%d' % version):
+            report(BAD_VERSION_MSG)
+        else:
+            for line in lines[1:]:
+                if line:
+                    # Shave off the trailing newline
+                    line = line[:-1]
+                    l, f, b, c = line.split(b'\0')
+                    backupentries.append((l, f, b, bool(c)))
+    return backupentries
+
+
+def rollback(
+    opener,
+    vfsmap,
+    file,
+    report,
+    checkambigfiles=None,
+    skip_journal_pattern=None,
+):
     """Rolls back the transaction contained in the given file
 
     Reads the entries in the specified file, and the corresponding
@@ -742,19 +938,11 @@ def rollback(opener, vfsmap, file, report, checkambigfiles=None):
 
     backupjournal = b"%s.backupfiles" % file
     if opener.exists(backupjournal):
-        fp = opener.open(backupjournal)
-        lines = fp.readlines()
-        if lines:
-            ver = lines[0][:-1]
-            if ver != (b'%d' % version):
-                report(BAD_VERSION_MSG)
-            else:
-                for line in lines[1:]:
-                    if line:
-                        # Shave off the trailing newline
-                        line = line[:-1]
-                        l, f, b, c = line.split(b'\0')
-                        backupentries.append((l, f, b, bool(c)))
+        with opener.open(backupjournal) as fp:
+            backupentries = read_backup_files(report, fp)
+    if skip_journal_pattern is not None:
+        keep = lambda x: not skip_journal_pattern.match(x[1])
+        backupentries = [x for x in backupentries if keep(x)]
 
     _playback(
         file,

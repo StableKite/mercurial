@@ -183,6 +183,43 @@ Test diff.git is respected
   +a
   
 
+Test --git is respected
+  $ hg email --git --date '1970-1-1 0:1' -n -f quux -t foo -c bar -r tip
+  this patch series consists of 1 patches.
+  
+  
+  displaying [PATCH] a ...
+  MIME-Version: 1.0
+  Content-Type: text/plain; charset="us-ascii"
+  Content-Transfer-Encoding: 7bit
+  Subject: [PATCH] a
+  X-Mercurial-Node: 8580ff50825a50c8f716709acdf8de0deddcd6ab
+  X-Mercurial-Series-Index: 1
+  X-Mercurial-Series-Total: 1
+  Message-Id: <8580ff50825a50c8f716.60@test-hostname>
+  X-Mercurial-Series-Id: <8580ff50825a50c8f716.60@test-hostname>
+  User-Agent: Mercurial-patchbomb/* (glob)
+  Date: Thu, 01 Jan 1970 00:01:00 +0000
+  From: quux
+  To: foo
+  Cc: bar
+  
+  # HG changeset patch
+  # User test
+  # Date 1 0
+  #      Thu Jan 01 00:00:01 1970 +0000
+  # Node ID 8580ff50825a50c8f716709acdf8de0deddcd6ab
+  # Parent  0000000000000000000000000000000000000000
+  a
+  
+  diff --git a/a b/a
+  new file mode 100644
+  --- /dev/null
+  +++ b/a
+  @@ -0,0 +1,1 @@
+  +a
+  
+
 
 Test breaking format changes aren't
   $ hg --config diff.noprefix=True email --date '1970-1-1 0:1' -n -f quux -t foo -c bar -r tip
@@ -513,7 +550,7 @@ mime encoded mbox (base64):
   X-Mercurial-Series-Id: <f81ef97829467e868fc4.240@test-hostname>
   User-Agent: Mercurial-patchbomb/* (glob)
   Date: Thu, 01 Jan 1970 00:04:00 +0000
-  From: =?iso-8859-1?q?Q?= <quux> (py3 !)
+  From: =?iso-8859-1?q?Q?= <quux>
   To: foo
   Cc: bar
   
@@ -2398,9 +2435,9 @@ test multi-address parsing:
   User-Agent: Mercurial-patchbomb/* (glob)
   Date: Tue, 01 Jan 1980 00:01:00 +0000
   From: quux
-  To: =?iso-8859-1?q?spam?= <spam>, eggs, toast (py3 !)
-  Cc: foo, bar@example.com, =?iso-8859-1?q?A=2C_B_=3C=3E?= <a@example.com> (py3 !)
-  Bcc: =?iso-8859-1?q?Quux=2C_A=2E?= <quux> (py3 !)
+  To: =?iso-8859-1?q?spam?= <spam>, eggs, toast
+  Cc: foo, bar@example.com, =?iso-8859-1?q?A=2C_B_=3C=3E?= <a@example.com>
+  Bcc: =?iso-8859-1?q?Quux=2C_A=2E?= <quux>
   
   # HG changeset patch
   # User test
@@ -2717,7 +2754,7 @@ Test without revisions specified
   MIME-Version: 1.0
   Content-Type: text/plain; charset="iso-8859-1"
   Content-Transfer-Encoding: quoted-printable
-  Subject: =?utf-8?b?W1BBVENIIDIgb2YgNl0gw6dh?= (py3 !)
+  Subject: =?utf-8?b?W1BBVENIIDIgb2YgNl0gw6dh?=
   X-Mercurial-Node: f81ef97829467e868fc405fccbcfa66217e4d3e6
   X-Mercurial-Series-Index: 2
   X-Mercurial-Series-Total: 6

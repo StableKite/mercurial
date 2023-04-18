@@ -2384,6 +2384,46 @@ is useful to replicate a repository, or as an optimization.
 .UNINDENT
 .UNINDENT
 .sp
+\fBpulled\-delta\-reuse\-policy\fP
+Control the policy regarding deltas sent by the remote during pulls.
+.sp
+This is an advanced option that non\-admin users should not need to understand
+or set. This option can be used to speed up pulls from trusted central
+servers, or to fix\-up deltas from older servers.
+.sp
+It supports the following values:
+.INDENT 0.0
+.IP \(bu 2
+.
+\fBdefault\fP: use the policy defined by
+\fIstorage.revlog.reuse\-external\-delta\-parent\fP,
+.IP \(bu 2
+.
+\fBno\-reuse\fP: start a new optimal delta search for each new revision we add
+to the repository. The deltas from the server will be reused when the base
+it applies to is tested (this can be frequent if that base is the one and
+unique parent of that revision). This can significantly slowdown pulls but
+will result in an optimized storage space if the remote peer is sending poor
+quality deltas.
+.IP \(bu 2
+.
+\fBtry\-base\fP: try to reuse the deltas from the remote peer as long as they
+create a valid delta\-chain in the local repository. This speeds up the
+unbundling process, but can result in sub\-optimal storage space if the
+remote peer is sending poor quality deltas.
+.IP \(bu 2
+.
+\fBforced\fP: the deltas from the peer will be reused in all cases, even if
+the resulting delta\-chain is "invalid". This setting will ensure the bundle
+is applied at minimal CPU cost, but it can result in longer delta chains
+being created on the client, making revisions potentially slower to access
+in the future. If you think you need this option, you should make sure you
+are also talking to the Mercurial developer community to get confirmation.
+.UNINDENT
+.sp
+See \fIhg help config.storage.revlog.reuse\-external\-delta\-parent\fP for a similar
+global option. That option defines the behavior of \fIdefault\fP.
+.sp
 The following special named paths exist:
 .INDENT 0.0
 .TP
@@ -2828,6 +2868,24 @@ through push, pull, clone and unbundle.
 .sp
 To fix affected revisions that already exist within the repository, one can
 use \%\fBhg debug\-repair\-issue\-6528\fP\:.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \fBrevlog.delta\-parent\-search.candidate\-group\-chunk\-size\fP
+.sp
+Tune the number of delta bases the storage will consider in the
+same "round" of search. In some very rare cases, using a smaller value
+might result in faster processing at the possible expense of storage
+space, while using larger values might result in slower processing at the
+possible benefit of storage space. A value of "0" means no limitation.
+.sp
+default: no limitation
+.sp
+This is unlikely that you\(aqll have to tune this configuration. If you think
+you do, consider talking with the mercurial developer community about your
+repositories.
+.UNINDENT
+.INDENT 0.0
 .TP
 .B \fBrevlog.optimize\-delta\-parent\-choice\fP
 .sp

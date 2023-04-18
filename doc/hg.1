@@ -1060,7 +1060,7 @@ template style to use
 .TP
 .B \-6,  \-\-ipv6
 .
-use IPv6 in addition to IPv4
+use IPv6 instead of IPv4
 .TP
 .BI \-\-certificate \ <FILE>
 .
@@ -1173,6 +1173,10 @@ amend the parent of the working directory
 .B \-s,  \-\-secret
 .
 use the secret phase for committing
+.TP
+.B \-\-draft
+.
+use the draft phase for committing
 .TP
 .B \-e,  \-\-edit
 .
@@ -8322,8 +8326,13 @@ Uses the internal tag merge algorithm (experimental).
 .B \fB:union\fP
 .sp
 Uses the internal non\-interactive simple merge algorithm for merging
-files. It will use both left and right sides for conflict regions.
+files. It will use both local and other sides for conflict regions by
+adding local on top of other.
 No markers are inserted.
+.TP
+.B \fB:union\-other\-first\fP
+.sp
+Like :union, but add other on top of local.
 .UNINDENT
 .sp
 Internal tools are always available and do not require a GUI but will
@@ -9624,8 +9633,8 @@ Please refer to the \fIrust/README.rst\fP file in the Mercurial repository for
 instructions on how to install from source.
 .SS MSRV
 .sp
-The minimum supported Rust version is currently 1.48.0. The project\(aqs policy is
-to follow the version from Debian stable, to make the distributions\(aq job easier.
+The minimum supported Rust version is currently 1.61.0. The project\(aqs policy is
+to follow the version from Debian testing, to make the distributions\(aq job easier.
 .SS rhg
 .sp
 There exists an experimental pure\-Rust version of Mercurial called \fIrhg\fP with a
@@ -11442,6 +11451,10 @@ mark a branch as closed, hiding it from the branch list
 .B \-s,  \-\-secret
 .
 use the secret phase for committing
+.TP
+.B \-\-draft
+.
+use the draft phase for committing
 .TP
 .BI \-n,  \-\-note \ <VALUE>
 .
@@ -15627,6 +15640,10 @@ amend the parent of the working directory
 .
 use the secret phase for committing
 .TP
+.B \-\-draft
+.
+use the draft phase for committing
+.TP
 .B \-e,  \-\-edit
 .
 invoke editor on commit messages
@@ -17900,6 +17917,10 @@ amend the parent of the working directory
 .B \-s,  \-\-secret
 .
 use the secret phase for committing
+.TP
+.B \-\-draft
+.
+use the draft phase for committing
 .TP
 .B \-e,  \-\-edit
 .

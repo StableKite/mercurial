@@ -1,10 +1,7 @@
 extern crate log;
 use crate::error::CommandError;
 use crate::ui::{local_to_utf8, Ui};
-use clap::App;
-use clap::AppSettings;
-use clap::Arg;
-use clap::ArgMatches;
+use clap::{command, Arg, ArgMatches};
 use format_bytes::{format_bytes, join};
 use hg::config::{Config, ConfigSource, PlainInfo};
 use hg::repo::{Repo, RepoError};
@@ -35,55 +32,47 @@ fn main_with_result(
 ) -> Result<(), CommandError> {
     check_unsupported(config, repo)?;
 
-    let app = App::new("rhg")
-        .global_setting(AppSettings::AllowInvalidUtf8)
-        .global_setting(AppSettings::DisableVersion)
-        .setting(AppSettings::SubcommandRequired)
-        .setting(AppSettings::VersionlessSubcommands)
+    let app = command!()
+        .subcommand_required(true)
         .arg(
-            Arg::with_name("repository")
+            Arg::new("repository")
                 .help("repository root directory")
-                .short("-R")
-                .long("--repository")
+                .short('R')
                 .value_name("REPO")
-                .takes_value(true)
                 // Both ok: `hg -R ./foo log` or `hg log -R ./foo`
                 .global(true),
         )
         .arg(
-            Arg::with_name("config")
+            Arg::new("config")
                 .help("set/override config option (use 'section.name=value')")
-                .long("--config")
                 .value_name("CONFIG")
-                .takes_value(true)
                 .global(true)
+                .long("config")
                 // Ok: `--config section.key1=val --config section.key2=val2`
-                .multiple(true)
                 // Not ok: `--config section.key1=val section.key2=val2`
-                .number_of_values(1),
+                .action(clap::ArgAction::Append),
         )
         .arg(
-            Arg::with_name("cwd")
+            Arg::new("cwd")
                 .help("change working directory")
-                .long("--cwd")
                 .value_name("DIR")
-                .takes_value(true)
+                .long("cwd")
                 .global(true),
         )
         .arg(
-            Arg::with_name("color")
+            Arg::new("color")
                 .help("when to colorize (boolean, always, auto, never, or debug)")
-                .long("--color")
                 .value_name("TYPE")
-                .takes_value(true)
+                .long("color")
                 .global(true),
         )
         .version("0.0.1");
     let app = add_subcommand_args(app);
 
-    let matches = app.clone().get_matches_from_safe(argv.iter())?;
+    let matches = app.try_get_matches_from(argv.iter())?;
 
-    let (subcommand_name, subcommand_matches) = matches.subcommand();
+    let (subcommand_name, subcommand_args) =
+        matches.subcommand().expect("subcommand required");
 
     // Mercurial allows users to define "defaults" for commands, fallback
     // if a default is detected for the current command
@@ -104,9 +93,7 @@ fn main_with_result(
         }
     }
     let run = subcommand_run_fn(subcommand_name)
-        .expect("unknown subcommand name from clap despite AppSettings::SubcommandRequired");
-    let subcommand_args = subcommand_matches
-        .expect("no subcommand arguments from clap despite AppSettings::SubcommandRequired");
+        .expect("unknown subcommand name from clap despite Command::subcommand_required");
 
     let invocation = CliInvocation {
         ui,
@@ -152,6 +139,13 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
     let process_start_time = blackbox::ProcessStartTime::now();
 
     env_logger::init();
+
+    // Make sure nothing in a future version of `rhg` sets the global
+    // threadpool before we can cap default threads. (This is also called
+    // in core because Python uses the same code path, we're adding a
+    // redundant check.)
+    hg::utils::cap_default_rayon_threads()
+        .expect("Rayon threadpool already initialized");
 
     let early_args = EarlyArgs::parse(&argv);
 
@@ -216,7 +210,7 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
                 // Same as `_matchscheme` in `mercurial/util.py`
                 regex::bytes::Regex::new("^[a-zA-Z0-9+.\\-]+:").unwrap();
         }
-        if SCHEME_RE.is_match(&repo_path_bytes) {
+        if SCHEME_RE.is_match(repo_path_bytes) {
             exit(
                 &argv,
                 &initial_current_dir,
@@ -236,7 +230,7 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
             )
         }
     }
-    let repo_arg = early_args.repo.unwrap_or(Vec::new());
+    let repo_arg = early_args.repo.unwrap_or_default();
     let repo_path: Option<PathBuf> = {
         if repo_arg.is_empty() {
             None
@@ -267,7 +261,7 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
             let non_repo_config_val = {
                 let non_repo_val = non_repo_config.get(b"paths", &repo_arg);
                 match &non_repo_val {
-                    Some(val) if val.len() > 0 => home::home_dir()
+                    Some(val) if !val.is_empty() => home::home_dir()
                         .unwrap_or_else(|| PathBuf::from("~"))
                         .join(get_path_from_bytes(val))
                         .canonicalize()
@@ -283,7 +277,7 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
                 Some(val) => {
                     let local_config_val = val.get(b"paths", &repo_arg);
                     match &local_config_val {
-                        Some(val) if val.len() > 0 => {
+                        Some(val) if !val.is_empty() => {
                             // presence of a local_config assures that
                             // current_dir
                             // wont result in an Error
@@ -297,7 +291,8 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
                     }
                 }
             };
-            config_val.or(Some(get_path_from_bytes(&repo_arg).to_path_buf()))
+            config_val
+                .or_else(|| Some(get_path_from_bytes(&repo_arg).to_path_buf()))
         }
     };
 
@@ -317,7 +312,7 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
             )
         };
     let early_exit = |config: &Config, error: CommandError| -> ! {
-        simple_exit(&Ui::new_infallible(config), &config, Err(error))
+        simple_exit(&Ui::new_infallible(config), config, Err(error))
     };
     let repo_result = match Repo::find(&non_repo_config, repo_path.to_owned())
     {
@@ -341,13 +336,13 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
         && config_cow
             .as_ref()
             .get_bool(b"ui", b"tweakdefaults")
-            .unwrap_or_else(|error| early_exit(&config, error.into()))
+            .unwrap_or_else(|error| early_exit(config, error.into()))
     {
         config_cow.to_mut().tweakdefaults()
     };
     let config = config_cow.as_ref();
-    let ui = Ui::new(&config)
-        .unwrap_or_else(|error| early_exit(&config, error.into()));
+    let ui = Ui::new(config)
+        .unwrap_or_else(|error| early_exit(config, error.into()));
 
     if let Ok(true) = config.get_bool(b"rhg", b"fallback-immediately") {
         exit(
@@ -373,7 +368,7 @@ fn rhg_main(argv: Vec<OsString>) -> ! {
         repo_result.as_ref(),
         config,
     );
-    simple_exit(&ui, &config, result)
+    simple_exit(&ui, config, result)
 }
 
 fn main() -> ! {
@@ -435,9 +430,9 @@ fn exit<'a>(
             }
             Some(executable) => executable,
         };
-        let executable_path = get_path_from_bytes(&executable);
+        let executable_path = get_path_from_bytes(executable);
         let this_executable = args.next().expect("exepcted argv[0] to exist");
-        if executable_path == &PathBuf::from(this_executable) {
+        if executable_path == *this_executable {
             // Avoid spawning infinitely many processes until resource
             // exhaustion.
             let _ = ui.write_stderr(&format_bytes!(
@@ -535,7 +530,7 @@ macro_rules! subcommands {
             )+
         }
 
-        fn add_subcommand_args<'a, 'b>(app: App<'a, 'b>) -> App<'a, 'b> {
+        fn add_subcommand_args(app: clap::Command) -> clap::Command {
             app
             $(
                 .subcommand(commands::$command::args())
@@ -569,7 +564,7 @@ subcommands! {
 
 pub struct CliInvocation<'a> {
     ui: &'a Ui,
-    subcommand_args: &'a ArgMatches<'a>,
+    subcommand_args: &'a ArgMatches,
     config: &'a Config,
     /// References inside `Result` is a bit peculiar but allow
     /// `invocation.repo?` to work out with `&CliInvocation` since this
@@ -752,6 +747,7 @@ fn check_extensions(config: &Config) -> Result<(), CommandError> {
 }
 
 /// Array of tuples of (auto upgrade conf, feature conf, local requirement)
+#[allow(clippy::type_complexity)]
 const AUTO_UPGRADES: &[((&str, &str), (&str, &str), &str)] = &[
     (
         ("format", "use-share-safe.automatic-upgrade-of-mismatching-repositories"),
