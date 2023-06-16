@@ -1468,6 +1468,7 @@ tests/test-dirstate-race.t
 tests/test-dirstate-race2.t
 tests/test-dirstate-read-race.t
 tests/test-dirstate-status-write-race.t
+tests/test-dirstate-version-fallback.t
 tests/test-dirstate.t
 tests/test-dispatch.py
 tests/test-dispatch.py.out
@@ -1882,6 +1883,7 @@ tests/test-pull-permission.t
 tests/test-pull-pull-corruption.t
 tests/test-pull-r.t
 tests/test-pull-update.t
+tests/test-pullling-to-general-delta.t
 tests/test-purge-ignored-directory.t
 tests/test-purge.t
 tests/test-push-cgi.t

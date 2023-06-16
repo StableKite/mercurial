@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <title>hg</title>
 <meta name="author" content="Olivia Mackall &lt;olivia&#64;selenic.com&gt;" />
 <meta name="organization" content="Mercurial" />
@@ -4958,6 +4958,9 @@ and size.</p>
 <p class="last">Use this compression engine to explicitly disable compression.</p>
 </dd>
 </dl>
+<p>The compression engines can be prepended with <tt class="docutils literal">stream</tt> to create a streaming bundle.
+These are bundles that are extremely efficient to produce and consume,
+but do not have guaranteed compatibility with older clients.</p>
 </div>
 <div class="section" id="available-options">
 <h2>Available Options</h2>
@@ -4991,6 +4994,11 @@ repository format.</dd>
 settings.</dd>
 <dt><tt class="docutils literal"><span class="pre">zstd-v1</span></tt></dt>
 <dd>This errors because <tt class="docutils literal">zstd</tt> is not supported for <tt class="docutils literal">v1</tt> types.</dd>
+<dt><tt class="docutils literal"><span class="pre">none-streamv2</span></tt></dt>
+<dd>Produce a <tt class="docutils literal">v2</tt> streaming bundle with no compression.</dd>
+<dt><tt class="docutils literal"><span class="pre">zstd-v2;obsolescence=true;phases=true</span></tt></dt>
+<dd>Produce a <tt class="docutils literal">v2</tt> bundle with zstandard compression which includes
+obsolescence markers and phases.</dd>
 </dl>
 </div>
 </div>
@@ -8239,8 +8247,8 @@ address.</p>
 <tr class="field"><td>&nbsp;</td><td class="field-body">Returns the requested hgrc config option as an integer.</td>
 </tr>
 <tr class="field"><th class="field-name" colspan="2">date(date[, fmt]):</th></tr>
-<tr class="field"><td>&nbsp;</td><td class="field-body">Format a date. See <a class="reference external" href="hg.1.html#dates"><tt class="docutils literal">hg help dates</tt></a> for formatting
-strings. The default is a Unix date format, including the timezone:
+<tr class="field"><td>&nbsp;</td><td class="field-body">Format a date. The format string uses the Python strftime format.
+The default is a Unix date format, including the timezone:
 &quot;Mon Sep 04 15:13:13 2006 0700&quot;.</td>
 </tr>
 <tr class="field"><th class="field-name" colspan="2">dict([[key=]value...]):</th></tr>
@@ -9704,8 +9712,10 @@ static file hosting services are simple and scalable and should be sufficient
 for most needs.</p>
 <p>Bundle files can be generated with the <a class="reference external" href="hg.1.html#bundle"><tt class="docutils literal">hg bundle</tt></a> command. Typically
 <a class="reference external" href="hg.1.html#bundle"><tt class="docutils literal">hg bundle <span class="pre">--all</span></tt></a> is used to produce a bundle of the entire repository.</p>
-<p><a class="reference external" href="hg.1.html#debugcreatestreamclonebundle"><tt class="docutils literal">hg debugcreatestreamclonebundle</tt></a> can be used to produce a special
-<em>streaming clonebundle</em>. These are bundle files that are extremely efficient
+<p>The bundlespec option <cite>stream</cite> (see <a class="reference external" href="hg.1.html#bundlespec"><tt class="docutils literal">hg help bundlespec</tt></a>)
+can be used to produce a special <em>streaming clonebundle</em>, typically using
+<a class="reference external" href="hg.1.html#bundle"><tt class="docutils literal">hg bundle <span class="pre">--all</span> <span class="pre">--type=&quot;none-streamv2&quot;</span></tt></a>.
+These are bundle files that are extremely efficient
 to produce and consume (read: fast). However, they are larger than
 traditional bundle formats and require that clients support the exact set
 of repository data store formats in use by the repository that created them.
@@ -10897,6 +10907,12 @@ pulled changes. To switch the merge order, use --switch-parent.</p>
 <p>rewrite file content in changesets or working copy (EXPERIMENTAL)</p>
 <p>Provides a command that runs configured tools on the contents of modified files,
 writing back any fixes to the working copy or replacing changesets.</p>
+<p>Fixer tools are run in the repository's root directory. This allows them to read
+configuration files from the working copy, or even write to the working copy.
+The working copy is not updated to match the revision being fixed. In fact,
+several revisions may be fixed in parallel. Writes to the working copy are not
+amended into the revision being fixed; fixer tools MUST always read content to
+be fixed from stdin, and write fixed file content back to stdout.</p>
 <p>Here is an example configuration that causes <a class="reference external" href="hg.1.html#fix"><tt class="docutils literal">hg fix</tt></a> to apply automatic
 formatting fixes to modified lines in C++ code:</p>
 <pre class="literal-block">
@@ -10998,12 +11014,6 @@ perform other post-fixing work. The supported hooks are:</p>
   executions that modified a file. This aggregates the same metadata
   previously passed to the &quot;postfixfile&quot; hook.
 </pre>
-<p>Fixer tools are run in the repository's root directory. This allows them to read
-configuration files from the working copy, or even write to the working copy.
-The working copy is not updated to match the revision being fixed. In fact,
-several revisions may be fixed in parallel. Writes to the working copy are not
-amended into the revision being fixed; fixer tools should always write fixed
-file content back to stdout as documented above.</p>
 <div class="section" id="commands-14">
 <h3>Commands</h3>
 <div class="section" id="file-content-management-2">
@@ -11014,7 +11024,8 @@ file content back to stdout as documented above.</p>
 <pre class="literal-block">
 hg fix [OPTION]... [FILE]...
 </pre>
-<p>Runs any configured tools to fix the content of files. Only affects files
+<p>Runs any configured tools to fix the content of files. (See
+<a class="reference external" href="hg.1.html#-e"><tt class="docutils literal">hg help <span class="pre">-e</span> fix</tt></a> for details about configuring tools.) Only affects files
 with changes, unless file arguments are provided. Only affects changed lines
 of files, unless the --whole flag is used. Some tools may always affect the
 whole file regardless of --whole.</p>

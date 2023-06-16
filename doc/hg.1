@@ -6059,6 +6059,10 @@ No compression is performed.
 .sp
 Use this compression engine to explicitly disable compression.
 .UNINDENT
+.sp
+The compression engines can be prepended with \fBstream\fP to create a streaming bundle.
+These are bundles that are extremely efficient to produce and consume,
+but do not have guaranteed compatibility with older clients.
 .SS Available Options
 .sp
 The following options exist:
@@ -6109,6 +6113,15 @@ settings.
 .B \fBzstd\-v1\fP
 .sp
 This errors because \fBzstd\fP is not supported for \fBv1\fP types.
+.TP
+.B \fBnone\-streamv2\fP
+.sp
+Produce a \fBv2\fP streaming bundle with no compression.
+.TP
+.B \fBzstd\-v2;obsolescence=true;phases=true\fP
+.sp
+Produce a \fBv2\fP bundle with zstandard compression which includes
+obsolescence markers and phases.
 .UNINDENT
 .SH COLORIZING OUTPUTS
 .sp
@@ -10530,8 +10543,8 @@ Returns the requested hgrc config option as an integer.
 .TP
 .B date(date[, fmt])
 .
-Format a date. See \%\fBhg help dates\fP\: for formatting
-strings. The default is a Unix date format, including the timezone:
+Format a date. The format string uses the Python strftime format.
+The default is a Unix date format, including the timezone:
 "Mon Sep 04 15:13:13 2006 0700".
 .TP
 .B dict([[key=]value...])
@@ -12323,8 +12336,10 @@ for most needs.
 Bundle files can be generated with the \%\fBhg bundle\fP\: command. Typically
 \%\fBhg bundle \-\-all\fP\: is used to produce a bundle of the entire repository.
 .sp
-\%\fBhg debugcreatestreamclonebundle\fP\: can be used to produce a special
-\fIstreaming clonebundle\fP. These are bundle files that are extremely efficient
+The bundlespec option \fIstream\fP (see \%\fBhg help bundlespec\fP\:)
+can be used to produce a special \fIstreaming clonebundle\fP, typically using
+\%\fBhg bundle \-\-all \-\-type="none\-streamv2"\fP\:.
+These are bundle files that are extremely efficient
 to produce and consume (read: fast). However, they are larger than
 traditional bundle formats and require that clients support the exact set
 of repository data store formats in use by the repository that created them.
@@ -13651,6 +13666,13 @@ rewrite file content in changesets or working copy (EXPERIMENTAL)
 Provides a command that runs configured tools on the contents of modified files,
 writing back any fixes to the working copy or replacing changesets.
 .sp
+Fixer tools are run in the repository\(aqs root directory. This allows them to read
+configuration files from the working copy, or even write to the working copy.
+The working copy is not updated to match the revision being fixed. In fact,
+several revisions may be fixed in parallel. Writes to the working copy are not
+amended into the revision being fixed; fixer tools MUST always read content to
+be fixed from stdin, and write fixed file content back to stdout.
+.sp
 Here is an example configuration that causes \%\fBhg fix\fP\: to apply automatic
 formatting fixes to modified lines in C++ code:
 .sp
@@ -13787,13 +13809,6 @@ perform other post\-fixing work. The supported hooks are:
   previously passed to the "postfixfile" hook.
 .ft P
 .fi
-.sp
-Fixer tools are run in the repository\(aqs root directory. This allows them to read
-configuration files from the working copy, or even write to the working copy.
-The working copy is not updated to match the revision being fixed. In fact,
-several revisions may be fixed in parallel. Writes to the working copy are not
-amended into the revision being fixed; fixer tools should always write fixed
-file content back to stdout as documented above.
 .SS Commands
 .SS File content management
 .SS fix
@@ -13806,7 +13821,8 @@ hg fix [OPTION]... [FILE]...
 .ft P
 .fi
 .sp
-Runs any configured tools to fix the content of files. Only affects files
+Runs any configured tools to fix the content of files. (See
+\%\fBhg help \-e fix\fP\: for details about configuring tools.) Only affects files
 with changes, unless file arguments are provided. Only affects changed lines
 of files, unless the \-\-whole flag is used. Some tools may always affect the
 whole file regardless of \-\-whole.

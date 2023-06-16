@@ -1542,6 +1542,7 @@ include tests/test-dirstate-race.t
 include tests/test-dirstate-race2.t
 include tests/test-dirstate-read-race.t
 include tests/test-dirstate-status-write-race.t
+include tests/test-dirstate-version-fallback.t
 include tests/test-dirstate.t
 include tests/test-dispatch.py
 include tests/test-dispatch.py.out
@@ -1956,6 +1957,7 @@ include tests/test-pull-permission.t
 include tests/test-pull-pull-corruption.t
 include tests/test-pull-r.t
 include tests/test-pull-update.t
+include tests/test-pullling-to-general-delta.t
 include tests/test-purge-ignored-directory.t
 include tests/test-purge.t
 include tests/test-push-cgi.t
