@@ -165,6 +165,7 @@ def _bytes2sys(p):
     return p.decode('utf-8')
 
 
+original_env = os.environ.copy()
 osenvironb = getattr(os, 'environb', None)
 if osenvironb is None:
     # Windows lacks os.environb, for instance.  A proxy over the real thing
@@ -3147,6 +3148,13 @@ class TestRunner:
         self._custom_bin_dir = os.path.join(self._hgtmp, b'custom-bin')
         os.makedirs(self._custom_bin_dir)
 
+        # detect and enforce an alternative way to specify rust extension usage
+        if (
+            not (self.options.pure or self.options.rust or self.options.no_rust)
+            and os.environ.get("HGWITHRUSTEXT") == "cpython"
+        ):
+            self.options.rust = True
+
         if self.options.with_hg:
             self._installdir = None
             whg = self.options.with_hg
@@ -3763,7 +3771,7 @@ class TestRunner:
         makedirs(self._bindir)
 
         vlog("# Running", cmd.decode("utf-8"))
-        if subprocess.call(_bytes2sys(cmd), shell=True) == 0:
+        if subprocess.call(_bytes2sys(cmd), shell=True, env=original_env) == 0:
             if not self.options.verbose:
                 try:
                     os.remove(installerrs)

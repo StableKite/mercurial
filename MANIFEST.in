@@ -1,6 +1,7 @@
 include .arcconfig
 include .clang-format
 include .editorconfig
+include .gitattributes
 include .gitlab/merge_request_templates/Default.md
 include .hgignore
 include .hgsigs
@@ -111,6 +112,8 @@ include contrib/merge-lists/Cargo.toml
 include contrib/merge-lists/src/main.rs
 include contrib/merge-lists/tests/test-merge-lists.rs
 include contrib/mq.el
+include contrib/nix/flake.lock
+include contrib/nix/flake.nix
 include contrib/packaging/Makefile
 include contrib/packaging/build-linux-wheels.sh
 include contrib/packaging/builddeb
@@ -505,6 +508,7 @@ include i18n/sv.po
 include i18n/zh_CN.po
 include i18n/zh_TW.po
 include mercurial/__init__.py
+include mercurial/__main__.py
 include mercurial/ancestor.py
 include mercurial/archival.py
 include mercurial/bdiff.c
@@ -735,6 +739,8 @@ include mercurial/smartset.py
 include mercurial/sparse.py
 include mercurial/sshpeer.py
 include mercurial/sslutil.py
+include mercurial/stabletailgraph/__init__.py
+include mercurial/stabletailgraph/stabletailsort.py
 include mercurial/stack.py
 include mercurial/state.py
 include mercurial/statichttprepo.py
@@ -1049,6 +1055,7 @@ include relnotes/6.1
 include relnotes/6.2
 include relnotes/6.3
 include relnotes/6.4
+include relnotes/6.5
 include relnotes/next
 include rust/.cargo/config
 include rust/Cargo.lock
@@ -1068,6 +1075,7 @@ include rust/chg/src/runcommand.rs
 include rust/chg/src/sendfds.c
 include rust/chg/src/sighandlers.c
 include rust/chg/src/uihandler.rs
+include rust/clippy.toml
 include rust/hg-core/Cargo.toml
 include rust/hg-core/examples/nodemap/index.rs
 include rust/hg-core/examples/nodemap/main.rs
@@ -1186,6 +1194,7 @@ include tests/blackbox-readonly-dispatch.py
 include tests/blacklists/README
 include tests/blacklists/fsmonitor
 include tests/blacklists/linux-vfat
+include tests/blacklists/nix
 include tests/bruterebase.py
 include tests/bundles/darcs1.hg
 include tests/bundles/hgweb+obs.hg
@@ -1383,6 +1392,7 @@ include tests/test-branch-option.t
 include tests/test-branch-tag-confict.t
 include tests/test-branches.t
 include tests/test-bugzilla.t
+include tests/test-bundle-phase-internal.t
 include tests/test-bundle-phases.t
 include tests/test-bundle-r.t
 include tests/test-bundle-type.t
@@ -1429,9 +1439,11 @@ include tests/test-clone-cgi.t
 include tests/test-clone-pull-corruption.t
 include tests/test-clone-r.t
 include tests/test-clone-stream-format.t
+include tests/test-clone-stream-revlog-split.t
 include tests/test-clone-stream.t
 include tests/test-clone-update-order.t
 include tests/test-clone.t
+include tests/test-clonebundles-autogen.t
 include tests/test-clonebundles.t
 include tests/test-close-head.t
 include tests/test-commandserver.t
@@ -1508,6 +1520,7 @@ include tests/test-copy.t
 include tests/test-copytrace-heuristics.t
 include tests/test-custom-filters.t
 include tests/test-debian-packages.t
+include tests/test-debug-rebuild-dirstate.t
 include tests/test-debug-revlog-stats.t
 include tests/test-debugbackupbundle.t
 include tests/test-debugbuilddag.t
@@ -1940,6 +1953,7 @@ include tests/test-pathencode.py
 include tests/test-paths.t
 include tests/test-pending.t
 include tests/test-permissions.t
+include tests/test-persistent-nodemap-stream-clone.t
 include tests/test-persistent-nodemap.t
 include tests/test-phabricator.t
 include tests/test-phase-archived.t
@@ -2158,6 +2172,7 @@ include tests/test-ssh-proto.t
 include tests/test-ssh-repoerror.t
 include tests/test-ssh.t
 include tests/test-sshserver.py
+include tests/test-stabletailgraph.t
 include tests/test-stack.t
 include tests/test-state-extension.t
 include tests/test-static-http.t

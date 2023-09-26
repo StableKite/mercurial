@@ -465,7 +465,7 @@ more there after
   phaseroots
   requires
   undo
-  undo.backup.fncache (repofncache !)
+  undo.backup.fncache.bck (repofncache !)
   undo.backupfiles
 
 
@@ -975,7 +975,7 @@ test python hooks
   (run with --traceback for stack trace)
   [255]
 
-  $ hg pull ../a --traceback 2>&1 | egrep 'pulling|searching|^exception|Traceback|SyntaxError|ImportError|ModuleNotFoundError|HookLoadError|abort'
+  $ hg pull ../a --traceback 2>&1 | grep -E 'pulling|searching|^exception|Traceback|SyntaxError|ImportError|ModuleNotFoundError|HookLoadError|abort'
   pulling from ../a
   searching for changes
   exception from first failed import attempt:
@@ -985,13 +985,11 @@ test python hooks
   Traceback (most recent call last):
   SyntaxError: * (glob)
   Traceback (most recent call last):
-  ImportError: No module named 'hgext_syntaxerror' (no-py36 !)
-  ModuleNotFoundError: No module named 'hgext_syntaxerror' (py36 !)
+  ModuleNotFoundError: No module named 'hgext_syntaxerror'
   Traceback (most recent call last):
   SyntaxError: * (glob)
   Traceback (most recent call last):
-  ImportError: No module named 'hgext_syntaxerror' (no-py36 !)
-  ModuleNotFoundError: No module named 'hgext_syntaxerror' (py36 !)
+  ModuleNotFoundError: No module named 'hgext_syntaxerror'
   Traceback (most recent call last):
       raise error.HookLoadError( (py38 !)
   mercurial.error.HookLoadError: preoutgoing.syntaxerror hook is invalid: import of "syntaxerror" failed
@@ -1144,24 +1142,19 @@ make sure --traceback works on hook import failure
   $ echo 'precommit.importfail = python:importfail.whatever' >> .hg/hgrc
 
   $ echo a >> a
-  $ hg --traceback commit -ma 2>&1 | egrep '^exception|ImportError|ModuleNotFoundError|Traceback|HookLoadError|abort'
+  $ hg --traceback commit -ma 2>&1 | grep -E '^exception|ImportError|ModuleNotFoundError|Traceback|HookLoadError|abort'
   exception from first failed import attempt:
   Traceback (most recent call last):
-  ImportError: No module named 'somebogusmodule' (no-py36 !)
-  ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
+  ModuleNotFoundError: No module named 'somebogusmodule'
   exception from second failed import attempt:
   Traceback (most recent call last):
-  ImportError: No module named 'somebogusmodule' (no-py36 !)
-  ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
+  ModuleNotFoundError: No module named 'somebogusmodule'
   Traceback (most recent call last):
-  ImportError: No module named 'hgext_importfail' (no-py36 !)
-  ModuleNotFoundError: No module named 'hgext_importfail' (py36 !)
+  ModuleNotFoundError: No module named 'hgext_importfail'
   Traceback (most recent call last):
-  ImportError: No module named 'somebogusmodule' (no-py36 !)
-  ModuleNotFoundError: No module named 'somebogusmodule' (py36 !)
+  ModuleNotFoundError: No module named 'somebogusmodule'
   Traceback (most recent call last):
-  ImportError: No module named 'hgext_importfail' (no-py36 !)
-  ModuleNotFoundError: No module named 'hgext_importfail' (py36 !)
+  ModuleNotFoundError: No module named 'hgext_importfail'
   Traceback (most recent call last):
       raise error.HookLoadError( (py38 !)
   mercurial.error.HookLoadError: precommit.importfail hook is invalid: import of "importfail" failed

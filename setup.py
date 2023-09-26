@@ -112,7 +112,10 @@ issetuptools = os.name == 'nt' or 'FORCE_SETUPTOOLS' in os.environ
 if issetuptools:
     from setuptools import setup
 else:
-    from distutils.core import setup
+    try:
+        from distutils.core import setup
+    except ModuleNotFoundError:
+        from setuptools import setup
 from distutils.ccompiler import new_compiler
 from distutils.core import Command, Extension
 from distutils.dist import Distribution
@@ -275,28 +278,44 @@ def findhg():
     # gives precedence to hg.exe in the current directory, so fall back to the
     # python invocation of local hg, where pythonXY.dll can always be found.
     check_cmd = ['log', '-r.', '-Ttest']
-    if os.name != 'nt' or not os.path.exists("hg.exe"):
+    attempts = []
+
+    def attempt(cmd, env):
         try:
             retcode, out, err = runcmd(hgcmd + check_cmd, hgenv)
-        except EnvironmentError:
-            retcode = -1
-        if retcode == 0 and not filterhgerr(err):
+            res = (True, retcode, out, err)
+            if retcode == 0 and not filterhgerr(err):
+                return True
+        except EnvironmentError as e:
+            res = (False, e)
+        attempts.append((cmd, res))
+        return False
+
+    if os.name != 'nt' or not os.path.exists("hg.exe"):
+        if attempt(hgcmd + check_cmd, hgenv):
             return hgcommand(hgcmd, hgenv)
 
     # Fall back to trying the local hg installation.
     hgenv = localhgenv()
     hgcmd = [sys.executable, 'hg']
-    try:
-        retcode, out, err = runcmd(hgcmd + check_cmd, hgenv)
-    except EnvironmentError:
-        retcode = -1
-    if retcode == 0 and not filterhgerr(err):
+    if attempt(hgcmd + check_cmd, hgenv):
         return hgcommand(hgcmd, hgenv)
 
     eprint("/!\\")
     eprint(r"/!\ Unable to find a working hg binary")
-    eprint(r"/!\ Version cannot be extract from the repository")
+    eprint(r"/!\ Version cannot be extracted from the repository")
     eprint(r"/!\ Re-run the setup once a first version is built")
+    eprint(r"/!\ Attempts:")
+    for i, e in enumerate(attempts):
+        eprint(r"/!\   attempt #%d:" % (i))
+        eprint(r"/!\     cmd:        ", e[0])
+        res = e[1]
+        if res[0]:
+            eprint(r"/!\     return code:", res[1])
+            eprint("/!\\     std output:\n%s" % (res[2].decode()), end="")
+            eprint("/!\\     std error:\n%s" % (res[3].decode()), end="")
+        else:
+            eprint(r"/!\     exception:  ", res[1])
     return None
 
 
@@ -1299,6 +1318,7 @@ packages = [
     'mercurial.hgweb',
     'mercurial.interfaces',
     'mercurial.pure',
+    'mercurial.stabletailgraph',
     'mercurial.templates',
     'mercurial.thirdparty',
     'mercurial.thirdparty.attr',

@@ -23,6 +23,7 @@ use std::path::Path;
 
 use flate2::read::ZlibDecoder;
 use sha1::{Digest, Sha1};
+use std::cell::RefCell;
 use zstd;
 
 use self::node::{NODE_BYTES_LENGTH, NULL_NODE};
@@ -224,20 +225,35 @@ impl Revlog {
         &self,
         node: NodePrefix,
     ) -> Result<Revision, RevlogError> {
-        if node.is_prefix_of(&NULL_NODE) {
-            return Ok(NULL_REVISION);
-        }
-
-        if let Some(nodemap) = &self.nodemap {
-            return nodemap
+        let looked_up = if let Some(nodemap) = &self.nodemap {
+            nodemap
                 .find_bin(&self.index, node)?
-                .ok_or(RevlogError::InvalidRevision);
-        }
+                .ok_or(RevlogError::InvalidRevision)
+        } else {
+            self.rev_from_node_no_persistent_nodemap(node)
+        };
 
-        // Fallback to linear scan when a persistent nodemap is not present.
-        // This happens when the persistent-nodemap experimental feature is not
-        // enabled, or for small revlogs.
-        //
+        if node.is_prefix_of(&NULL_NODE) {
+            return match looked_up {
+                Ok(_) => Err(RevlogError::AmbiguousPrefix),
+                Err(RevlogError::InvalidRevision) => Ok(NULL_REVISION),
+                res => res,
+            };
+        };
+
+        looked_up
+    }
+
+    /// Same as `rev_from_node`, without using a persistent nodemap
+    ///
+    /// This is used as fallback when a persistent nodemap is not present.
+    /// This happens when the persistent-nodemap experimental feature is not
+    /// enabled, or for small revlogs.
+    fn rev_from_node_no_persistent_nodemap(
+        &self,
+        node: NodePrefix,
+    ) -> Result<Revision, RevlogError> {
+        // Linear scan of the revlog
         // TODO: consider building a non-persistent nodemap in memory to
         // optimize these cases.
         let mut found_by_prefix = None;
@@ -400,10 +416,10 @@ impl Revlog {
 /// The revlog entry's bytes and the necessary informations to extract
 /// the entry's data.
 #[derive(Clone)]
-pub struct RevlogEntry<'a> {
-    revlog: &'a Revlog,
+pub struct RevlogEntry<'revlog> {
+    revlog: &'revlog Revlog,
     rev: Revision,
-    bytes: &'a [u8],
+    bytes: &'revlog [u8],
     compressed_len: u32,
     uncompressed_len: i32,
     base_rev_or_base_of_delta_chain: Option<Revision>,
@@ -413,7 +429,22 @@ pub struct RevlogEntry<'a> {
     hash: Node,
 }
 
-impl<'a> RevlogEntry<'a> {
+thread_local! {
+  // seems fine to [unwrap] here: this can only fail due to memory allocation
+  // failing, and it's normal for that to cause panic.
+  static ZSTD_DECODER : RefCell<zstd::bulk::Decompressor<'static>> =
+      RefCell::new(zstd::bulk::Decompressor::new().ok().unwrap());
+}
+
+fn zstd_decompress_to_buffer(
+    bytes: &[u8],
+    buf: &mut Vec<u8>,
+) -> Result<usize, std::io::Error> {
+    ZSTD_DECODER
+        .with(|decoder| decoder.borrow_mut().decompress_to_buffer(bytes, buf))
+}
+
+impl<'revlog> RevlogEntry<'revlog> {
     pub fn revision(&self) -> Revision {
         self.rev
     }
@@ -430,7 +461,9 @@ impl<'a> RevlogEntry<'a> {
         self.p1 != NULL_REVISION
     }
 
-    pub fn p1_entry(&self) -> Result<Option<RevlogEntry>, RevlogError> {
+    pub fn p1_entry(
+        &self,
+    ) -> Result<Option<RevlogEntry<'revlog>>, RevlogError> {
         if self.p1 == NULL_REVISION {
             Ok(None)
         } else {
@@ -438,7 +471,9 @@ impl<'a> RevlogEntry<'a> {
         }
     }
 
-    pub fn p2_entry(&self) -> Result<Option<RevlogEntry>, RevlogError> {
+    pub fn p2_entry(
+        &self,
+    ) -> Result<Option<RevlogEntry<'revlog>>, RevlogError> {
         if self.p2 == NULL_REVISION {
             Ok(None)
         } else {
@@ -473,7 +508,7 @@ impl<'a> RevlogEntry<'a> {
     }
 
     /// The data for this entry, after resolving deltas if any.
-    pub fn rawdata(&self) -> Result<Cow<'a, [u8]>, HgError> {
+    pub fn rawdata(&self) -> Result<Cow<'revlog, [u8]>, HgError> {
         let mut entry = self.clone();
         let mut delta_chain = vec![];
 
@@ -503,8 +538,8 @@ impl<'a> RevlogEntry<'a> {
 
     fn check_data(
         &self,
-        data: Cow<'a, [u8]>,
-    ) -> Result<Cow<'a, [u8]>, HgError> {
+        data: Cow<'revlog, [u8]>,
+    ) -> Result<Cow<'revlog, [u8]>, HgError> {
         if self.revlog.check_hash(
             self.p1,
             self.p2,
@@ -525,8 +560,11 @@ impl<'a> RevlogEntry<'a> {
         }
     }
 
-    pub fn data(&self) -> Result<Cow<'a, [u8]>, HgError> {
+    pub fn data(&self) -> Result<Cow<'revlog, [u8]>, HgError> {
         let data = self.rawdata()?;
+        if self.rev == NULL_REVISION {
+            return Ok(data);
+        }
         if self.is_censored() {
             return Err(HgError::CensoredNodeError);
         }
@@ -535,7 +573,7 @@ impl<'a> RevlogEntry<'a> {
 
     /// Extract the data contained in the entry.
     /// This may be a delta. (See `is_delta`.)
-    fn data_chunk(&self) -> Result<Cow<'a, [u8]>, HgError> {
+    fn data_chunk(&self) -> Result<Cow<'revlog, [u8]>, HgError> {
         if self.bytes.is_empty() {
             return Ok(Cow::Borrowed(&[]));
         }
@@ -576,15 +614,28 @@ impl<'a> RevlogEntry<'a> {
     }
 
     fn uncompressed_zstd_data(&self) -> Result<Vec<u8>, HgError> {
+        let cap = self.uncompressed_len.max(0) as usize;
         if self.is_delta() {
-            let mut buf = Vec::with_capacity(self.compressed_len as usize);
-            zstd::stream::copy_decode(self.bytes, &mut buf)
-                .map_err(|e| corrupted(e.to_string()))?;
+            // [cap] is usually an over-estimate of the space needed because
+            // it's the length of delta-decoded data, but we're interested
+            // in the size of the delta.
+            // This means we have to [shrink_to_fit] to avoid holding on
+            // to a large chunk of memory, but it also means we must have a
+            // fallback branch, for the case when the delta is longer than
+            // the original data (surprisingly, this does happen in practice)
+            let mut buf = Vec::with_capacity(cap);
+            match zstd_decompress_to_buffer(self.bytes, &mut buf) {
+                Ok(_) => buf.shrink_to_fit(),
+                Err(_) => {
+                    buf.clear();
+                    zstd::stream::copy_decode(self.bytes, &mut buf)
+                        .map_err(|e| corrupted(e.to_string()))?;
+                }
+            };
             Ok(buf)
         } else {
-            let cap = self.uncompressed_len.max(0) as usize;
-            let mut buf = vec![0; cap];
-            let len = zstd::bulk::decompress_to_buffer(self.bytes, &mut buf)
+            let mut buf = Vec::with_capacity(cap);
+            let len = zstd_decompress_to_buffer(self.bytes, &mut buf)
                 .map_err(|e| corrupted(e.to_string()))?;
             if len != self.uncompressed_len as usize {
                 Err(corrupted("uncompressed length does not match"))
@@ -636,6 +687,13 @@ mod tests {
         assert_eq!(revlog.len(), 0);
         assert!(revlog.get_entry(0).is_err());
         assert!(!revlog.has_rev(0));
+        assert_eq!(
+            revlog.rev_from_node(NULL_NODE.into()).unwrap(),
+            NULL_REVISION
+        );
+        let null_entry = revlog.get_entry(NULL_REVISION).ok().unwrap();
+        assert_eq!(null_entry.revision(), NULL_REVISION);
+        assert!(null_entry.data().unwrap().is_empty());
     }
 
     #[test]
@@ -706,5 +764,66 @@ mod tests {
         let p2_entry = entry2.p2_entry().unwrap();
         assert!(p2_entry.is_some());
         assert_eq!(p2_entry.unwrap().revision(), 1);
+    }
+
+    #[test]
+    fn test_nodemap() {
+        let temp = tempfile::tempdir().unwrap();
+        let vfs = Vfs { base: temp.path() };
+
+        // building a revlog with a forced Node starting with zeros
+        // This is a corruption, but it does not preclude using the nodemap
+        // if we don't try and access the data
+        let node0 = Node::from_hex("00d2a3912a0b24502043eae84ee4b279c18b90dd")
+            .unwrap();
+        let node1 = Node::from_hex("b004912a8510032a0350a74daa2803dadfb00e12")
+            .unwrap();
+        let entry0_bytes = IndexEntryBuilder::new()
+            .is_first(true)
+            .with_version(1)
+            .with_inline(true)
+            .with_offset(INDEX_ENTRY_SIZE)
+            .with_node(node0)
+            .build();
+        let entry1_bytes = IndexEntryBuilder::new()
+            .with_offset(INDEX_ENTRY_SIZE)
+            .with_node(node1)
+            .build();
+        let contents = vec![entry0_bytes, entry1_bytes]
+            .into_iter()
+            .flatten()
+            .collect_vec();
+        std::fs::write(temp.path().join("foo.i"), contents).unwrap();
+        let revlog = Revlog::open(&vfs, "foo.i", None, false).unwrap();
+
+        // accessing the data shows the corruption
+        revlog.get_entry(0).unwrap().data().unwrap_err();
+
+        assert_eq!(revlog.rev_from_node(NULL_NODE.into()).unwrap(), -1);
+        assert_eq!(revlog.rev_from_node(node0.into()).unwrap(), 0);
+        assert_eq!(revlog.rev_from_node(node1.into()).unwrap(), 1);
+        assert_eq!(
+            revlog
+                .rev_from_node(NodePrefix::from_hex("000").unwrap())
+                .unwrap(),
+            -1
+        );
+        assert_eq!(
+            revlog
+                .rev_from_node(NodePrefix::from_hex("b00").unwrap())
+                .unwrap(),
+            1
+        );
+        // RevlogError does not implement PartialEq
+        // (ultimately because io::Error does not)
+        match revlog
+            .rev_from_node(NodePrefix::from_hex("00").unwrap())
+            .expect_err("Expected to give AmbiguousPrefix error")
+        {
+            RevlogError::AmbiguousPrefix => (),
+            e => {
+                panic!("Got another error than AmbiguousPrefix: {:?}", e);
+            }
+        };
     }
 }

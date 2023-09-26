@@ -16,6 +16,7 @@ import os
 
 from .i18n import _
 from . import (
+    encoding,
     error,
     pycompat,
     util,
@@ -229,7 +230,7 @@ class transaction(util.transactional):
         validator=None,
         releasefn=None,
         checkambigfiles=None,
-        name='<unnamed>',
+        name=b'<unnamed>',
     ):
         """Begin a new transaction
 
@@ -316,9 +317,9 @@ class transaction(util.transactional):
         self._abortcallback = {}
 
     def __repr__(self):
-        name = '/'.join(self._names)
+        name = b'/'.join(self._names)
         return '<transaction name=%s, count=%d, usages=%d>' % (
-            name,
+            encoding.strfromlocal(name),
             self._count,
             self._usages,
         )
@@ -413,7 +414,7 @@ class transaction(util.transactional):
 
         vfs = self._vfsmap[location]
         dirname, filename = vfs.split(file)
-        backupfilename = b"%s.backup.%s" % (self._journal, filename)
+        backupfilename = b"%s.backup.%s.bck" % (self._journal, filename)
         backupfile = vfs.reljoin(dirname, backupfilename)
         if vfs.exists(file):
             filepath = vfs.join(file)
@@ -574,7 +575,7 @@ class transaction(util.transactional):
         self._file.flush()
 
     @active
-    def nest(self, name='<unnamed>'):
+    def nest(self, name=b'<unnamed>'):
         self._count += 1
         self._usages += 1
         self._names.append(name)

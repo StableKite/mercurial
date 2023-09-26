@@ -803,6 +803,12 @@ will stop at the first failed \-\-update.
 Specifying bookmark as \fB.\fP is equivalent to specifying the active
 bookmark\(aqs name.
 .sp
+One can use the \fI\-\-remote\-hidden\fP flag to pull changesets
+hidden on the remote. This flag is "best effort", and will only
+work if the server supports the feature and is configured to
+allow the user to access hidden changesets. This option is
+experimental and backwards compatibility is not garanteed.
+.sp
 Returns 0 on success, 1 if an update had unresolved files.
 .sp
 Options:
@@ -831,6 +837,10 @@ bookmark to pull
 .BI \-b,  \-\-branch \ <BRANCH[+]>
 .
 a specific branch you would like to pull
+.TP
+.B \-\-remote\-hidden
+.
+include changesets hidden on the remote (EXPERIMENTAL)
 .TP
 .BI \-e,  \-\-ssh \ <CMD>
 .
@@ -8576,7 +8586,8 @@ To use a plain path name without any pattern matching, start it with
 current repository root, and when the path points to a directory, it is matched
 recursively. To match all files in a directory non\-recursively (not including
 any files in subdirectories), \fBrootfilesin:\fP can be used, specifying an
-absolute path (relative to the repository root).
+absolute path (relative to the repository root). To match a single file exactly,
+relative to the repository root, you can use \fBfilepath:\fP.
 .sp
 To use an extended glob, start a name with \fBglob:\fP. Globs are rooted
 at the current directory; a glob such as \fB*.c\fP will only match files
@@ -8610,11 +8621,15 @@ Plain examples:
 .sp
 .nf
 .ft C
-path:foo/bar        a name bar in a directory named foo in the root
-                    of the repository
-path:path:name      a file or directory named "path:name"
-rootfilesin:foo/bar the files in a directory called foo/bar, but not any files
-                    in its subdirectories and not a file bar in directory foo
+path:foo/bar                  a name bar in a directory named foo in the root
+                              of the repository
+path:some/path                a file or directory named "some/path"
+filepath:some/path/to/a/file  exactly a single file named
+                              "some/path/to/a/file", relative to the root
+                              of the repository
+rootfilesin:foo/bar           the files in a directory called foo/bar, but
+                              not any files in its subdirectories and not
+                              a file bar in directory foo
 .ft P
 .fi
 .sp
@@ -9646,8 +9661,9 @@ Please refer to the \fIrust/README.rst\fP file in the Mercurial repository for
 instructions on how to install from source.
 .SS MSRV
 .sp
-The minimum supported Rust version is currently 1.61.0. The project\(aqs policy is
-to follow the version from Debian testing, to make the distributions\(aq job easier.
+The minimum supported Rust version is defined in \fIrust/clippy.toml\fP.
+The project\(aqs policy is to keep it at or below the version from Debian testing,
+to make the distributions\(aq job easier.
 .SS rhg
 .sp
 There exists an experimental pure\-Rust version of Mercurial called \fIrhg\fP with a
@@ -12470,6 +12486,161 @@ message informing them how to bypass the clone bundles facility when a failure
 occurs. So server operators should prepare for some people to follow these
 instructions when a failure occurs, thus driving more load to the original
 Mercurial server when the bundle hosting service fails.
+.SS inline clonebundles
+.sp
+It is possible to transmit clonebundles inline in case repositories are
+accessed over SSH. This avoids having to setup an external HTTPS server
+and results in the same access control as already present for the SSH setup.
+.sp
+Inline clonebundles should be placed into the \fI.hg/bundle\-cache\fP directory.
+A clonebundle at \fI.hg/bundle\-cache/mybundle.bundle\fP is referred to
+in the \fIclonebundles.manifest\fP file as \fIpeer\-bundle\-cache://mybundle.bundle\fP.
+.SS auto\-generation of clone bundles
+.sp
+It is possible to set Mercurial to automatically re\-generate clone bundles when
+enough new content is available.
+.sp
+Mercurial will take care of the process asynchronously. The defined list of
+bundle\-type will be generated, uploaded, and advertised. Older bundles will get
+decommissioned as newer ones replace them.
+.SS Bundles Generation:
+.sp
+The extension can generate multiple variants of the clone bundle. Each
+different variant will be defined by the "bundle\-spec" they use:
+.sp
+.nf
+.ft C
+[clone\-bundles]
+auto\-generate.formats= zstd\-v2, gzip\-v2
+.ft P
+.fi
+.sp
+See \fIhg help bundlespec\fP for details about available options.
+.sp
+By default, new bundles are generated when 5% of the repository contents or at
+least 1000 revisions are not contained in the cached bundles. This option can
+be controlled by the \fIclone\-bundles.trigger.below\-bundled\-ratio\fP option
+(default 0.95) and the \fIclone\-bundles.trigger.revs\fP option (default 1000):
+.sp
+.nf
+.ft C
+[clone\-bundles]
+trigger.below\-bundled\-ratio=0.95
+trigger.revs=1000
+.ft P
+.fi
+.sp
+This logic can be manually triggered using the \fIadmin::clone\-bundles\-refresh\fP
+command, or automatically on each repository change if
+\fIclone\-bundles.auto\-generate.on\-change\fP is set to \fIyes\fP:
+.sp
+.nf
+.ft C
+[clone\-bundles]
+auto\-generate.on\-change=yes
+auto\-generate.formats= zstd\-v2, gzip\-v2
+.ft P
+.fi
+.SS Automatic Inline serving
+.sp
+The simplest way to serve the generated bundle is through the Mercurial
+protocol. However it is not the most efficient as request will still be served
+by that main server. It is useful in case where authentication is complexe or
+when an efficient mirror system is already in use anyway. See the \fIinline
+clonebundles\fP section above for details about inline clonebundles
+.sp
+To automatically serve generated bundle through inline clonebundle, simply set
+the following option:
+.sp
+.nf
+.ft C
+auto\-generate.serve\-inline=yes
+.ft P
+.fi
+.sp
+Enabling this option disable the managed upload and serving explained below.
+.SS Bundles Upload and Serving:
+.sp
+This is the most efficient way to serve automatically generated clone bundles,
+but requires some setup.
+.sp
+The generated bundles need to be made available to users through a "public" URL.
+This should be donne through \fIclone\-bundles.upload\-command\fP configuration. The
+value of this command should be a shell command. It will have access to the
+bundle file path through the \fI$HGCB_BUNDLE_PATH\fP variable. And the expected
+basename in the "public" URL is accessible at:
+.sp
+.nf
+.ft C
+[clone\-bundles]
+upload\-command=sftp put $HGCB_BUNDLE_PATH       sftp://bundles.host/clone\-bundles/$HGCB_BUNDLE_BASENAME
+.ft P
+.fi
+.sp
+If the file was already uploaded, the command must still succeed.
+.sp
+After upload, the file should be available at an url defined by
+\fIclone\-bundles.url\-template\fP.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+[clone\-bundles]
+url\-template=https://bundles.host/cache/clone\-bundles/{basename}
+.UNINDENT
+.UNINDENT
+.SS Old bundles cleanup:
+.sp
+When new bundles are generated, the older ones are no longer necessary and can
+be removed from storage. This is done through the \fIclone\-bundles.delete\-command\fP
+configuration. The command is given the url of the artifact to delete through
+the \fI$HGCB_BUNDLE_URL\fP environment variable.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+[clone\-bundles]
+delete\-command=sftp rm sftp://bundles.host/clone\-bundles/$HGCB_BUNDLE_BASENAME
+.UNINDENT
+.UNINDENT
+.sp
+If the file was already deleted, the command must still succeed.
+.SS Commands
+.SS Uncategorized commands
+.SS admin::clone\-bundles\-clear
+.sp
+remove existing clone bundle caches:
+.sp
+.nf
+.ft C
+hg admin::clone\-bundles\-clear
+.ft P
+.fi
+.sp
+See \fIhg help admin::clone\-bundles\-refresh\fP for details on how to regenerate
+them.
+.sp
+This command will only affect bundles currently available, it will not
+affect bundles being asynchronously generated.
+.SS admin::clone\-bundles\-refresh
+.sp
+generate clone bundles according to the configuration:
+.sp
+.nf
+.ft C
+hg admin::clone\-bundles\-refresh
+.ft P
+.fi
+.sp
+This runs the logic for automatic generation, removing outdated bundles and
+generating new ones if necessary. See \%\fBhg help \-e clone\-bundles\fP\: for
+details about how to configure this feature.
+.sp
+Options:
+.INDENT 0.0
+.TP
+.B \-\-background
+.
+start bundle generation in the background
+.UNINDENT
 .SS closehead
 .sp
 close arbitrary heads without checking them out first

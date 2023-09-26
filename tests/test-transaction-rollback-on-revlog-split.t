@@ -120,6 +120,41 @@ Reference size:
 
   $ cd ..
 
+Test a succesful pull
+=====================
+
+Make sure everything goes though as expect if we don't do any crash
+
+  $ hg clone --quiet --rev 1 troffset-computation troffset-success
+  $ cd troffset-success
+
+Reference size:
+  $ f -s file
+  file: size=1024
+  $ f -s .hg/store/data/file*
+  .hg/store/data/file.i: size=1174
+
+  $ hg pull ../troffset-computation
+  pulling from ../troffset-computation
+  searching for changes
+  adding changesets
+  adding manifests
+  adding file changes
+  added 3 changesets with 18 changes to 6 files
+  new changesets c99a94cae9b1:64874a3b0160
+  (run 'hg update' to get a working copy)
+
+
+The inline revlog has been replaced
+
+  $ f -s .hg/store/data/file*
+  .hg/store/data/file.d: size=267307
+  .hg/store/data/file.i: size=320
+
+
+  $ hg verify -q
+  $ cd ..
+
 
 Test a hard crash after the file was split but before the transaction was committed
 ===================================================================================
@@ -167,9 +202,13 @@ The inline revlog still exist, but a split version exist next to it
   data/some_dir/sub_dir/foo_bar.i.s/tutu.i 1174
   data/some_dir/sub_dir/foo_bar.i.s/tutu.d 0
   $ f -s .hg/store/data*/file*
-  .hg/store/data-s/file: size=320
+  .hg/store/data-s/file.i: size=320
   .hg/store/data/file.d: size=267307
   .hg/store/data/file.i: size=132395
+  $ f -s .hg/store/data*/foo*/bar*/babar__celeste*/foo*
+  .hg/store/data-s/foo/bar/babar__celeste/foo.i: size=320
+  .hg/store/data/foo/bar/babar__celeste/foo.d: size=267307
+  .hg/store/data/foo/bar/babar__celeste/foo.i: size=132395
 
 
 The first file.i entry should match the "Reference size" above.
@@ -181,8 +220,8 @@ A "temporary file" entry exist for the split index.
   data/file.i 1174
   data/file.d 0
   $ cat .hg/store/journal.backupfiles | tr -s '\000' ' ' | tr -s '\00' ' '| grep 'data.*/file'
-   data/file.i data/journal.backup.file.i 0
-   data-s/file 0
+   data/file.i data/journal.backup.file.i.bck 0
+   data-s/file.i 0
 
 recover is rolling the split back, the fncache is still valid
 
@@ -246,7 +285,7 @@ Reference size:
 The inline revlog still exist, but a split version exist next to it
 
   $ f -s .hg/store/data*/file*
-  .hg/store/data-s/file: size=320
+  .hg/store/data-s/file.i: size=320
   .hg/store/data/file.d: size=267307
   .hg/store/data/file.i: size=132395
 
@@ -364,7 +403,6 @@ The split was rollback
   .hg/store/data/file.d: size=0
   .hg/store/data/file.i: size=1174
 
-
   $ hg tip
   changeset:   1:64b04c8dc267
   tag:         tip
@@ -373,6 +411,25 @@ The split was rollback
   summary:     b
   
   $ hg verify -q
+
+  $ cat > .hg/hgrc <<EOF
+  > [hooks]
+  > EOF
+  $ hg pull ../troffset-computation
+  pulling from ../troffset-computation
+  searching for changes
+  adding changesets
+  adding manifests
+  adding file changes
+  added 3 changesets with 18 changes to 6 files
+  new changesets c99a94cae9b1:64874a3b0160
+  (run 'hg update' to get a working copy)
+
+  $ f -s .hg/store/data*/file*
+  .hg/store/data/file.d: size=267307
+  .hg/store/data/file.i: size=320
+  $ hg verify -q
+
   $ cd ..
 
 Read race
@@ -415,6 +472,9 @@ The reader should be fine
   $ cat $TESTTMP/reader.stderr
   $ cat $TESTTMP/reader.stdout
                      1 (no-eol)
+
+  $ hg verify -q
+
   $ cd ..
 
 pending hooks
@@ -452,6 +512,8 @@ We checks that hooks properly see the inside of the transaction, while other pro
   $ cat stdout
   size=1024
   $ cat stderr
+
+  $ hg verify -q
 
 
   $ cd ..

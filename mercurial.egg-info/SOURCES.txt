@@ -1,6 +1,7 @@
 .arcconfig
 .clang-format
 .editorconfig
+.gitattributes
 .hgignore
 .hgsigs
 .hgtags
@@ -138,6 +139,8 @@ contrib/merge-lists/Cargo.lock
 contrib/merge-lists/Cargo.toml
 contrib/merge-lists/src/main.rs
 contrib/merge-lists/tests/test-merge-lists.rs
+contrib/nix/flake.lock
+contrib/nix/flake.nix
 contrib/packaging/Makefile
 contrib/packaging/build-linux-wheels.sh
 contrib/packaging/builddeb
@@ -517,6 +520,7 @@ i18n/sv.po
 i18n/zh_CN.po
 i18n/zh_TW.po
 mercurial/__init__.py
+mercurial/__main__.py
 mercurial/__version__.py
 mercurial/ancestor.py
 mercurial/archival.py
@@ -788,6 +792,8 @@ mercurial/revlogutils/randomaccessfile.py
 mercurial/revlogutils/revlogv0.py
 mercurial/revlogutils/rewrite.py
 mercurial/revlogutils/sidedata.py
+mercurial/stabletailgraph/__init__.py
+mercurial/stabletailgraph/stabletailsort.py
 mercurial/templates/__init__.py
 mercurial/templates/map-cmdline.bisect
 mercurial/templates/map-cmdline.changelog
@@ -1065,10 +1071,12 @@ relnotes/6.1
 relnotes/6.2
 relnotes/6.3
 relnotes/6.4
+relnotes/6.5
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
 rust/README.rst
+rust/clippy.toml
 rust/.cargo/config
 rust/chg/Cargo.lock
 rust/chg/Cargo.toml
@@ -1309,6 +1317,7 @@ tests/test-branch-option.t
 tests/test-branch-tag-confict.t
 tests/test-branches.t
 tests/test-bugzilla.t
+tests/test-bundle-phase-internal.t
 tests/test-bundle-phases.t
 tests/test-bundle-r.t
 tests/test-bundle-type.t
@@ -1355,9 +1364,11 @@ tests/test-clone-cgi.t
 tests/test-clone-pull-corruption.t
 tests/test-clone-r.t
 tests/test-clone-stream-format.t
+tests/test-clone-stream-revlog-split.t
 tests/test-clone-stream.t
 tests/test-clone-update-order.t
 tests/test-clone.t
+tests/test-clonebundles-autogen.t
 tests/test-clonebundles.t
 tests/test-close-head.t
 tests/test-commandserver.t
@@ -1434,6 +1445,7 @@ tests/test-copy.t
 tests/test-copytrace-heuristics.t
 tests/test-custom-filters.t
 tests/test-debian-packages.t
+tests/test-debug-rebuild-dirstate.t
 tests/test-debug-revlog-stats.t
 tests/test-debugbackupbundle.t
 tests/test-debugbuilddag.t
@@ -1866,6 +1878,7 @@ tests/test-pathencode.py
 tests/test-paths.t
 tests/test-pending.t
 tests/test-permissions.t
+tests/test-persistent-nodemap-stream-clone.t
 tests/test-persistent-nodemap.t
 tests/test-phabricator.t
 tests/test-phase-archived.t
@@ -2084,6 +2097,7 @@ tests/test-ssh-proto.t
 tests/test-ssh-repoerror.t
 tests/test-ssh.t
 tests/test-sshserver.py
+tests/test-stabletailgraph.t
 tests/test-stack.t
 tests/test-state-extension.t
 tests/test-static-http.t
@@ -2182,6 +2196,7 @@ tests/artifacts/scripts/generate-churning-bundle.py
 tests/blacklists/README
 tests/blacklists/fsmonitor
 tests/blacklists/linux-vfat
+tests/blacklists/nix
 tests/bundles/darcs1.hg
 tests/bundles/hgweb+obs.hg
 tests/bundles/issue4041.hg

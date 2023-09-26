@@ -1674,6 +1674,13 @@ created. A non\-zero status will cause the tag to fail. The ID of the
 changeset to tag is in \fB$HG_NODE\fP. The name of tag is in \fB$HG_TAG\fP. The
 tag is local if \fB$HG_LOCAL=1\fP, or in the repository if \fB$HG_LOCAL=0\fP.
 .TP
+.B \fBpretransmit\-inline\-clone\-bundle\fP
+.sp
+Run before transferring an inline clonebundle to the peer.
+If the exit status is 0, the inline clonebundle will be allowed to be
+transferred. A non\-zero status will cause the transfer to fail.
+The path of the inline clonebundle is in \fB$HG_CLONEBUNDLEPATH\fP.
+.TP
 .B \fBpretxnopen\fP
 .sp
 Run before any new repository transaction is open. The reason for the

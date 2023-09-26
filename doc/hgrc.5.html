@@ -1248,6 +1248,11 @@ the old value (if any) is in <tt class="docutils literal">$HG_OLD</tt>, and the 
 created. A non-zero status will cause the tag to fail. The ID of the
 changeset to tag is in <tt class="docutils literal">$HG_NODE</tt>. The name of tag is in <tt class="docutils literal">$HG_TAG</tt>. The
 tag is local if <tt class="docutils literal">$HG_LOCAL=1</tt>, or in the repository if <tt class="docutils literal">$HG_LOCAL=0</tt>.</dd>
+<dt><tt class="docutils literal"><span class="pre">pretransmit-inline-clone-bundle</span></tt></dt>
+<dd>Run before transferring an inline clonebundle to the peer.
+If the exit status is 0, the inline clonebundle will be allowed to be
+transferred. A non-zero status will cause the transfer to fail.
+The path of the inline clonebundle is in <tt class="docutils literal">$HG_CLONEBUNDLEPATH</tt>.</dd>
 <dt><tt class="docutils literal">pretxnopen</tt></dt>
 <dd>Run before any new repository transaction is open. The reason for the
 transaction will be in <tt class="docutils literal">$HG_TXNNAME</tt>, and a unique identifier for the

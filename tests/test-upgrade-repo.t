@@ -192,11 +192,11 @@ Unless the action is compatible with share
   summary:     r7
   
 
-Do not yet support upgrading treemanifest repos
+Do not yet support downgrading treemanifest repos
 
   $ hg --config experimental.treemanifest=true init treemanifest
   $ hg -R treemanifest debugupgraderepo
-  abort: cannot upgrade repository; unsupported source requirement: treemanifest
+  abort: cannot upgrade repository; requirement would be removed: treemanifest
   [255]
 
 Cannot add treemanifest requirement during upgrade
@@ -868,7 +868,7 @@ old store should be backed up
   phaseroots
   requires
   undo
-  undo.backup.fncache
+  undo.backup.fncache.bck
   undo.backupfiles
 
 unless --no-backup is passed
@@ -2013,7 +2013,7 @@ downgrade it from dirstate-v2 automatically
 For multiple change at the same time
 ------------------------------------
 
-  $ hg debugformat -R auto-upgrade | egrep '(dirstate-v2|tracked|share-safe)'
+  $ hg debugformat -R auto-upgrade | grep -E '(dirstate-v2|tracked|share-safe)'
   dirstate-v2:         no
   tracked-hint:       yes
   share-safe:          no
@@ -2031,7 +2031,7 @@ For multiple change at the same time
   (see `hg help config.format.use-share-safe` for details)
   automatically downgrading repository from the `tracked-hint` feature
   (see `hg help config.format.use-dirstate-tracked-hint` for details)
-  $ hg debugformat -R auto-upgrade | egrep '(dirstate-v2|tracked|share-safe)'
+  $ hg debugformat -R auto-upgrade | grep -E '(dirstate-v2|tracked|share-safe)'
   dirstate-v2:        yes
   tracked-hint:        no
   share-safe:         yes
@@ -2040,7 +2040,7 @@ Quiet upgrade and downgrade
 ---------------------------
 
 
-  $ hg debugformat -R auto-upgrade | egrep '(dirstate-v2|tracked|share-safe)'
+  $ hg debugformat -R auto-upgrade | grep -E '(dirstate-v2|tracked|share-safe)'
   dirstate-v2:        yes
   tracked-hint:        no
   share-safe:         yes
@@ -2055,7 +2055,7 @@ Quiet upgrade and downgrade
   >     --config format.use-share-safe.automatic-upgrade-of-mismatching-repositories:quiet=yes \
   >     --config format.use-share-safe=no
 
-  $ hg debugformat -R auto-upgrade | egrep '(dirstate-v2|tracked|share-safe)'
+  $ hg debugformat -R auto-upgrade | grep -E '(dirstate-v2|tracked|share-safe)'
   dirstate-v2:         no
   tracked-hint:       yes
   share-safe:          no
@@ -2070,7 +2070,7 @@ Quiet upgrade and downgrade
   >     --config format.use-share-safe.automatic-upgrade-of-mismatching-repositories=yes \
   >     --config format.use-share-safe.automatic-upgrade-of-mismatching-repositories:quiet=yes \
   >     --config format.use-share-safe=yes
-  $ hg debugformat -R auto-upgrade | egrep '(dirstate-v2|tracked|share-safe)'
+  $ hg debugformat -R auto-upgrade | grep -E '(dirstate-v2|tracked|share-safe)'
   dirstate-v2:        yes
   tracked-hint:        no
   share-safe:         yes

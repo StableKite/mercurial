@@ -1,6 +1,8 @@
   $ cat >> $HGRCPATH << EOF
   > [storage]
   > dirstate-v2.slow-path=allow
+  > [format]
+  > use-dirstate-v2=no
   > EOF
 
 Set up a v1 repo
@@ -8,8 +10,8 @@ Set up a v1 repo
   $ hg init repo
   $ cd repo
   $ echo a > a
-  $ hg add a
-  $ hg commit -m a
+  $ touch file-with-somewhat-long-name-to-make-dirstate-v1-bigger-than-v2
+  $ hg commit -Aqm a
   $ hg debugrequires | grep dirstate
   [1]
   $ ls -1 .hg/dirstate*
@@ -20,7 +22,7 @@ Copy v1 dirstate
 
 Upgrade it to v2
 
-  $ hg debugupgraderepo -q --config format.use-dirstate-v2=1 --run | egrep 'added:|removed:'
+  $ hg debugupgraderepo -q --config format.use-dirstate-v2=1 --run | grep -E 'added:|removed:'
      added: dirstate-v2
   $ hg debugrequires | grep dirstate
   dirstate-v2
@@ -45,5 +47,5 @@ Corrupt the dirstate to see how the errors show up to the user
   $ hg st
   abort: working directory state appears damaged! (no-rhg !)
   (falling back to dirstate-v1 from v2 also failed) (no-rhg !)
-  abort: Too little data for dirstate. (rhg !)
+  abort: Too little data for dirstate: 16 bytes. (rhg !)
   [255]
