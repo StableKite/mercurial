@@ -2185,6 +2185,7 @@ tests/test-wireproto.py
 tests/test-wireproto.py.out
 tests/test-wireproto.t
 tests/test-worker.t
+tests/test-wsgicgi.t
 tests/test-wsgirequest.py
 tests/test-xdg.t
 tests/tinyproxy.py

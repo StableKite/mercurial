@@ -292,6 +292,9 @@ class revlog:
 
     @staticmethod
     def is_inline_index(header_bytes):
+        if len(header_bytes) == 0:
+            return True
+
         header = INDEX_HEADER.unpack(header_bytes)[0]
 
         _format_flags = header & ~0xFFFF
@@ -3193,14 +3196,15 @@ class revlog:
 
             destrevlog._deltabothparents = forcedeltabothparents or oldamd
 
-            self._clone(
-                tr,
-                destrevlog,
-                addrevisioncb,
-                deltareuse,
-                forcedeltabothparents,
-                sidedata_helpers,
-            )
+            with self.reading(), destrevlog._writing(tr):
+                self._clone(
+                    tr,
+                    destrevlog,
+                    addrevisioncb,
+                    deltareuse,
+                    forcedeltabothparents,
+                    sidedata_helpers,
+                )
 
         finally:
             destrevlog._lazydelta = oldlazydelta
@@ -3270,7 +3274,11 @@ class revlog:
 
                 sidedata = None
                 if not cachedelta:
-                    rawtext = self._revisiondata(rev)
+                    try:
+                        rawtext = self._revisiondata(rev)
+                    except error.CensoredNodeError as censored:
+                        assert flags & REVIDX_ISCENSORED
+                        rawtext = censored.tombstone
                     sidedata = self.sidedata(rev)
                 if sidedata is None:
                     sidedata = self.sidedata(rev)
@@ -3281,19 +3289,18 @@ class revlog:
                     )
                     flags = flags | new_flags[0] & ~new_flags[1]
 
-                with destrevlog._writing(tr):
-                    destrevlog._addrevision(
-                        node,
-                        rawtext,
-                        tr,
-                        linkrev,
-                        p1,
-                        p2,
-                        flags,
-                        cachedelta,
-                        deltacomputer=deltacomputer,
-                        sidedata=sidedata,
-                    )
+                destrevlog._addrevision(
+                    node,
+                    rawtext,
+                    tr,
+                    linkrev,
+                    p1,
+                    p2,
+                    flags,
+                    cachedelta,
+                    deltacomputer=deltacomputer,
+                    sidedata=sidedata,
+                )
 
             if addrevisioncb:
                 addrevisioncb(self, rev, node)

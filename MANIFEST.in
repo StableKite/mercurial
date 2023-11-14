@@ -2260,6 +2260,7 @@ include tests/test-wireproto.py
 include tests/test-wireproto.py.out
 include tests/test-wireproto.t
 include tests/test-worker.t
+include tests/test-wsgicgi.t
 include tests/test-wsgirequest.py
 include tests/test-xdg.t
 include tests/testlib/badserverext.py
