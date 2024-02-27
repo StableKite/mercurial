@@ -1267,6 +1267,7 @@ tests/revlog-formatv0.py
 tests/revnamesext.py
 tests/run-tests.py
 tests/seq.py
+tests/sha256line.py
 tests/silenttestrunner.py
 tests/simplestorerepo.py
 tests/sitecustomize.py
@@ -1816,6 +1817,7 @@ tests/test-mq-subrepo.t
 tests/test-mq-symlinks.t
 tests/test-mq.t
 tests/test-mv-cp-st-diff.t
+tests/test-narrow-acl-excludes.t
 tests/test-narrow-acl.t
 tests/test-narrow-archive.t
 tests/test-narrow-clone-no-ellipsis.t

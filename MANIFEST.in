@@ -1319,6 +1319,7 @@ include tests/revlog-formatv0.py
 include tests/revnamesext.py
 include tests/run-tests.py
 include tests/seq.py
+include tests/sha256line.py
 include tests/silenttestrunner.py
 include tests/simplestorerepo.py
 include tests/sitecustomize.py
@@ -1891,6 +1892,7 @@ include tests/test-mq-subrepo.t
 include tests/test-mq-symlinks.t
 include tests/test-mq.t
 include tests/test-mv-cp-st-diff.t
+include tests/test-narrow-acl-excludes.t
 include tests/test-narrow-acl.t
 include tests/test-narrow-archive.t
 include tests/test-narrow-clone-no-ellipsis.t
