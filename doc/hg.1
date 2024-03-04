@@ -2124,6 +2124,11 @@ it detects as binary. With \-a, annotate will annotate the file
 anyway, although the results will probably be neither useful
 nor desirable.
 .sp
+Use \-L/\-\-line\-range FILE,M:N options to filter the output to the lines
+from M to N in FILE. This option is incompatible with \-\-no\-follow and
+cannot be combined with file pattern arguments. When combined with \-\-rev
+the line ranges refer to the state of the file at the requested revision.
+.sp
 Template:
 .sp
 The following keywords are supported in addition to the common template
@@ -2206,6 +2211,10 @@ show line number at the first appearance
 .BI \-\-skip \ <REV[+]>
 .
 revset to not display (EXPERIMENTAL)
+.TP
+.BI \-L,  \-\-line\-range \ <FILE,RANGE[+]>
+.
+follow line range of specified file (EXPERIMENTAL)
 .TP
 .B \-w,  \-\-ignore\-all\-space
 .
@@ -6233,10 +6242,11 @@ where \(aqE\(aq is substituted with an escape character.
 Text receives color effects depending on the labels that it has. Many
 default Mercurial commands emit labelled text. You can also define
 your own labels in templates using the label function, see \%\fBhg help
-templates\fP\:. A single portion of text may have more than one label. In
-that case, effects given to the last label will override any other
-effects. This includes the special "none" effect, which nullifies
-other effects.
+templates\fP\:. In order to receive effects, labels must have a dot, such
+as \fIlog.secret\fP or \fIbranch.active\fP. A single portion of text may have
+more than one label. In that case, effects given to the last label
+will override any other effects. This includes the special "none"
+effect, which nullifies other effects.
 .sp
 Labels are normally invisible. In order to see these labels and their
 position in the text, use the global \-\-color=debug option. The same
@@ -10651,9 +10661,10 @@ Join items in a list with a delimiter.
 .TP
 .B label(label, expr)
 .
-Apply a label to generated content. Content with
-a label applied can result in additional post\-processing, such as
-automatic colorization.
+Apply a label to generated content. Content with a label
+applied can result in additional post\-processing, such as
+automatic colorization. In order to receive effects, labels must
+have a dot, such as \fIlog.secret\fP or \fIbranch.active\fP.
 .TP
 .B latesttag([pattern])
 .
@@ -12085,7 +12096,9 @@ data needs to be materialized. Some commands, like \fBhg cat\fP/\fBhg revert\fP,
 simply fail when asked to produce censored data. Others, like \fBhg verify\fP and
 \fBhg update\fP, must be capable of tolerating censored data to continue to
 function in a meaningful way. Such commands only tolerate censored file
-revisions if they are allowed by the "censor.policy=ignore" config option.
+As having a censored version in a checkout is impractical. The current head
+revisions of the repository are checked. If the revision to be censored is in
+any of them the command will abort.
 .sp
 A few informative commands such as \fBhg grep\fP will unconditionally
 ignore censored data and merely report that it was encountered.
@@ -12102,13 +12115,130 @@ hg censor \-r REV [\-t TEXT] [FILE]
 Options:
 .INDENT 0.0
 .TP
-.BI \-r,  \-\-rev \ <REV>
+.BI \-r,  \-\-rev \ <REV[+]>
 .
 censor file from specified revision
+.TP
+.B \-\-check\-heads
+.
+check that repository heads are not affected (default: True)
 .TP
 .BI \-t,  \-\-tombstone \ <TEXT>
 .
 replacement tombstone data
+.UNINDENT
+.sp
+[+] marked option can be specified multiple times
+.SS chainsaw
+.sp
+chainsaw is a collection of single\-minded and dangerous tools. (EXPERIMENTAL)
+.INDENT 0.0
+.INDENT 3.5
+.sp
+"Don\(aqt use a chainsaw to cut your food!"
+.UNINDENT
+.UNINDENT
+.sp
+The chainsaw extension provides commands that are so much geared towards a
+specific use case in a specific context or environment that they are totally
+inappropriate and \fBreally dangerous\fP in other contexts.
+.sp
+The help text of each command explicitly summarizes its context of application
+and the wanted end result.
+.sp
+It is recommended to run these commands with the \fBHGPLAIN\fP environment
+variable (see \%\fBhg help scripting\fP\:).
+.SS Commands
+.SS Uncategorized commands
+.SS admin::chainsaw\-update
+.sp
+pull and update to a given revision, no matter what, (EXPERIMENTAL):
+.sp
+.nf
+.ft C
+hg admin::chainsaw\-update [OPTION] \-\-rev REV \-\-source SOURCE \-\-dest DEST
+.ft P
+.fi
+.sp
+Context of application: \fIsome\fP Continuous Integration (CI) systems,
+packaging or deployment tools.
+.sp
+Wanted end result: local repository at the given REPO_PATH, having the
+latest changes to the given revision and with a clean working directory
+updated at the given revision.
+.sp
+chainsaw\-update pulls from one source, then updates the working directory
+to the given revision, overcoming anything that would stand in the way.
+.sp
+By default, it will:
+.INDENT 0.0
+.IP \(bu 2
+.
+clone if the local repo does not exist yet, \fBremoving any directory
+at the given path\fP that would not be a Mercurial repository.
+The initial clone is full by default, so that clonebundles can be
+applied. Use the \-\-initial\-clone\-minimal flag to avoid this.
+.IP \(bu 2
+.
+break locks if needed, leading to possible corruption if there
+is a concurrent write access.
+.IP \(bu 2
+.
+perform recovery actions if needed
+.IP \(bu 2
+.
+revert any local modification.
+.IP \(bu 2
+.
+purge unknown and ignored files.
+.IP \(bu 2
+.
+go as far as to reclone if everything else failed (not implemented yet).
+.UNINDENT
+.sp
+DO NOT use it for anything else than performing a series
+of unattended updates, with full exclusive repository access each time
+and without any other local work than running build scripts.
+In case the local repository is a share (see \%\fBhg help share\fP\:), exclusive
+write access to the share source is also mandatory.
+.sp
+It is recommended to run these commands with the \fBHGPLAIN\fP environment
+variable (see \%\fBhg scripting\fP\:).
+.sp
+Motivation: in Continuous Integration and Delivery systems (CI/CD), the
+occasional remnant or bogus lock are common sources of waste of time (both
+working time and calendar time). CI/CD scripts tend to grow with counter\-
+measures, often done in urgency. Also, whilst it is neat to keep
+repositories from one job to the next (especially with large
+repositories), an exceptional recloning is better than missing a release
+deadline.
+.sp
+Options:
+.INDENT 0.0
+.TP
+.B \-\-purge\-unknown
+.
+Remove unversioned files before update. Disabling this can in some cases interfere with the update.See also \%\fBhg purge\fP\:. (default: True)
+.TP
+.B \-\-purge\-ignored
+.
+Remove ignored files before update. Disable this for instance to reuse previous compiler object files. See also \%\fBhg purge\fP\:. (default: True)
+.TP
+.BI \-\-rev \ <VALUE>
+.
+revision to update to
+.TP
+.BI \-\-source \ <VALUE>
+.
+repository to clone from
+.TP
+.BI \-\-dest \ <VALUE>
+.
+repository to update to REV (possibly cloning)
+.TP
+.B \-\-initial\-clone\-minimal
+.
+Pull only the prescribed revision upon initial cloning. This has the side effect of ignoring clone\-bundles, which if often slower on the client side and stressful to the server than applying available clone bundles.
 .UNINDENT
 .SS children
 .sp

@@ -109,6 +109,9 @@ contrib/docker/apache-server/README.rst
 contrib/docker/apache-server/entrypoint.sh
 contrib/docker/apache-server/hgwebconfig
 contrib/docker/apache-server/vhost.conf
+contrib/docker/pytype/Dockerfile
+contrib/docker/pytype/entrypoint.sh
+contrib/docker/pytype/recipe.sh
 contrib/examples/fix.hgrc
 contrib/fuzz/FuzzedDataProvider.h
 contrib/fuzz/Makefile
@@ -361,6 +364,7 @@ hgext/blackbox.py
 hgext/bookflow.py
 hgext/bugzilla.py
 hgext/censor.py
+hgext/chainsaw.py
 hgext/children.py
 hgext/churn.py
 hgext/clonebundles.py
@@ -1082,6 +1086,7 @@ relnotes/6.3
 relnotes/6.4
 relnotes/6.5
 relnotes/6.6
+relnotes/6.7
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
@@ -1147,6 +1152,7 @@ rust/hg-core/src/operations/cat.rs
 rust/hg-core/src/operations/debugdata.rs
 rust/hg-core/src/operations/list_tracked_files.rs
 rust/hg-core/src/operations/mod.rs
+rust/hg-core/src/operations/status_rev_rev.rs
 rust/hg-core/src/revlog/changelog.rs
 rust/hg-core/src/revlog/filelog.rs
 rust/hg-core/src/revlog/index.rs
@@ -1350,6 +1356,7 @@ tests/test-cat.t
 tests/test-cbor.py
 tests/test-censor.t
 tests/test-censor2.t
+tests/test-chainsaw-update.t
 tests/test-changelog-exec.t
 tests/test-check-cargo-lock.t
 tests/test-check-clang-format.t

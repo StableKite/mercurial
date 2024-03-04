@@ -63,6 +63,9 @@ include contrib/docker/apache-server/README.rst
 include contrib/docker/apache-server/entrypoint.sh
 include contrib/docker/apache-server/hgwebconfig
 include contrib/docker/apache-server/vhost.conf
+include contrib/docker/pytype/Dockerfile
+include contrib/docker/pytype/entrypoint.sh
+include contrib/docker/pytype/recipe.sh
 include contrib/dumprevlog
 include contrib/editmerge
 include contrib/editmergeps.bat
@@ -348,6 +351,7 @@ include hgext/blackbox.py
 include hgext/bookflow.py
 include hgext/bugzilla.py
 include hgext/censor.py
+include hgext/chainsaw.py
 include hgext/children.py
 include hgext/churn.py
 include hgext/clonebundles.py
@@ -1066,6 +1070,7 @@ include relnotes/6.3
 include relnotes/6.4
 include relnotes/6.5
 include relnotes/6.6
+include relnotes/6.7
 include relnotes/next
 include rust/.cargo/config
 include rust/Cargo.lock
@@ -1124,6 +1129,7 @@ include rust/hg-core/src/operations/cat.rs
 include rust/hg-core/src/operations/debugdata.rs
 include rust/hg-core/src/operations/list_tracked_files.rs
 include rust/hg-core/src/operations/mod.rs
+include rust/hg-core/src/operations/status_rev_rev.rs
 include rust/hg-core/src/repo.rs
 include rust/hg-core/src/requirements.rs
 include rust/hg-core/src/revlog/changelog.rs
@@ -1425,6 +1431,7 @@ include tests/test-cat.t
 include tests/test-cbor.py
 include tests/test-censor.t
 include tests/test-censor2.t
+include tests/test-chainsaw-update.t
 include tests/test-changelog-exec.t
 include tests/test-check-cargo-lock.t
 include tests/test-check-clang-format.t
