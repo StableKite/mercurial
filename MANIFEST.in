@@ -351,7 +351,6 @@ include hgext/blackbox.py
 include hgext/bookflow.py
 include hgext/bugzilla.py
 include hgext/censor.py
-include hgext/chainsaw.py
 include hgext/children.py
 include hgext/churn.py
 include hgext/clonebundles.py
@@ -512,6 +511,7 @@ include i18n/zh_TW.po
 include mercurial/__init__.py
 include mercurial/__main__.py
 include mercurial/admin/__init__.py
+include mercurial/admin/chainsaw.py
 include mercurial/admin/verify.py
 include mercurial/admin_commands.py
 include mercurial/ancestor.py

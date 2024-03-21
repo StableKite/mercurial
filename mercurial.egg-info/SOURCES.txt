@@ -364,7 +364,6 @@ hgext/blackbox.py
 hgext/bookflow.py
 hgext/bugzilla.py
 hgext/censor.py
-hgext/chainsaw.py
 hgext/children.py
 hgext/churn.py
 hgext/clonebundles.py
@@ -684,6 +683,7 @@ mercurial.egg-info/SOURCES.txt
 mercurial.egg-info/dependency_links.txt
 mercurial.egg-info/top_level.txt
 mercurial/admin/__init__.py
+mercurial/admin/chainsaw.py
 mercurial/admin/verify.py
 mercurial/cext/__init__.py
 mercurial/cext/base85.c
