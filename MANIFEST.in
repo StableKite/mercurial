@@ -1214,6 +1214,7 @@ include tests/blacklists/nix
 include tests/bruterebase.py
 include tests/bundles/darcs1.hg
 include tests/bundles/hgweb+obs.hg
+include tests/bundles/inlined-changelog.tar
 include tests/bundles/issue4041.hg
 include tests/bundles/issue4438-r1.hg
 include tests/bundles/issue4438-r2.hg
@@ -1401,6 +1402,7 @@ include tests/test-bookflow.t
 include tests/test-bookmarks-corner-case.t
 include tests/test-bookmarks-current.t
 include tests/test-bookmarks-merge.t
+include tests/test-bookmarks-push-race.t
 include tests/test-bookmarks-pushpull.t
 include tests/test-bookmarks-rebase.t
 include tests/test-bookmarks-strip.t
@@ -2179,6 +2181,7 @@ include tests/test-sparse-revlog.t
 include tests/test-sparse-verbose-json.t
 include tests/test-sparse-with-safe-share.t
 include tests/test-sparse.t
+include tests/test-split-legacy-inline-changelog.t
 include tests/test-split.t
 include tests/test-sqlitestore.t
 include tests/test-ssh-batch.t

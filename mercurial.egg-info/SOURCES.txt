@@ -1326,6 +1326,7 @@ tests/test-bookflow.t
 tests/test-bookmarks-corner-case.t
 tests/test-bookmarks-current.t
 tests/test-bookmarks-merge.t
+tests/test-bookmarks-push-race.t
 tests/test-bookmarks-pushpull.t
 tests/test-bookmarks-rebase.t
 tests/test-bookmarks-strip.t
@@ -2104,6 +2105,7 @@ tests/test-sparse-revlog.t
 tests/test-sparse-verbose-json.t
 tests/test-sparse-with-safe-share.t
 tests/test-sparse.t
+tests/test-split-legacy-inline-changelog.t
 tests/test-split.t
 tests/test-sqlitestore.t
 tests/test-ssh-batch.t
@@ -2217,6 +2219,7 @@ tests/blacklists/linux-vfat
 tests/blacklists/nix
 tests/bundles/darcs1.hg
 tests/bundles/hgweb+obs.hg
+tests/bundles/inlined-changelog.tar
 tests/bundles/issue4041.hg
 tests/bundles/issue4438-r1.hg
 tests/bundles/issue4438-r2.hg

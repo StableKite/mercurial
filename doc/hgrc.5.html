@@ -1353,6 +1353,10 @@ the repository if <tt class="docutils literal">$HG_LOCAL=0</tt>.</dd>
 new parent is in <tt class="docutils literal">$HG_PARENT1</tt>. If updating to a merge, the ID of second new
 parent is in <tt class="docutils literal">$HG_PARENT2</tt>. If the update succeeded, <tt class="docutils literal">$HG_ERROR=0</tt>. If the
 update failed (e.g. because conflicts were not resolved), <tt class="docutils literal">$HG_ERROR=1</tt>.</dd>
+<dt><tt class="docutils literal">prelock</tt></dt>
+<dd>run before the store lock is taken, mostly used for test and debug.</dd>
+<dt><tt class="docutils literal">prewlock</tt></dt>
+<dd>run before the working copy lock is taken, mostly used for test and debug.</dd>
 </dl>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
