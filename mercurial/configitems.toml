@@ -719,6 +719,15 @@ section = "experimental"
 name = "auto-publish"
 default = "publish"
 
+
+# The current implementation of the filtering/injecting of topological heads is
+# naive and need proper benchmark and optimisation because we can envision
+# moving the the v3 of the branch-cache format out of experimental
+[[items]]
+section = "experimental"
+name = "branch-cache-v3"
+default = false
+
 [[items]]
 section = "experimental"
 name = "bundle-phases"
@@ -2138,7 +2147,7 @@ experimental = true  # experimental as long as format.use-dirstate-v2 is.
 [[items]]
 section = "storage"
 name = "revbranchcache.mmap"
-default = true
+default = false
 
 [[items]]
 section = "storage"

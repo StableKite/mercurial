@@ -1087,6 +1087,7 @@ relnotes/6.4
 relnotes/6.5
 relnotes/6.6
 relnotes/6.7
+relnotes/6.8
 relnotes/next
 rust/Cargo.lock
 rust/Cargo.toml
@@ -1334,6 +1335,7 @@ tests/test-bookmarks.t
 tests/test-branch-change.t
 tests/test-branch-option.t
 tests/test-branch-tag-confict.t
+tests/test-branches-obsolete.t
 tests/test-branches.t
 tests/test-bugzilla.t
 tests/test-bundle-phase-internal.t
@@ -1853,6 +1855,7 @@ tests/test-narrow-sparse.t
 tests/test-narrow-strip.t
 tests/test-narrow-trackedcmd.t
 tests/test-narrow-update.t
+tests/test-narrow-widen-linkrev-computation.t
 tests/test-narrow-widen-no-ellipsis.t
 tests/test-narrow-widen.t
 tests/test-narrow.t

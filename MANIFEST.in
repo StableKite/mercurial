@@ -1071,6 +1071,7 @@ include relnotes/6.4
 include relnotes/6.5
 include relnotes/6.6
 include relnotes/6.7
+include relnotes/6.8
 include relnotes/next
 include rust/.cargo/config
 include rust/Cargo.lock
@@ -1410,6 +1411,7 @@ include tests/test-bookmarks.t
 include tests/test-branch-change.t
 include tests/test-branch-option.t
 include tests/test-branch-tag-confict.t
+include tests/test-branches-obsolete.t
 include tests/test-branches.t
 include tests/test-bugzilla.t
 include tests/test-bundle-phase-internal.t
@@ -1929,6 +1931,7 @@ include tests/test-narrow-sparse.t
 include tests/test-narrow-strip.t
 include tests/test-narrow-trackedcmd.t
 include tests/test-narrow-update.t
+include tests/test-narrow-widen-linkrev-computation.t
 include tests/test-narrow-widen-no-ellipsis.t
 include tests/test-narrow-widen.t
 include tests/test-narrow.t

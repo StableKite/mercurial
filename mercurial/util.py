@@ -35,6 +35,7 @@ import traceback
 import warnings
 
 from typing import (
+    Any,
     Iterable,
     Iterator,
     List,
@@ -440,6 +441,13 @@ class bufferedinputpipe:
 
 
 def mmapread(fp, size=None):
+    """Read a file content using mmap
+
+    The responsability of checking the file system is mmap safe is the
+    responsability of the caller.
+
+    In some case, a normal string might be returned.
+    """
     if size == 0:
         # size of 0 to mmap.mmap() means "all data"
         # rather than "zero bytes", so special case that.
@@ -1812,7 +1820,7 @@ def never(fn):
     return False
 
 
-def nogc(func):
+def nogc(func=None) -> Any:
     """disable garbage collector
 
     Python's garbage collector triggers a GC each time a certain number of
@@ -1825,15 +1833,27 @@ def nogc(func):
     This garbage collector issue have been fixed in 2.7. But it still affect
     CPython's performance.
     """
+    if func is None:
+        return _nogc_context()
+    else:
+        return _nogc_decorator(func)
 
+
+@contextlib.contextmanager
+def _nogc_context():
+    gcenabled = gc.isenabled()
+    gc.disable()
+    try:
+        yield
+    finally:
+        if gcenabled:
+            gc.enable()
+
+
+def _nogc_decorator(func):
     def wrapper(*args, **kwargs):
-        gcenabled = gc.isenabled()
-        gc.disable()
-        try:
+        with _nogc_context():
             return func(*args, **kwargs)
-        finally:
-            if gcenabled:
-                gc.enable()
 
     return wrapper
 
