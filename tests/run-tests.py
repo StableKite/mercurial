@@ -223,6 +223,7 @@ if WINDOWS:
 # For Windows support
 wifexited = getattr(os, "WIFEXITED", lambda x: False)
 
+
 # Whether to use IPv6
 def checksocketfamily(name, port=20058):
     """return true if we can listen on localhost using family=name
@@ -3307,6 +3308,10 @@ class TestRunner:
             pypath.append(oldpypath)
         osenvironb[IMPL_PATH] = sepb.join(pypath)
 
+        os.environ["HGTEST_BASE_HGMODULEPOLICY"] = os.environ.get(
+            "HGMODULEPOLICY", ""
+        )
+
         if self.options.pure:
             os.environ["HGTEST_RUN_TESTS_PURE"] = "--pure"
             os.environ["HGMODULEPOLICY"] = "py"
@@ -3397,7 +3402,6 @@ class TestRunner:
                 os.path.basename(t).startswith(b'test-')
                 and (t.endswith(b'.py') or t.endswith(b'.t'))
             ):
-
                 m = testcasepattern.match(os.path.basename(t))
                 if m is not None:
                     t_basename, casestr = m.groups()
@@ -3717,15 +3721,18 @@ class TestRunner:
         vlog("# Performing temporary installation of HG")
         installerrs = os.path.join(self._hgtmp, b"install.err")
         compiler = ''
+        install_env = original_env.copy()
         if self.options.compiler:
             compiler = '--compiler ' + self.options.compiler
         setup_opts = b""
         if self.options.pure:
             setup_opts = b"--pure"
+            install_env.pop('HGWITHRUSTEXT', None)
         elif self.options.rust:
             setup_opts = b"--rust"
         elif self.options.no_rust:
             setup_opts = b"--no-rust"
+            install_env.pop('HGWITHRUSTEXT', None)
 
         # Run installer in hg root
         compiler = _sys2bytes(compiler)
@@ -3771,7 +3778,7 @@ class TestRunner:
         makedirs(self._bindir)
 
         vlog("# Running", cmd.decode("utf-8"))
-        if subprocess.call(_bytes2sys(cmd), shell=True, env=original_env) == 0:
+        if subprocess.call(_bytes2sys(cmd), shell=True, env=install_env) == 0:
             if not self.options.verbose:
                 try:
                     os.remove(installerrs)
