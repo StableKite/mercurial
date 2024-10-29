@@ -11666,12 +11666,8 @@ The threshold at which a file is considered a move can be set with the
 .SS beautifygraph
 .sp
 beautify log \-G output by using Unicode characters (EXPERIMENTAL)
-.INDENT 0.0
-.INDENT 3.5
 .sp
 A terminal with UTF\-8 support and monospace narrow text are required.
-.UNINDENT
-.UNINDENT
 .SS blackbox
 .sp
 log repository events to a blackbox for debugging
@@ -11736,8 +11732,6 @@ the number of events to show (default: 10)
 .sp
 implements bookmark\-based branching (EXPERIMENTAL)
 .INDENT 0.0
-.INDENT 3.5
-.INDENT 0.0
 .IP \(bu 2
 .
 Disables creation of new branches (config: enable_branches=False).
@@ -11775,8 +11769,6 @@ switch to bookmark
 .B hg push \-B .
 .
 push active bookmark
-.UNINDENT
-.UNINDENT
 .UNINDENT
 .UNINDENT
 .UNINDENT
@@ -12188,10 +12180,22 @@ simply fail when asked to produce censored data. Others, like \fBhg verify\fP an
 function in a meaningful way. Such commands only tolerate censored file
 As having a censored version in a checkout is impractical. The current head
 revisions of the repository are checked. If the revision to be censored is in
-any of them the command will abort.
+any of them the command will abort. You can configure this behavior using the
+following option:
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.TP
+.B \fIcensor.policy\fP
 .sp
-A few informative commands such as \fBhg grep\fP will unconditionally
-ignore censored data and merely report that it was encountered.
+Control how to react when accessing censored content.
+Accepted value: "abort", "ignore". Defaults to abort.
+.sp
+A few informative commands such as \fBhg grep\fP will unconditionally ignore
+censored data and merely report that it was encountered.
+.UNINDENT
+.UNINDENT
+.UNINDENT
 .SS Commands
 .SS Repository maintenance
 .SS censor
@@ -13847,7 +13851,6 @@ perfhack = True
 .ft P
 .fi
 .SS Commands
-.SS Uncategorized commands
 .SS fastexport
 .sp
 export repositories as git fast\-import stream
@@ -14571,7 +14574,6 @@ Options:
 .
 limit number of changes displayed
 .UNINDENT
-.SS Uncategorized commands
 .SS highlight
 .sp
 syntax highlighting for hgweb (requires Pygments)
@@ -15653,7 +15655,6 @@ usercache = /path/to/global/cache
 .ft P
 .fi
 .SS Commands
-.SS Uncategorized commands
 .SS logtoprocess
 .sp
 send ui.log() data to a subprocess (EXPERIMENTAL)
@@ -17785,7 +17786,6 @@ local revision to update
 .
 Path to a vcr file. If nonexistent, will record a new vcr transcript, otherwise will mock all http requests using the specified vcr file. (ADVANCED)
 .UNINDENT
-.SS Uncategorized commands
 .SS purge
 .sp
 command to delete untracked files from the working directory (DEPRECATED)
@@ -18345,7 +18345,6 @@ checks for validity of admonitions (if any)
 .
 list the available admonitions with their title
 .UNINDENT
-.SS Uncategorized commands
 .SS relink
 .sp
 recreates hardlinks between repository clones
@@ -18641,12 +18640,8 @@ Options:
 decompress the filelogs first
 .UNINDENT
 .SS remotenames
-.INDENT 0.0
-.INDENT 3.5
 .sp
 showing remotebookmarks and remotebranches in UI (EXPERIMENTAL)
-.UNINDENT
-.UNINDENT
 .sp
 By default both remotebookmarks and remotebranches are turned on. Config knob to
 control the individually are as follows.
@@ -18721,7 +18716,6 @@ kiln = https://{1}.kilnhg.com/Repo/
 You can override a predefined scheme by defining a new scheme with the
 same name.
 .SS Commands
-.SS Uncategorized commands
 .SS share
 .sp
 share a common history between several working directories
@@ -18971,7 +18965,6 @@ tools/tests/**
 .ft P
 .fi
 .SS Commands
-.SS Uncategorized commands
 .SS split
 .sp
 command to split a changeset into smaller ones (EXPERIMENTAL)

@@ -9191,8 +9191,7 @@ comes from an unrecorded mv.</p>
 <div class="section" id="beautifygraph">
 <h2><a class="toc-backref" href="#toc-entry-41">beautifygraph</a></h2>
 <p>beautify log -G output by using Unicode characters (EXPERIMENTAL)</p>
-<blockquote>
-A terminal with UTF-8 support and monospace narrow text are required.</blockquote>
+<p>A terminal with UTF-8 support and monospace narrow text are required.</p>
 </div>
 <div class="section" id="blackbox">
 <h2><a class="toc-backref" href="#toc-entry-42">blackbox</a></h2>
@@ -9257,7 +9256,6 @@ hg blackbox [OPTION]...
 <div class="section" id="bookflow">
 <h2><a class="toc-backref" href="#toc-entry-43">bookflow</a></h2>
 <p>implements bookmark-based branching (EXPERIMENTAL)</p>
-<blockquote>
 <ul class="simple">
 <li>Disables creation of new branches (config: enable_branches=False).</li>
 <li>Requires an active bookmark on commit (config: require_bookmark=True).</li>
@@ -9282,7 +9280,6 @@ hg blackbox [OPTION]...
 </tr>
 </tbody>
 </table>
-</blockquote>
 </blockquote>
 </div>
 <div class="section" id="bugzilla">
@@ -9584,9 +9581,18 @@ simply fail when asked to produce censored data. Others, like <tt class="docutil
 function in a meaningful way. Such commands only tolerate censored file
 As having a censored version in a checkout is impractical. The current head
 revisions of the repository are checked. If the revision to be censored is in
-any of them the command will abort.</p>
-<p>A few informative commands such as <tt class="docutils literal">hg grep</tt> will unconditionally
-ignore censored data and merely report that it was encountered.</p>
+any of them the command will abort. You can configure this behavior using the
+following option:</p>
+<blockquote>
+<dl class="docutils">
+<dt><cite>censor.policy</cite></dt>
+<dd><p class="first">Control how to react when accessing censored content.
+Accepted value: &quot;abort&quot;, &quot;ignore&quot;. Defaults to abort.</p>
+<p class="last">A few informative commands such as <tt class="docutils literal">hg grep</tt> will unconditionally ignore
+censored data and merely report that it was encountered.</p>
+</dd>
+</dl>
+</blockquote>
 <div class="section" id="commands-5">
 <h3>Commands</h3>
 <div class="section" id="repository-maintenance-2">
@@ -11031,9 +11037,6 @@ perfhack = True
 </pre>
 <div class="section" id="commands-12">
 <h3>Commands</h3>
-<div class="section" id="uncategorized-commands-3">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="fastexport">
@@ -11660,9 +11663,6 @@ hg view [-l LIMIT] [REVRANGE]
 </table>
 </div>
 </div>
-<div class="section" id="uncategorized-commands-4">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="highlight">
@@ -12140,7 +12140,7 @@ like CVS' $Log$, are not supported. A keyword template map &quot;Log =
 {desc}&quot; expands to the first line of the changeset description.</p>
 <div class="section" id="commands-22">
 <h3>Commands</h3>
-<div class="section" id="uncategorized-commands-5">
+<div class="section" id="uncategorized-commands-3">
 <h4>Uncategorized commands</h4>
 <div class="section" id="kwdemo">
 <h5>kwdemo</h5>
@@ -12360,7 +12360,7 @@ explicitly do so with the --large flag passed to the <a class="reference externa
 command.</p>
 <div class="section" id="commands-23">
 <h3>Commands</h3>
-<div class="section" id="uncategorized-commands-6">
+<div class="section" id="uncategorized-commands-4">
 <h4>Uncategorized commands</h4>
 <div class="section" id="lfconvert">
 <h5>lfconvert</h5>
@@ -12558,9 +12558,6 @@ usercache = /path/to/global/cache
 </pre>
 <div class="section" id="commands-24">
 <h3>Commands</h3>
-<div class="section" id="uncategorized-commands-7">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="logtoprocess">
@@ -14362,9 +14359,6 @@ hg phabupdate [DREVSPEC...| -r REV...] [OPTIONS]
 </table>
 </div>
 </div>
-<div class="section" id="uncategorized-commands-8">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="purge-1">
@@ -14817,9 +14811,6 @@ admonitions (if any).</p>
 </table>
 </div>
 </div>
-<div class="section" id="uncategorized-commands-9">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="relink">
@@ -14997,7 +14988,7 @@ File names or patterns can be used to limit which files are downloaded.</p>
 <p>[+] marked option can be specified multiple times</p>
 </div>
 </div>
-<div class="section" id="uncategorized-commands-10">
+<div class="section" id="uncategorized-commands-5">
 <h4>Uncategorized commands</h4>
 <div class="section" id="gc">
 <h5>gc</h5>
@@ -15051,8 +15042,7 @@ hg verifyremotefilelogs &lt;directory&gt;
 </div>
 <div class="section" id="remotenames">
 <h2><a class="toc-backref" href="#toc-entry-85">remotenames</a></h2>
-<blockquote>
-showing remotebookmarks and remotebranches in UI (EXPERIMENTAL)</blockquote>
+<p>showing remotebookmarks and remotebranches in UI (EXPERIMENTAL)</p>
 <p>By default both remotebookmarks and remotebranches are turned on. Config knob to
 control the individually are as follows.</p>
 <p>Config options to tweak the default behaviour:</p>
@@ -15103,9 +15093,6 @@ kiln = https://{1}.kilnhg.com/Repo/
 same name.</p>
 <div class="section" id="commands-34">
 <h3>Commands</h3>
-<div class="section" id="uncategorized-commands-11">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="share">
@@ -15332,9 +15319,6 @@ tools/tests/**
 </div>
 <div class="section" id="commands-38">
 <h3>Commands</h3>
-<div class="section" id="uncategorized-commands-12">
-<h4>Uncategorized commands</h4>
-</div>
 </div>
 </div>
 <div class="section" id="split">
