@@ -25,6 +25,7 @@ contrib/asv.conf.json
 contrib/base-revsets.txt
 contrib/bash_completion
 contrib/bdiff-torture.py
+contrib/build-one-linux-wheel.sh
 contrib/byteify-strings.py
 contrib/casesmash.py
 contrib/catapipe.py
@@ -151,12 +152,13 @@ contrib/openvms/vms/startup.com
 contrib/openvms/vms/stmlf.fdl
 contrib/packaging/Makefile
 contrib/packaging/build-linux-wheels.sh
+contrib/packaging/build-macos-wheels.sh
+contrib/packaging/build-windows-wheels.bat
 contrib/packaging/builddeb
 contrib/packaging/buildrpm
 contrib/packaging/dockerdeb
 contrib/packaging/dockerrpm
 contrib/packaging/hg-docker
-contrib/packaging/linux-wheel-centos5-blacklist
 contrib/packaging/mercurial.spec
 contrib/packaging/packagelib.sh
 contrib/packaging/packaging.py
