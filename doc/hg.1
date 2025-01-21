@@ -9790,25 +9790,20 @@ You will need \fIcargo\fP to be in your \fI$PATH\fP. See the "MSRV" section for 
 version to use.
 .SS Using pip
 .sp
-Users of \fIpip\fP can install the Rust extensions with the following command:
+Users of \fIpip\fP can install the Rust extensions with the following commands:
 .sp
 .nf
 .ft C
-$ pip install mercurial \e
-      \-\-global\-option \e
-      \-\-rust \e
-      \-\-no\-use\-pep517 \e
-      \-\-no\-binary mercurial
+$ pip cache remove mercurial
+$ pip install mercurial \-v \e
+      \-\-config\-settings \-\-global\-option=\-\-rust \e
+      \-\-no\-binary mercurial \-\-force
 .ft P
 .fi
 .sp
-\fI\-\-no\-use\-pep517\fP is here to tell \fIpip\fP to preserve backwards compatibility with
-the legacy \fIsetup.py\fP system. Mercurial has not yet migrated its complex setup
-to the new system, so we still need this to add compiled extensions.
-.sp
-\fI\-\-no\-binary\fP is there to tell pip to not use the pre\-compiled wheels that are
-missing rust support. This might take a couple of minutes because you\(aqre
-compiling everything.
+\fIpip cache remove\fP and \fI\-\-no\-binary\fP are there to tell pip to not use the
+pre\-compiled wheels that are missing rust support. This might take a couple
+of minutes because you\(aqre compiling everything.
 .sp
 See the "Checking for Rust" section to see if the install succeeded.
 .SS From your distribution
@@ -19515,7 +19510,7 @@ Source code repository: \%https://www.mercurial\-scm.org/repo/hg\:
 Mailing list: \%https://www.mercurial\-scm.org/mailman/listinfo/mercurial/\:
 .SH COPYING
 .sp
-Copyright (C) 2005\-2024 Olivia Mackall.
+Copyright (C) 2005\-2025 Olivia Mackall.
 Free use of this software is granted under the terms of the GNU General
 Public License version 2 or any later version.
 .\" Common link and substitution definitions.
