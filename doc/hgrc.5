@@ -1912,20 +1912,22 @@ This option requires Python 2.7.
 .TP
 .B \fBminimumprotocol\fP
 .sp
-Defines the minimum channel encryption protocol to use.
+Defines the minimum channel encryption protocol to use in the client.
 .sp
 By default, the highest version of TLS supported by both client and server
 is used.
 .sp
-Allowed values are: \fBtls1.0\fP, \fBtls1.1\fP, \fBtls1.2\fP.
+Allowed values are: \fBtls1.0\fP, \fBtls1.1\fP, \fBtls1.2\fP, \fBtls1.3\fP.
 .sp
-When running on an old Python version, only \fBtls1.0\fP is allowed since
-old versions of Python only support up to TLS 1.0.
+Depending on the version of Python being used, not all of these values may
+be available.  See \fBhg debuginstall\fP for the values supported by the
+current installation.
 .sp
 When running a Python that supports modern TLS versions, the default is
-\fBtls1.1\fP. \fBtls1.0\fP can still be used to allow TLS 1.0. However, this
-weakens security and should only be used as a feature of last resort if
-a server does not support TLS 1.1+.
+\fBtls1.2\fP. \fBtls1.0\fP and \fBtls1.1\fP can still be used to allow TLS 1.0
+or TLS 1.1 respectively, if supported by Python. However, this weakens
+security and should only be used as a feature of last resort if a server
+does not support TLS 1.2+.
 .UNINDENT
 .sp
 Options in the \fB[hostsecurity]\fP section can have the form
@@ -2884,6 +2886,40 @@ Control the strategy Mercurial uses internally to store history. Options in this
 category impact performance and repository size.
 .INDENT 0.0
 .TP
+.B \fBall\-slow\-path\fP
+.sp
+Control the behavior of Mercurial when lacking performant code
+.sp
+Some format features might only have a fast implementation when a specific
+flavor is installed (e.g. when the Rust extensions are available). A slow pure
+Python implementation might be available to help with converting the repository
+to another format or to perform a few accesses in an automation context.
+Using such accesses might result in Mercurial becoming multiple time slower
+than usual.
+.sp
+Acceptable values:
+.sp
+\fBallow\fP: Silently use the slower implementation to access the repository.
+\fBwarn\fP: Warn, but use the slower implementation to access the repository.
+\fBabort\fP: Prevent access to such repositories. (This is the default)
+.sp
+See the individual "storage.*.slow\-path" configs for details. These options can
+override the default.
+.TP
+.B \fBrevlog.dirstate\-v2.slow\-path\fP
+.sp
+Control the behavior of Mercurial when using a repository with the "dirstate\-v2"
+feature with an installation of Mercurial without a fast implementation for
+the feature:
+.sp
+\fBallow\fP: Silently use the slower implementation to access the repository.
+\fBwarn\fP: Warn, but use the slower implementation to access the repository.
+\fBdefault\fP: use value from the \fIstorage.all\-slow\-path\fP value.
+\fBabort\fP: Prevent access to such repositories. (This is the default)
+.sp
+For details on the "dirstate\-v2" feature, see:
+\%\fBhg help config.format.use\-dirstate\-v2\fP\:.
+.TP
 .B \fBrevlog.issue6528.fix\-incoming\fP
 .sp
 Version 5.8 of Mercurial had a bug leading to altering the parent of file
@@ -2956,12 +2992,13 @@ For details on the "persistent\-nodemap" feature, see:
 .TP
 .B \fBrevlog.persistent\-nodemap.slow\-path\fP
 .sp
-Control the behavior of Merucrial when using a repository with "persistent"
+Control the behavior of Mercurial when using a repository with a "persistent"
 nodemap with an installation of Mercurial without a fast implementation for
 the feature:
 .sp
 \fBallow\fP: Silently use the slower implementation to access the repository.
 \fBwarn\fP: Warn, but use the slower implementation to access the repository.
+\fBdefault\fP: use the value from the \fIstorage.all\-slow\-path\fP value.
 \fBabort\fP: Prevent access to such repositories. (This is the default)
 .sp
 For details on the "persistent\-nodemap" feature, see:

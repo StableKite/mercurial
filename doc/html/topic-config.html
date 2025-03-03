@@ -1,9 +1,9 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+<meta name="generator" content="Docutils 0.21.2: https://docutils.sourceforge.io/" />
 <title>Configuration Files</title>
 <link rel="stylesheet" href="../style.css" type="text/css" />
 </head>
@@ -13,7 +13,7 @@
 <h1 class="title">Configuration Files</h1>
 
 <div class="contents htmlonly topic" id="contents">
-<p class="topic-title">Contents</p>
+<p class="topic-title"><a class="reference internal" href="#top">Contents</a></p>
 <ul class="simple">
 <li><a class="reference internal" href="#troubleshooting" id="toc-entry-1">Troubleshooting</a></li>
 <li><a class="reference internal" href="#structure" id="toc-entry-2">Structure</a></li>
@@ -1411,16 +1411,18 @@ You have been warned.</p>
 <p class="last">This option requires Python 2.7.</p>
 </dd>
 <dt><tt class="docutils literal">minimumprotocol</tt></dt>
-<dd><p class="first">Defines the minimum channel encryption protocol to use.</p>
+<dd><p class="first">Defines the minimum channel encryption protocol to use in the client.</p>
 <p>By default, the highest version of TLS supported by both client and server
 is used.</p>
-<p>Allowed values are: <tt class="docutils literal">tls1.0</tt>, <tt class="docutils literal">tls1.1</tt>, <tt class="docutils literal">tls1.2</tt>.</p>
-<p>When running on an old Python version, only <tt class="docutils literal">tls1.0</tt> is allowed since
-old versions of Python only support up to TLS 1.0.</p>
+<p>Allowed values are: <tt class="docutils literal">tls1.0</tt>, <tt class="docutils literal">tls1.1</tt>, <tt class="docutils literal">tls1.2</tt>, <tt class="docutils literal">tls1.3</tt>.</p>
+<p>Depending on the version of Python being used, not all of these values may
+be available.  See <tt class="docutils literal">hg debuginstall</tt> for the values supported by the
+current installation.</p>
 <p class="last">When running a Python that supports modern TLS versions, the default is
-<tt class="docutils literal">tls1.1</tt>. <tt class="docutils literal">tls1.0</tt> can still be used to allow TLS 1.0. However, this
-weakens security and should only be used as a feature of last resort if
-a server does not support TLS 1.1+.</p>
+<tt class="docutils literal">tls1.2</tt>. <tt class="docutils literal">tls1.0</tt> and <tt class="docutils literal">tls1.1</tt> can still be used to allow TLS 1.0
+or TLS 1.1 respectively, if supported by Python. However, this weakens
+security and should only be used as a feature of last resort if a server
+does not support TLS 1.2+.</p>
 </dd>
 </dl>
 <p>Options in the <tt class="docutils literal">[hostsecurity]</tt> section can have the form
@@ -2126,6 +2128,32 @@ but the source repository does not.
 <p>Control the strategy Mercurial uses internally to store history. Options in this
 category impact performance and repository size.</p>
 <dl class="docutils">
+<dt><tt class="docutils literal"><span class="pre">all-slow-path</span></tt></dt>
+<dd><p class="first">Control the behavior of Mercurial when lacking performant code</p>
+<p>Some format features might only have a fast implementation when a specific
+flavor is installed (e.g. when the Rust extensions are available). A slow pure
+Python implementation might be available to help with converting the repository
+to another format or to perform a few accesses in an automation context.
+Using such accesses might result in Mercurial becoming multiple time slower
+than usual.</p>
+<p>Acceptable values:</p>
+<p><tt class="docutils literal">allow</tt>: Silently use the slower implementation to access the repository.
+<tt class="docutils literal">warn</tt>: Warn, but use the slower implementation to access the repository.
+<tt class="docutils literal">abort</tt>: Prevent access to such repositories. (This is the default)</p>
+<p class="last">See the individual &quot;storage.*.slow-path&quot; configs for details. These options can
+override the default.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">revlog.dirstate-v2.slow-path</span></tt></dt>
+<dd><p class="first">Control the behavior of Mercurial when using a repository with the &quot;dirstate-v2&quot;
+feature with an installation of Mercurial without a fast implementation for
+the feature:</p>
+<p><tt class="docutils literal">allow</tt>: Silently use the slower implementation to access the repository.
+<tt class="docutils literal">warn</tt>: Warn, but use the slower implementation to access the repository.
+<tt class="docutils literal">default</tt>: use value from the <cite>storage.all-slow-path</cite> value.
+<tt class="docutils literal">abort</tt>: Prevent access to such repositories. (This is the default)</p>
+<p class="last">For details on the &quot;dirstate-v2&quot; feature, see:
+<a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-dirstate-v2</span></tt></a>.</p>
+</dd>
 <dt><tt class="docutils literal"><span class="pre">revlog.issue6528.fix-incoming</span></tt></dt>
 <dd><p class="first">Version 5.8 of Mercurial had a bug leading to altering the parent of file
 revision with copy information (or any other metadata) on exchange. This
@@ -2183,11 +2211,12 @@ and reduce memory pressure.</p>
 <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-persistent-nodemap</span></tt></a>.</p>
 </dd>
 <dt><tt class="docutils literal"><span class="pre">revlog.persistent-nodemap.slow-path</span></tt></dt>
-<dd><p class="first">Control the behavior of Merucrial when using a repository with &quot;persistent&quot;
+<dd><p class="first">Control the behavior of Mercurial when using a repository with a &quot;persistent&quot;
 nodemap with an installation of Mercurial without a fast implementation for
 the feature:</p>
 <p><tt class="docutils literal">allow</tt>: Silently use the slower implementation to access the repository.
 <tt class="docutils literal">warn</tt>: Warn, but use the slower implementation to access the repository.
+<tt class="docutils literal">default</tt>: use the value from the <cite>storage.all-slow-path</cite> value.
 <tt class="docutils literal">abort</tt>: Prevent access to such repositories. (This is the default)</p>
 <p class="last">For details on the &quot;persistent-nodemap&quot; feature, see:
 <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-persistent-nodemap</span></tt></a>.</p>

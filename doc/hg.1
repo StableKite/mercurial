@@ -91,6 +91,10 @@ when to colorize (boolean, always, auto, never, or debug)
 .
 set/override config option (use \(aqsection.name=value\(aq)
 .TP
+.BI \-\-config\-file \ <HGRC[+]>
+.
+load config file to set/override config options
+.TP
 .B \-\-debug
 .
 enable debugging output
@@ -1488,6 +1492,14 @@ The commit message can be tweaked after the fact using commit \-\-amend .
 For using non\-ancestors as the base to backout changes, see the backout
 command and the hidden \-\-parent option.
 .sp
+The experimental \-\-to option allows grafting a revision in\-memory,
+independent of the working copy. Merge conflicts are not currently
+supported, and the operation will be aborted if the configured tool
+cannot handle the conflicts that might be encountered.
+.sp
+As the operation is performed in\-memory, the on\-disk files will not be
+modified, and some hooks might not be run.
+.sp
 Examples:
 .INDENT 0.0
 .IP \(bu 2
@@ -1571,6 +1583,10 @@ revisions to graft
 .BI \-\-base \ <REV>
 .
 base revision when doing the graft merge (ADVANCED)
+.TP
+.BI \-\-to \ <VALUE>
+.
+graft to this destination, in\-memory (EXPERIMENTAL)
 .TP
 .B \-c,  \-\-continue
 .
@@ -2539,6 +2555,10 @@ revision to diff to
 .BI \-c,  \-\-change \ <REV>
 .
 change made by revision
+.TP
+.B \-\-ignore\-changes\-from\-ancestors
+.
+only compare the change made by the selected revision (EXPERIMENTAL)
 .TP
 .B \-a,  \-\-text
 .
@@ -14149,6 +14169,9 @@ perform other post\-fixing work. The supported hooks are:
   previously passed to the "postfixfile" hook.
 .ft P
 .fi
+.sp
+You can specify a list of directories to search the tool command in using the
+\fIfix.extra\-bin\-paths\fP configuration.
 .SS Commands
 .SS File content management
 .SS fix
@@ -19035,46 +19058,6 @@ record the specified date as commit date
 .
 record the specified user as committer
 .UNINDENT
-.SS sqlitestore
-.sp
-store repository data in SQLite (EXPERIMENTAL)
-.sp
-The sqlitestore extension enables the storage of repository data in SQLite.
-.sp
-This extension is HIGHLY EXPERIMENTAL. There are NO BACKWARDS COMPATIBILITY
-GUARANTEES. This means that repositories created with this extension may
-only be usable with the exact version of this extension/Mercurial that was
-used. The extension attempts to enforce this in order to prevent repository
-corruption.
-.sp
-In addition, several features are not yet supported or have known bugs:
-.INDENT 0.0
-.IP \(bu 2
-.
-Only some data is stored in SQLite. Changeset, manifest, and other repository
-data is not yet stored in SQLite.
-.IP \(bu 2
-.
-Transactions are not robust. If the process is aborted at the right time
-during transaction close/rollback, the repository could be in an inconsistent
-state. This problem will diminish once all repository data is tracked by
-SQLite.
-.IP \(bu 2
-.
-Bundle repositories do not work (the ability to use e.g.
-\fIhg \-R <bundle\-file> log\fP to automatically overlay a bundle on top of the
-existing repository).
-.IP \(bu 2
-.
-Various other features don\(aqt work.
-.UNINDENT
-.sp
-This extension should work for basic clone/pull, update, and commit workflows.
-Some history rewriting operations may fail due to lack of support for bundle
-repositories.
-.sp
-To use, activate the extension and set the \fBstorage.new\-repo\-backend\fP config
-option to \fBsqlite\fP to enable new repositories to use SQLite for storage.
 .SS strip
 .sp
 strip changesets and their descendants from history (DEPRECATED)
