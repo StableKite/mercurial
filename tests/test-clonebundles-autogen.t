@@ -411,12 +411,76 @@ bundles should have been generated
   full-bzip2-v2-11_revs-4226b1cd5fda_tip-*_acbr.hg (glob)
   $ ls -1 ../server/.hg/tmp-bundles
 
-Test HTTP URL
-=========================
+background generation without debug
+-----------------------------------
+
+The debug option make the command wait for background process and change the
+way stdin is accessible to the script. So we also test this variant.
+
+Gather the name of the expected bundle
+
+  $ v1_file=$TESTTMP/final-upload/full-bzip2-v1-11_revs-4226b1cd5fda_tip-background_testing.hg
+  $ v2_file=$TESTTMP/final-upload/full-bzip2-v2-11_revs-4226b1cd5fda_tip-background_testing.hg
+
+cleanup things
+
 
   $ hg -R ../server/ admin::clone-bundles-clear
   clone-bundles: deleting bundle full-bzip2-v1-11_revs-4226b1cd5fda_tip-*_acbr.hg (glob)
   clone-bundles: deleting bundle full-bzip2-v2-11_revs-4226b1cd5fda_tip-*_acbr.hg (glob)
+(also delete the manifest to be sure)
+  $ rm ../server/.hg/clonebundles.manifest
+
+Nothing should remain
+
+  $ cat ../server/.hg/clonebundles.auto-gen
+  $ ls -1 ../final-upload
+  $ ls -1 ../server/.hg/tmp-bundles
+
+Start a process in the background without the debug option
+
+  $ hg -R ../server/ admin::clone-bundles-refresh --background \
+  >     --config devel.debug.clonebundles=no \
+  >     --config devel.clonebundles.override-operation-id=background_testing
+
+  $ $RUNTESTDIR/testlib/wait-on-file 30 $v1_file
+  $ $RUNTESTDIR/testlib/wait-on-file 30 $v2_file
+
+all file created, but some cleanup might still be in progress, we wait 30 second for them
+
+# note: we should adjust that timing according to the test timeout, but that is more a
+#       change for the default branch than the stable branch
+
+  $ for x in `$RUNTESTDIR/seq.py 30`; do
+  >      if grep --invert-match DONE ../server/.hg/clonebundles.auto-gen > /dev/null; then
+  >          # some task still running
+  >          sleep 1
+  >          continue
+  >      fi
+  >      # all task are done running
+  >      break
+  > done
+
+We should have bundle now
+
+  $ cat ../server/.hg/clonebundles.manifest
+  file:/*/$TESTTMP/final-upload/full-bzip2-v1-11_revs-4226b1cd5fda_tip-background_testing.hg BUNDLESPEC=bzip2-v1 (glob)
+  file:/*/$TESTTMP/final-upload/full-bzip2-v2-11_revs-4226b1cd5fda_tip-background_testing.hg BUNDLESPEC=bzip2-v2 (glob)
+  $ ls -1 ../final-upload
+  full-bzip2-v1-11_revs-4226b1cd5fda_tip-background_testing.hg
+  full-bzip2-v2-11_revs-4226b1cd5fda_tip-background_testing.hg
+  $ ls -1 ../server/.hg/tmp-bundles
+
+
+
+
+
+Test HTTP URL
+=========================
+
+  $ hg -R ../server/ admin::clone-bundles-clear
+  clone-bundles: deleting bundle full-bzip2-v1-11_revs-4226b1cd5fda_tip-*.hg (glob)
+  clone-bundles: deleting bundle full-bzip2-v2-11_revs-4226b1cd5fda_tip-*.hg (glob)
 
   $ cat >> ../server/.hg/hgrc << EOF
   > [clone-bundles]
@@ -526,6 +590,7 @@ check first regeneration (should cleanup the one before that last)
   full-bzip2-v2-13_revs-8a81f9be54ea_tip-*_acbr.hg (glob)
   full-bzip2-v2-15_revs-17615b3984c2_tip-*_acbr.hg (glob)
   $ ls -1 ../final-upload
+  $ cd ..
 
 Check the url is correct
 ------------------------
@@ -540,3 +605,44 @@ Check the url is correct
   searching for changes
   no changes found
   15 local changesets published
+
+Test spec with boolean component (issue6960)
+============================================
+
+  $ cat >> ./server/.hg/hgrc << EOF
+  > [clone-bundles]
+  > auto-generate.formats = gzip-v2;obsolescence=yes,gzip-v3;obsolescence=no,gzip-v3;obsolescence=yes;obsolescence-mandatory=no
+  > EOF
+
+  $ rm ./server/.hg/clonebundles.manifest
+  $ hg -R ./server/ admin::clone-bundles-refresh
+  clone-bundles: deleting inline bundle full-bzip2-v1-13_revs-8a81f9be54ea_tip-*_acbr.hg (glob)
+  clone-bundles: deleting inline bundle full-bzip2-v2-13_revs-8a81f9be54ea_tip-*_acbr.hg (glob)
+  clone-bundles: starting bundle generation: gzip-v2;obsolescence=yes
+  15 changesets found
+  clone-bundles: starting bundle generation: gzip-v3;obsolescence=no
+  15 changesets found
+  clone-bundles: starting bundle generation: gzip-v3;obsolescence=yes;obsolescence-mandatory=no
+  15 changesets found
+  $ cat ./server/.hg/clonebundles.manifest
+  peer-bundle-cache://full-bzip2-v1-15_revs-17615b3984c2_tip-*_acbr.hg BUNDLESPEC=bzip2-v1 (glob)
+  peer-bundle-cache://full-bzip2-v2-15_revs-17615b3984c2_tip-*_acbr.hg BUNDLESPEC=bzip2-v2 (glob)
+  peer-bundle-cache://full-gzip-v2;obsolescence=yes-15_revs-17615b3984c2_tip-*_acbr.hg BUNDLESPEC=gzip-v2;obsolescence=yes (glob)
+  peer-bundle-cache://full-gzip-v3;obsolescence=no-15_revs-17615b3984c2_tip-*_acbr.hg BUNDLESPEC=gzip-v3;obsolescence=no (glob)
+  peer-bundle-cache://full-gzip-v3;obsolescence=yes;obsolescence-mandatory=no-15_revs-17615b3984c2_tip-*_acbr.hg BUNDLESPEC=gzip-v3;obsolescence=yes;obsolescence-mandatory=no (glob)
+
+
+Check the manifest is correct
+-----------------------------
+
+  $ hg clone -U ssh://user@dummy/server ssh-inline-more-param-clone
+  applying clone bundle from peer-bundle-cache://full-bzip2-v1-15_revs-17615b3984c2_tip-*_acbr.hg (glob)
+  adding changesets
+  adding manifests
+  adding file changes
+  added 15 changesets with 15 changes to 15 files
+  finished applying clone bundle
+  searching for changes
+  no changes found
+  15 local changesets published
+

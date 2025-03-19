@@ -1593,6 +1593,7 @@ tests/test-bundle2-format.t
 tests/test-bundle2-multiple-changegroups.t
 tests/test-bundle2-pushback.t
 tests/test-bundle2-remote-changegroup.t
+tests/test-bundle2.py
 tests/test-byteify-strings.t
 tests/test-cache-abuse.t
 tests/test-cappedreader.py

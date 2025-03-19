@@ -1,6 +1,6 @@
 Metadata-Version: 2.2
 Name: mercurial
-Version: 7.0rc0
+Version: 7.0rc1
 Summary: Fast scalable distributed SCM (revision control, version control) system
 Author-email: Olivia Mackall and many others <mercurial@mercurial-scm.org>
 License: GNU GPLv2 or any later version
