@@ -1,6 +1,6 @@
-Metadata-Version: 2.2
+Metadata-Version: 2.4
 Name: mercurial
-Version: 7.0rc1
+Version: 7.0.1
 Summary: Fast scalable distributed SCM (revision control, version control) system
 Author-email: Olivia Mackall and many others <mercurial@mercurial-scm.org>
 License: GNU GPLv2 or any later version
@@ -26,6 +26,7 @@ Classifier: Topic :: Software Development :: Version Control
 Requires-Python: >=3.8
 Description-Content-Type: text/x-rst
 License-File: COPYING
+Dynamic: license-file
 
 Mercurial
 =========
