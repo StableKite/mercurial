@@ -1,14 +1,25 @@
-use crate::errors::{HgError, HgResultExt};
-use bytes_cast::{unaligned, BytesCast};
-use memmap2::Mmap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use std::path::PathBuf;
 
+use bytes_cast::unaligned;
+use bytes_cast::BytesCast;
+use memmap2::Mmap;
+
+use super::Node;
+use super::UncheckedRevision;
+use crate::errors::HgError;
+use crate::errors::HgResultExt;
 use crate::vfs::VfsImpl;
+use crate::BaseRevision;
 
 const ONDISK_VERSION: u8 = 1;
 
 pub(super) struct NodeMapDocket {
     pub data_length: usize,
+    /// This is [`UncheckedRevision`] and not [`Revision`] because the nodemap
+    /// can be out-of-date (because of strip for example)
+    pub tip_rev: UncheckedRevision,
+    pub tip_node: Node,
     // TODO: keep here more of the data from `parse()` when we need it
 }
 
@@ -16,7 +27,7 @@ pub(super) struct NodeMapDocket {
 #[repr(C)]
 struct DocketHeader {
     uid_size: u8,
-    _tip_rev: unaligned::U64Be,
+    tip_rev: unaligned::U64Be,
     data_length: unaligned::U64Be,
     _data_unused: unaligned::U64Be,
     tip_node_size: unaligned::U64Be,
@@ -45,18 +56,16 @@ impl NodeMapDocket {
             return Ok(None);
         };
 
-        let input = if let Some((&ONDISK_VERSION, rest)) =
-            docket_bytes.split_first()
-        {
-            rest
-        } else {
-            return Ok(None);
-        };
+        let input =
+            if let Some((&ONDISK_VERSION, rest)) = docket_bytes.split_first() {
+                rest
+            } else {
+                return Ok(None);
+            };
 
         /// Treat any error as a parse error
         fn parse<T, E>(result: Result<T, E>) -> Result<T, HgError> {
-            result
-                .map_err(|_| HgError::corrupted("nodemap docket parse error"))
+            result.map_err(|_| HgError::corrupted("nodemap docket parse error"))
         }
 
         let (header, rest) = parse(DocketHeader::from_bytes(input))?;
@@ -66,10 +75,13 @@ impl NodeMapDocket {
         let tip_node_size = header.tip_node_size.get() as usize;
         let data_length = header.data_length.get() as usize;
         let (uid, rest) = parse(u8::slice_from_bytes(rest, uid_size))?;
-        let (_tip_node, _rest) =
+        let (tip_node, _rest) =
             parse(u8::slice_from_bytes(rest, tip_node_size))?;
         let uid = parse(std::str::from_utf8(uid))?;
-        let docket = NodeMapDocket { data_length };
+        let tip_node = parse(Node::from_bytes(tip_node))?.0.to_owned();
+        let revnum: BaseRevision = parse(header.tip_rev.get().try_into())?;
+        let docket =
+            NodeMapDocket { data_length, tip_rev: revnum.into(), tip_node };
 
         let data_path = rawdata_path(&docket_path, uid);
         // TODO: use `vfs.read()` here when the `persistent-nodemap.mmap`
@@ -101,8 +113,5 @@ fn rawdata_path(docket_path: &Path, uid: &str) -> PathBuf {
         .or_else(|| docket_name.strip_suffix(".n"))
         .expect("expected docket path in .n or .n.a");
     let name = format!("{}-{}.nd", prefix, uid);
-    docket_path
-        .parent()
-        .expect("expected a non-root path")
-        .join(name)
+    docket_path.parent().expect("expected a non-root path").join(name)
 }

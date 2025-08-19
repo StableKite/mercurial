@@ -3694,6 +3694,9 @@ keywords and functions. See also <a class="reference external" href="hg.1.html#t
 <col class="option" />
 <col class="description" />
 <tbody valign="top">
+<tr><td class="option-group">
+<kbd><span class="option">--share-source</span></kbd></td>
+<td>print the share source root instead</td></tr>
 <tr><td class="option-group" colspan="2">
 <kbd><span class="option">-T</span>, <span class="option">--template <var>&lt;TEMPLATE&gt;</var></span></kbd></td>
 </tr>
@@ -4846,10 +4849,10 @@ share safe feature.</p>
 <td>show source of configuration value</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--shared</span></kbd></td>
-<td>edit shared source repository config (EXPERIMENTAL)</td></tr>
+<td>edit shared source repository config</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">--non-shared</span></kbd></td>
-<td>edit non shared config (EXPERIMENTAL)</td></tr>
+<td>edit non shared config</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-g</span>, <span class="option">--global</span></kbd></td>
 <td>edit global config</td></tr>
@@ -5112,7 +5115,7 @@ repository format.</dd>
 <dt>phases</dt>
 <dd>Include phase information relevant to the bundled changesets.</dd>
 <dt>revbranchcache</dt>
-<dd>Include the &quot;tags-fnodes&quot; cache inside the bundle.</dd>
+<dd>Include the &quot;rev-branch&quot; cache inside the bundle.</dd>
 <dt>tagsfnodescache</dt>
 <dd>Include the &quot;tags-fnodes&quot; cache inside the bundle.</dd>
 </dl>
@@ -7647,6 +7650,20 @@ pre-compiled wheels that are missing rust support. This might take a couple
 of minutes because you're compiling everything.</p>
 <p>See the &quot;Checking for Rust&quot; section to see if the install succeeded.</p>
 </div>
+<div class="section" id="using-pipx">
+<h3>Using pipx</h3>
+<p>Using pipx is an efficient way to get an isolated installation of mercurial
+available for a user or globally.</p>
+<blockquote>
+<dl class="docutils">
+<dt>$ pipx install mercurial </dt>
+<dd>--pip-args '--no-cache-dir --config-settings --global-option=--rust --no-binary=mercurial'</dd>
+</dl>
+</blockquote>
+<p>You can then add extensions to that install using</p>
+<blockquote>
+$ pipx inject mercurial hg-foo</blockquote>
+</div>
 <div class="section" id="from-your-distribution">
 <h3>From your distribution</h3>
 <p>Some distributions are shipping Mercurial with Rust extensions enabled and
@@ -7656,7 +7673,7 @@ that, or ask their team to add support for hg+Rust!</p>
 </div>
 <div class="section" id="from-source">
 <h3>From source</h3>
-<p>Please refer to the <cite>rust/README.rst</cite> file in the Mercurial repository for
+<p>Please refer to the <cite>rust/README.md</cite> file in the Mercurial repository for
 instructions on how to install from source.</p>
 </div>
 </div>
@@ -7672,12 +7689,12 @@ to make the distributions' job easier.</p>
 fallback mechanism for unsupported invocations. It allows for much faster
 execution of certain commands while adding no discernable overhead for the rest.</p>
 <p>The only way of trying it out is by building it from source. Please refer to
-<cite>rust/README.rst</cite> in the Mercurial repository.</p>
+<cite>rust/README.md</cite> in the Mercurial repository.</p>
 <p>See <cite>hg help config.rhg</cite> for configuration options.</p>
 </div>
 <div class="section" id="contributing">
 <h2>Contributing</h2>
-<p>If you would like to help the Rust endeavor, please refer to <cite>rust/README.rst</cite>
+<p>If you would like to help the Rust endeavor, please refer to <cite>rust/README.md</cite>
 in the Mercurial repository.</p>
 </div>
 </div>

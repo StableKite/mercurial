@@ -899,7 +899,7 @@ https://www.mercurial-scm.org/wiki/MissingRequirement
 
     Repositories with this on-disk format require Mercurial version 1.9.
 
-    Enabled by default.
+    Enabled by default. Implied by `sparse-revlog`
 
 ``dotencode``
     Enable or disable the "dotencode" repository format which enhances
@@ -941,12 +941,12 @@ https://www.mercurial-scm.org/wiki/MissingRequirement
     available, and enabled by default if the fast implementation is available.
 
     To accomodate installations of Mercurial without the fast implementation,
-    you can downgrade your repository. To do so run the following command:
+    you can downgrade your repository. To do so run the following command::
 
-    $ hg debugupgraderepo \
-          --run \
-          --config format.use-dirstate-v2=False \
-          --config storage.dirstate-v2.slow-path=allow
+        $ hg debugupgraderepo \
+              --run \
+              --config format.use-dirstate-v2=False \
+              --config storage.dirstate-v2.slow-path=allow
 
     For a more comprehensive guide, see :hg:`help internals.dirstate-v2`.
 
@@ -1058,12 +1058,12 @@ https://www.mercurial-scm.org/wiki/MissingRequirement
     available, and enabled by default if the fast implementation is available.
 
     To accomodate installations of Mercurial without the fast implementation,
-    you can downgrade your repository. To do so run the following command:
+    you can downgrade your repository. To do so run the following command::
 
-    $ hg debugupgraderepo \
-          --run \
-          --config format.use-persistent-nodemap=False \
-          --config storage.revlog.persistent-nodemap.slow-path=allow
+        $ hg debugupgraderepo \
+              --run \
+              --config format.use-persistent-nodemap=False \
+              --config storage.revlog.persistent-nodemap.slow-path=allow
 
 ``use-share-safe``
     Enforce "safe" behaviors for all "shares" that access this repository.
@@ -1131,6 +1131,8 @@ https://www.mercurial-scm.org/wiki/MissingRequirement
     performance (by using shortened delta chains.)
 
     Repositories with this on-disk format require Mercurial version 4.7
+
+    Implies `usegeneraldelta`.
 
     Enabled by default.
 
@@ -2088,6 +2090,12 @@ statistical text report generated from the profiling data.
     file exists, it is replaced. (default: None, data is printed on
     stderr)
 
+``output-dir``
+  :config-doc:`profiling.output-dir`
+
+``output-dir:create``
+  :config-doc:`profiling.output-dir:create`
+
 ``sort``
     Sort field.  Specific to the ``ls`` instrumenting profiler.
     One of ``callcount``, ``reccallcount``, ``totaltime`` and
@@ -2218,7 +2226,7 @@ Alias definitions for revsets. See :hg:`help revsets` for details.
 ``rhg``
 -------
 
-The pure Rust fast-path for Mercurial. See `rust/README.rst` in the Mercurial repository.
+The pure Rust fast-path for Mercurial. See `rust/README.md` in the Mercurial repository.
 
 ``fallback-executable``
     Path to the executable to run in a sub-process when falling back to

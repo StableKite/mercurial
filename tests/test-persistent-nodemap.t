@@ -73,41 +73,9 @@ Unlock further check (we are here to test the feature)
 
 #endif
 
-#if rust
-
-Regression test for a previous bug in Rust/C FFI for the `Revlog_CAPI` capsule:
-in places where `mercurial/cext/revlog.c` function signatures use `Py_ssize_t`
-(64 bits on Linux x86_64), corresponding declarations in `rust/hg-cpython/src/cindex.rs`
-incorrectly used `libc::c_int` (32 bits).
-As a result, -1 passed from Rust for the null revision became 4294967295 in C.
-
-  $ hg log -r 00000000
-  changeset:   -1:000000000000
-  tag:         tip
-  user:        
-  date:        Thu Jan 01 00:00:00 1970 +0000
-  
-
-#endif
-
-
-  $ hg debugformat
-  format-variant     repo
-  fncache:            yes
-  dirstate-v2:         no
-  tracked-hint:        no
-  dotencode:          yes
-  generaldelta:       yes
-  share-safe:         yes
-  sparserevlog:       yes
-  persistent-nodemap: yes
-  copies-sdc:          no
-  revlog-v2:           no
-  changelog-v2:        no
-  plain-cl-delta:     yes
-  compression:        zlib (no-zstd !)
-  compression:        zstd (zstd !)
-  compression-level:  default
+  $ hg debugformat persistent-nodemap
+  format-variant                 repo
+  persistent-nodemap:             yes
   $ hg debugbuilddag .+5000 --new-file
 
   $ hg debugnodemap --metadata
@@ -396,8 +364,8 @@ If the nodemap is lagging behind, it can catch up fine
   data-length: 121088
   data-unused: 0
   data-unused: 0.000%
-  $ hg log -r "$NODE" -T '{rev}\n'
-  5003
+  $ env RHG_ON_UNSUPPORTED=abort hg cat -r $NODE bar
+  bar2
 
 changelog altered
 -----------------
@@ -442,8 +410,9 @@ the nodemap should detect the changelog have been tampered with and recover.
   data-length: 121088
   data-unused: 0
   data-unused: 0.000%
-  $ hg log -r "$OTHERNODE" -T '{rev}\n'
-  5002
+  $ env RHG_ON_UNSUPPORTED=abort hg cat -r $OTHERNODE babar
+  bar
+
 
 missing data file
 -----------------
@@ -456,14 +425,9 @@ missing data file
 
 mercurial don't crash
 
-  $ hg log -r .
-  changeset:   5002:b355ef8adce0
-  tag:         tip
-  parent:      4998:d918ad6d18d3
-  user:        test
-  date:        Thu Jan 01 00:00:00 1970 +0000
-  summary:     babar
-  
+  $ env RHG_ON_UNSUPPORTED=abort hg cat -r $OTHERNODE babar
+  bar
+
   $ hg debugnodemap --metadata
 
   $ hg debugupdatecache
@@ -646,13 +610,13 @@ read/write patterns.
   updating working directory
   5001 files updated, 0 files merged, 0 files removed, 0 files unresolved
   $ hg debugformat -R ./race-repo share-safe persistent-nodemap
-  format-variant     repo
-  share-safe:         yes
-  persistent-nodemap: yes
+  format-variant                 repo
+  share-safe:                     yes
+  persistent-nodemap:             yes
   $ hg debugformat -R ./other-wc/ share-safe persistent-nodemap
-  format-variant     repo
-  share-safe:         yes
-  persistent-nodemap: yes
+  format-variant                 repo
+  share-safe:                     yes
+  persistent-nodemap:             yes
   $ hg -R ./other-wc update 'min(head())'
   3 files updated, 0 files merged, 2 files removed, 0 files unresolved
   $ hg -R ./race-repo debugnodemap --metadata
@@ -819,23 +783,9 @@ downgrading
   > [format]
   > use-persistent-nodemap=no
   > EOF
-  $ hg debugformat -v
-  format-variant     repo config default
-  fncache:            yes    yes     yes
-  dirstate-v2:         no     no      no
-  tracked-hint:        no     no      no
-  dotencode:          yes    yes     yes
-  generaldelta:       yes    yes     yes
-  share-safe:         yes    yes     yes
-  sparserevlog:       yes    yes     yes
-  persistent-nodemap: yes     no      no
-  copies-sdc:          no     no      no
-  revlog-v2:           no     no      no
-  changelog-v2:        no     no      no
-  plain-cl-delta:     yes    yes     yes
-  compression:        zlib   zlib    zlib (no-zstd !)
-  compression:        zstd   zstd    zstd (zstd !)
-  compression-level:  default default default
+  $ hg debugformat -v persistent-nodemap
+  format-variant                 repo config default
+  persistent-nodemap:             yes     no      no
   $ hg debugupgraderepo --run --no-backup --quiet
   upgrade will perform the following actions:
   
@@ -861,23 +811,9 @@ upgrading
   > [format]
   > use-persistent-nodemap=yes
   > EOF
-  $ hg debugformat -v
-  format-variant     repo config default
-  fncache:            yes    yes     yes
-  dirstate-v2:         no     no      no
-  tracked-hint:        no     no      no
-  dotencode:          yes    yes     yes
-  generaldelta:       yes    yes     yes
-  share-safe:         yes    yes     yes
-  sparserevlog:       yes    yes     yes
-  persistent-nodemap:  no    yes      no
-  copies-sdc:          no     no      no
-  revlog-v2:           no     no      no
-  changelog-v2:        no     no      no
-  plain-cl-delta:     yes    yes     yes
-  compression:        zlib   zlib    zlib (no-zstd !)
-  compression:        zstd   zstd    zstd (zstd !)
-  compression-level:  default default default
+  $ hg debugformat -v persistent-nodemap
+  format-variant                 repo config default
+  persistent-nodemap:              no    yes      no
   $ hg debugupgraderepo --run --no-backup --quiet
   upgrade will perform the following actions:
   
@@ -949,7 +885,7 @@ The persistent nodemap should exist after a normal clone
 
   $ hg clone --pull --quiet -U test-repo standard-clone
   $ hg debugformat -R standard-clone | grep persistent-nodemap
-  persistent-nodemap: yes
+  persistent-nodemap:             yes
   $ ls -1 standard-clone/.hg/store/ | grep -E '00(changelog|manifest)(\.n|-.*\.nd)'
   00changelog-*.nd (glob)
   00changelog.n
@@ -971,7 +907,7 @@ If persistent normal is requested to not be here, it should not exist after a no
   $ hg clone --pull --quiet -U test-repo standard-clone-no-nm \
   >     --config format.use-persistent-nodemap=no
   $ hg debugformat -R standard-clone-no-nm | grep persistent-nodemap
-  persistent-nodemap:  no
+  persistent-nodemap:              no
   $ ls -1 standard-clone-no-nm/.hg/store/ | grep -E '00(changelog|manifest)(\.n|-.*\.nd)'
   [1]
   $ hg -R standard-clone-no-nm debugnodemap --metadata
@@ -984,7 +920,7 @@ The persistent nodemap should exist after a streaming clone
 
   $ hg clone -U test-repo local-clone
   $ hg debugformat -R local-clone | grep persistent-nodemap
-  persistent-nodemap: yes
+  persistent-nodemap:             yes
   $ ls -1 local-clone/.hg/store/ | grep -E '00(changelog|manifest)(\.n|-.*\.nd)'
   00changelog-*.nd (glob)
   00changelog.n
@@ -1003,7 +939,7 @@ stream clone
 
   $ hg clone -U  --stream ssh://user@dummy/test-repo stream-clone --quiet
   $ hg debugformat -R stream-clone | grep persistent-nodemap
-  persistent-nodemap: yes
+  persistent-nodemap:             yes
   $ ls -1 stream-clone/.hg/store/ | grep -E '00(changelog|manifest)(\.n|-.*\.nd)'
   00changelog-*.nd (glob)
   00changelog.n
@@ -1031,7 +967,7 @@ This helps client without supports for persistent nodemap.
   >     --config revlog.persistent-nodemap.slow-path=no \
   >     --quiet
   $ hg debugformat -R stream-clone-no-nm | grep persistent-nodemap
-  persistent-nodemap:  no
+  persistent-nodemap:              no
   $ ls -1 stream-clone-no-nm/.hg/store/ | grep -E '00(changelog|manifest)(\.n|-.*\.nd)'
   [1]
   $ hg -R stream-clone-no-nm debugnodemap --metadata

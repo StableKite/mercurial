@@ -369,9 +369,9 @@ def Popen4(cmd, wd, timeout, env=None):
             start = time.time()
             while time.time() - start < timeout and p.returncode is None:
                 time.sleep(0.1)
-            p.timeout = True
-            vlog('# Timout reached for process %d' % p.pid)
             if p.returncode is None:
+                p.timeout = True
+                vlog('# Timout reached for process %d' % p.pid)
                 terminate(p)
 
         threading.Thread(target=t).start()
@@ -434,6 +434,16 @@ def parsettestcases(path):
 def getparser():
     """Obtain the OptionParser used by the CLI."""
     parser = argparse.ArgumentParser(usage='%(prog)s [options] [tests]')
+
+    def validate_wheel_path(wheel):
+        """Validate the wheel path and convert to abspath early."""
+        if wheel:
+            wheel = os.path.realpath(wheel)
+            if not os.path.exists(wheel):
+                raise argparse.ArgumentTypeError(
+                    "wheel does not exist: %r" % wheel
+                )
+        return wheel
 
     selection = parser.add_argument_group('Test Selection')
     selection.add_argument(
@@ -623,6 +633,7 @@ def getparser():
     hgconf.add_argument(
         "--hg-wheel",
         default=None,
+        type=validate_wheel_path,
         metavar="WHEEL_PATH",
         dest="wheel",
         help="install mercurial from the given wheel",
@@ -3331,6 +3342,7 @@ class TestRunner:
                 "-m",
                 "venv",
                 "--system-site-packages",
+                "--without-pip",
                 self._installdir,
             ]
             subprocess.run(command_create_venv, check=True)
@@ -3346,12 +3358,12 @@ class TestRunner:
         # anyway.
         #
         # We do not do it when using wheels and they do not install a .exe.
-        if (
-            WINDOWS
-            and not self.options.wheel
-            and not self._hgcommand.endswith(b'.exe')
-        ):
-            self._hgcommand += b'.exe'
+        if WINDOWS and not self.options.wheel:
+            # Currently no hg.exe without compiler
+            if self.options.pure:
+                self._hgcommand += b'.bat'
+            elif not self._hgcommand.endswith(b'.exe'):
+                self._hgcommand += b'.exe'
 
         self._real_hg = os.path.join(self._bindir, self._hgcommand)
         osenvironb[b'HGTEST_REAL_HG'] = self._real_hg
@@ -4014,6 +4026,19 @@ class TestRunner:
             sys.stderr.write(err)
             sys.exit(3)
 
+    @staticmethod
+    def _get_debuginstall_env():
+        """return the environment to run ``hg debuginstall`` safely"""
+        # The debuginstall command checks a bunch of things, and exits with the
+        # number of errors encountered, even if -T is passed and the template
+        # didn't ask for things related to the error(s).  Supply a fallback so
+        # that running tests without --local doesn't hinge on Mercurial being
+        # configured on the current system.
+        env = os.environ.copy()
+        env["HGUSER"] = "test_gremlin"
+        env["HGEDITOR"] = sys.executable  # The executable must exist
+        return env
+
     def _get_hg_module_policy(self):
         """return the module policy as seen by the "hg" binary"""
         cmd = [
@@ -4027,6 +4052,7 @@ class TestRunner:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=True,
+            env=self._get_debuginstall_env(),
         )
         out, err = p.communicate()
         if p.returncode != 0:
@@ -4053,6 +4079,7 @@ class TestRunner:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             shell=True,
+            env=self._get_debuginstall_env(),
         )
         out, err = p.communicate()
         if p.returncode != 0:
@@ -4172,7 +4199,12 @@ class TestRunner:
             sys.exit(1)
 
         cmd = _bytes2sys(b"%s debuginstall -Tjson" % self._hgcommand)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        p = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            shell=True,
+            env=self._get_debuginstall_env(),
+        )
         out, err = p.communicate()
 
         props = json.loads(out)[0]

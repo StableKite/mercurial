@@ -1204,7 +1204,7 @@ significant improvement for repositories with branches.
 .sp
 Repositories with this on\-disk format require Mercurial version 1.9.
 .sp
-Enabled by default.
+Enabled by default. Implied by \fIsparse\-revlog\fP
 .TP
 .B \fBdotencode\fP
 .sp
@@ -1250,12 +1250,15 @@ available, and enabled by default if the fast implementation is available.
 .sp
 To accomodate installations of Mercurial without the fast implementation,
 you can downgrade your repository. To do so run the following command:
-.INDENT 7.0
-.TP
-.B $ hg debugupgraderepo 
-.
-\-\-run \-\-config format.use\-dirstate\-v2=False \-\-config storage.dirstate\-v2.slow\-path=allow
-.UNINDENT
+.sp
+.nf
+.ft C
+$ hg debugupgraderepo \e
+      \-\-run \e
+      \-\-config format.use\-dirstate\-v2=False \e
+      \-\-config storage.dirstate\-v2.slow\-path=allow
+.ft P
+.fi
 .sp
 For a more comprehensive guide, see \%\fBhg help internals.dirstate\-v2\fP\:.
 .TP
@@ -1374,12 +1377,15 @@ available, and enabled by default if the fast implementation is available.
 .sp
 To accomodate installations of Mercurial without the fast implementation,
 you can downgrade your repository. To do so run the following command:
-.INDENT 7.0
-.TP
-.B $ hg debugupgraderepo 
-.
-\-\-run \-\-config format.use\-persistent\-nodemap=False \-\-config storage.revlog.persistent\-nodemap.slow\-path=allow
-.UNINDENT
+.sp
+.nf
+.ft C
+$ hg debugupgraderepo \e
+      \-\-run \e
+      \-\-config format.use\-persistent\-nodemap=False \e
+      \-\-config storage.revlog.persistent\-nodemap.slow\-path=allow
+.ft P
+.fi
 .TP
 .B \fBuse\-share\-safe\fP
 .sp
@@ -1462,6 +1468,8 @@ smaller store. For repositories with many revisions, it also helps
 performance (by using shortened delta chains.)
 .sp
 Repositories with this on\-disk format require Mercurial version 4.7
+.sp
+Implies \fIusegeneraldelta\fP.
 .sp
 Enabled by default.
 .TP
@@ -2594,6 +2602,14 @@ File path where profiling data or report should be saved. If the
 file exists, it is replaced. (default: None, data is printed on
 stderr)
 .TP
+.B \fBoutput\-dir\fP
+.sp
+Directory in which profiling data or report should be saved. The data will be written to a file with the naming scheme "hg\-profile\-{TIMESTAMP}\-{PID}.prof". If both \fBoutput\fP and \fBoutput\-dir\fP are specified, \fBoutput\fP will take precedence.
+.TP
+.B \fBoutput\-dir:create\fP
+.sp
+Create output\-dir if it doesn\(aqt already exist.
+.TP
 .B \fBsort\fP
 .sp
 Sort field.  Specific to the \fBls\fP instrumenting profiler.
@@ -2745,7 +2761,7 @@ Currently, only the rebase and absorb commands consider this configuration.
 .UNINDENT
 .SS \fBrhg\fP
 .sp
-The pure Rust fast\-path for Mercurial. See \fIrust/README.rst\fP in the Mercurial repository.
+The pure Rust fast\-path for Mercurial. See \fIrust/README.md\fP in the Mercurial repository.
 .INDENT 0.0
 .TP
 .B \fBfallback\-executable\fP

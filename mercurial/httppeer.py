@@ -12,7 +12,6 @@ import errno
 import io
 import os
 import struct
-import typing
 
 from concurrent import futures
 from .i18n import _
@@ -27,11 +26,6 @@ from . import (
     wireprotov1peer,
 )
 from .utils import urlutil
-
-if typing.TYPE_CHECKING:
-    from typing import (
-        Set,
-    )
 
 httplib = util.httplib
 urlerr = util.urlerr
@@ -160,7 +154,7 @@ def makev1commandrequest(
             argsio = io.BytesIO(strargs)
             argsio.length = len(strargs)
             data = _multifile(argsio, data)
-        headers['X-HgArgs-Post'] = len(strargs)
+        headers['X-HgArgs-Post'] = b'%d' % len(strargs)
     elif args:
         # Calling self.capable() can infinite loop if we are calling
         # "capabilities". But that command should never accept wire
@@ -444,7 +438,7 @@ class httppeer(wireprotov1peer.wirepeer):
 
     # Begin of ipeercapabilities interface.
 
-    def capabilities(self) -> Set[bytes]:
+    def capabilities(self) -> set[bytes]:
         return self._caps
 
     # End of ipeercapabilities interface.

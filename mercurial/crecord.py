@@ -1303,7 +1303,7 @@ class curseschunkselector:
         return checkbox
 
     def printheader(
-        self, header, selected=False, towin=True, ignorefolding=False
+        self, header, selected: bool = False, towin=True, ignorefolding=False
     ):
         """
         print the header to the pad.  if countlines is True, don't print
@@ -1321,7 +1321,8 @@ class curseschunkselector:
             )
         # select color-pair based on if the header is selected
         colorpair = self.getcolorpair(
-            name=selected and b"selected" or b"normal", attrlist=[curses.A_BOLD]
+            name=b"selected" if selected else b"normal",
+            attrlist=[curses.A_BOLD],
         )
 
         # print out each line of the chunk, expanding it to screen width
@@ -1348,7 +1349,7 @@ class curseschunkselector:
         return outstr
 
     def printhunklinesbefore(
-        self, hunk, selected=False, towin=True, ignorefolding=False
+        self, hunk, selected: bool = False, towin=True, ignorefolding=False
     ):
         """includes start/end line indicator"""
         outstr = b""
@@ -1362,7 +1363,8 @@ class curseschunkselector:
             )
 
         colorpair = self.getcolorpair(
-            name=selected and b"selected" or b"normal", attrlist=[curses.A_BOLD]
+            name=b"selected" if selected else b"normal",
+            attrlist=[curses.A_BOLD],
         )
 
         # print out from-to line with checkbox
@@ -1888,6 +1890,16 @@ are you sure you want to review/edit and confirm the selected changes [yn]?
                 return False
         return True
 
+    def errorpopup(self, msg, win):
+        self.printstring(
+            win,
+            msg,
+            pairname=b"legend",
+            align=False,
+        )
+        while win.getkey() not in ["\n", "KEY_ENTER"]:
+            pass
+
     def handlesearch(self):
         win = curses.newwin(1, self.xscreensize, self.yscreensize - 1, 0)
         win.echochar("/")
@@ -1898,15 +1910,13 @@ are you sure you want to review/edit and confirm the selected changes [yn]?
         curses.noecho()
         curses.curs_set(0)
 
-        if not self.showsearch(self.regex):
-            self.printstring(
-                win,
-                _(b"Pattern not found (press ENTER)"),
-                pairname=b"legend",
-                align=False,
-            )
-            while win.getkey() not in ["\n", "KEY_ENTER"]:
-                pass
+        try:
+            if not self.showsearch(self.regex):
+                self.errorpopup(_(b"Pattern not found (press ENTER)"), win)
+        except re.error as err:
+            msg = _(b'Bad regex: %s (press ENTER)') % err.msg.encode()
+            self.errorpopup(msg, win)
+
         del win
 
         self.stdscr.clear()
@@ -1944,9 +1954,7 @@ are you sure you want to review/edit and confirm the selected changes [yn]?
 
         if not self.showsearch(self.regex, forward=forward):
             win = curses.newwin(1, self.xscreensize, self.yscreensize - 1, 0)
-            self.printstring(win, failuremsg, pairname=b"legend", align=False)
-            while win.getkey() not in ["\n", "KEY_ENTER"]:
-                pass
+            self.errorpopup(failuremsg, win)
             del win
 
             self.stdscr.clear()

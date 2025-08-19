@@ -905,7 +905,7 @@ repository compression by allowing &quot;revlog&quot; to store deltas against
 arbitrary revisions instead of the previously stored one. This provides
 significant improvement for repositories with branches.</p>
 <p>Repositories with this on-disk format require Mercurial version 1.9.</p>
-<p class="last">Enabled by default.</p>
+<p class="last">Enabled by default. Implied by <cite>sparse-revlog</cite></p>
 </dd>
 <dt><tt class="docutils literal">dotencode</tt></dt>
 <dd><p class="first">Enable or disable the &quot;dotencode&quot; repository format which enhances
@@ -939,10 +939,12 @@ with &quot;dirstate-v2&quot; enabled.</p>
 available, and enabled by default if the fast implementation is available.</p>
 <p>To accomodate installations of Mercurial without the fast implementation,
 you can downgrade your repository. To do so run the following command:</p>
-<dl class="docutils">
-<dt>$ hg debugupgraderepo </dt>
-<dd>--run --config format.use-dirstate-v2=False --config storage.dirstate-v2.slow-path=allow</dd>
-</dl>
+<pre class="literal-block">
+$ hg debugupgraderepo \
+      --run \
+      --config format.use-dirstate-v2=False \
+      --config storage.dirstate-v2.slow-path=allow
+</pre>
 <p class="last">For a more comprehensive guide, see <a class="reference external" href="hg.1.html#internals.dirstate-v2"><tt class="docutils literal">hg help <span class="pre">internals.dirstate-v2</span></tt></a>.</p>
 </dd>
 <dt><tt class="docutils literal"><span class="pre">use-dirstate-v2.automatic-upgrade-of-mismatching-repositories</span></tt></dt>
@@ -1030,10 +1032,12 @@ with &quot;persistent-nodemap&quot;.</p>
 available, and enabled by default if the fast implementation is available.</p>
 <p>To accomodate installations of Mercurial without the fast implementation,
 you can downgrade your repository. To do so run the following command:</p>
-<dl class="last docutils">
-<dt>$ hg debugupgraderepo </dt>
-<dd>--run --config format.use-persistent-nodemap=False --config storage.revlog.persistent-nodemap.slow-path=allow</dd>
-</dl>
+<pre class="last literal-block">
+$ hg debugupgraderepo \
+      --run \
+      --config format.use-persistent-nodemap=False \
+      --config storage.revlog.persistent-nodemap.slow-path=allow
+</pre>
 </dd>
 <dt><tt class="docutils literal"><span class="pre">use-share-safe</span></tt></dt>
 <dd><p class="first">Enforce &quot;safe&quot; behaviors for all &quot;shares&quot; that access this repository.</p>
@@ -1090,6 +1094,7 @@ delta re-use inside revlog. For very branchy repositories, it results in a
 smaller store. For repositories with many revisions, it also helps
 performance (by using shortened delta chains.)</p>
 <p>Repositories with this on-disk format require Mercurial version 4.7</p>
+<p>Implies <cite>usegeneraldelta</cite>.</p>
 <p class="last">Enabled by default.</p>
 </dd>
 <dt><tt class="docutils literal"><span class="pre">revlog-compression</span></tt></dt>
@@ -1944,6 +1949,10 @@ most time was spent).</dd>
 <dd>File path where profiling data or report should be saved. If the
 file exists, it is replaced. (default: None, data is printed on
 stderr)</dd>
+<dt><tt class="docutils literal"><span class="pre">output-dir</span></tt></dt>
+<dd>Directory in which profiling data or report should be saved. The data will be written to a file with the naming scheme &quot;hg-profile-{TIMESTAMP}-{PID}.prof&quot;. If both <tt class="docutils literal">output</tt> and <tt class="docutils literal"><span class="pre">output-dir</span></tt> are specified, <tt class="docutils literal">output</tt> will take precedence.</dd>
+<dt><tt class="docutils literal"><span class="pre">output-dir:create</span></tt></dt>
+<dd>Create output-dir if it doesn't already exist.</dd>
 <dt><tt class="docutils literal">sort</tt></dt>
 <dd>Sort field.  Specific to the <tt class="docutils literal">ls</tt> instrumenting profiler.
 One of <tt class="docutils literal">callcount</tt>, <tt class="docutils literal">reccallcount</tt>, <tt class="docutils literal">totaltime</tt> and
@@ -2053,7 +2062,7 @@ operations. If set to <tt class="docutils literal">skip</tt>, the successor is n
 </div>
 <div class="section" id="rhg">
 <h2><a class="toc-backref" href="#contents"><tt class="docutils literal">rhg</tt></a></h2>
-<p>The pure Rust fast-path for Mercurial. See <cite>rust/README.rst</cite> in the Mercurial repository.</p>
+<p>The pure Rust fast-path for Mercurial. See <cite>rust/README.md</cite> in the Mercurial repository.</p>
 <dl class="docutils">
 <dt><tt class="docutils literal"><span class="pre">fallback-executable</span></tt></dt>
 <dd>Path to the executable to run in a sub-process when falling back to

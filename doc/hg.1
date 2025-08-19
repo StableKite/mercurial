@@ -4490,6 +4490,10 @@ Returns 0 on success.
 Options:
 .INDENT 0.0
 .TP
+.B \-\-share\-source
+.
+print the share source root instead
+.TP
 .BI \-T,  \-\-template \ <TEMPLATE>
 .
 display with template
@@ -5916,11 +5920,11 @@ show source of configuration value
 .TP
 .B \-\-shared
 .
-edit shared source repository config (EXPERIMENTAL)
+edit shared source repository config
 .TP
 .B \-\-non\-shared
 .
-edit non shared config (EXPERIMENTAL)
+edit non shared config
 .TP
 .B \-g,  \-\-global
 .
@@ -6246,7 +6250,7 @@ Include phase information relevant to the bundled changesets.
 .TP
 .B revbranchcache
 .
-Include the "tags\-fnodes" cache inside the bundle.
+Include the "rev\-branch" cache inside the bundle.
 .TP
 .B tagsfnodescache
 .
@@ -9826,6 +9830,28 @@ pre\-compiled wheels that are missing rust support. This might take a couple
 of minutes because you\(aqre compiling everything.
 .sp
 See the "Checking for Rust" section to see if the install succeeded.
+.SS Using pipx
+.sp
+Using pipx is an efficient way to get an isolated installation of mercurial
+available for a user or globally.
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.TP
+.B $ pipx install mercurial 
+.
+\-\-pip\-args \(aq\-\-no\-cache\-dir \-\-config\-settings \-\-global\-option=\-\-rust \-\-no\-binary=mercurial\(aq
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+You can then add extensions to that install using
+.INDENT 0.0
+.INDENT 3.5
+.sp
+$ pipx inject mercurial hg\-foo
+.UNINDENT
+.UNINDENT
 .SS From your distribution
 .sp
 Some distributions are shipping Mercurial with Rust extensions enabled and
@@ -9834,7 +9860,7 @@ specify an install flag. Check with your specific distribution for how to do
 that, or ask their team to add support for hg+Rust!
 .SS From source
 .sp
-Please refer to the \fIrust/README.rst\fP file in the Mercurial repository for
+Please refer to the \fIrust/README.md\fP file in the Mercurial repository for
 instructions on how to install from source.
 .SS MSRV
 .sp
@@ -9848,12 +9874,12 @@ fallback mechanism for unsupported invocations. It allows for much faster
 execution of certain commands while adding no discernable overhead for the rest.
 .sp
 The only way of trying it out is by building it from source. Please refer to
-\fIrust/README.rst\fP in the Mercurial repository.
+\fIrust/README.md\fP in the Mercurial repository.
 .sp
 See \fIhg help config.rhg\fP for configuration options.
 .SS Contributing
 .sp
-If you would like to help the Rust endeavor, please refer to \fIrust/README.rst\fP
+If you would like to help the Rust endeavor, please refer to \fIrust/README.md\fP
 in the Mercurial repository.
 .SH USING MERCURIAL FROM SCRIPTS AND AUTOMATION
 .sp
