@@ -1019,6 +1019,13 @@ for related options for the annotate command.
 .sp
 Use git extended diff format.
 .TP
+.B \fBmerge\fP
+.sp
+Show a "merge diff" instead of defaulting to a diff against
+the working directory\(aqs first parent. A "merge diff" will diff against the
+conflict regions in the merge, which is very useful to make sense of what
+the merge commit itself has done.
+.TP
 .B \fBnobinary\fP
 .sp
 Omit git binary patches.
@@ -1187,9 +1194,10 @@ rebase=
 .SS \fBformat\fP
 .sp
 Configuration that controls the repository format. Newer format options are more
-powerful, but incompatible with some older versions of Mercurial. Format options
-are considered at repository initialization only. You need to make a new clone
-for config changes to be taken into account.
+powerful, but incompatible with some older versions of Mercurial.
+.sp
+Format options are considered at repository initialization only. You need to
+make a new clone for config changes to be taken into account.
 .sp
 For more details about repository format and version compatibility, see
 \%https://www.mercurial\-scm.org/wiki/MissingRequirement\:
@@ -1227,6 +1235,40 @@ reserved names, e.g. "nul".
 Repositories with this on\-disk format require Mercurial version 1.1.
 .sp
 Enabled by default.
+.TP
+.B \fBuse\-delta\-info\-flags\fP
+.sp
+Store more information through flags in the revlog\(aqs index.
+.sp
+These flags allow for more efficient data access, data exchange and
+data storage in general.
+.sp
+In particular, one can expect better performance for the following categories of
+commands for repositories using this format can expect better performance than
+ones using older formats:
+.INDENT 7.0
+.IP \(bu 2
+.
+\fIhg status \-\-copies \-\-rev X\fP
+.IP \(bu 2
+.
+\fIhg diff\fP
+.IP \(bu 2
+.
+\fIhg merge\fP
+.IP \(bu 2
+.
+\fIhg clone\fP
+.IP \(bu 2
+.
+\fIhg pull\fP
+.IP \(bu 2
+.
+\fIhg push\fP
+.IP \(bu 2
+.
+\fIhg unbundle\fP
+.UNINDENT
 .TP
 .B \fBuse\-dirstate\-v2\fP
 .sp
@@ -1290,33 +1332,34 @@ Hide message when performing such automatic upgrade.
 .TP
 .B \fBuse\-dirstate\-tracked\-hint\fP
 .sp
-Enable or disable the writing of "tracked key" file alongside the dirstate.
-(default to disabled)
+Enable or disable the writing of "tracked key" file alongside
+the dirstate. (default to disabled)
 .sp
-That "tracked\-hint" can help external automations to detect changes to the
-set of tracked files. (i.e the result of \fIhg files\fP or \fIhg status \-macd\fP)
+That "tracked\-hint" can help external automations to detect changes to
+the set of tracked files. (i.e the result of \(aqhg files\(aq or \(aqhg status
+\-macd\(aq)
 .sp
-The tracked\-hint is written in a new \fI.hg/dirstate\-tracked\-hint\fP. That file
-contains two lines:
-\- the first line is the file version (currently: 1),
-\- the second line contains the "tracked\-hint".
-That file is written right after the dirstate is written.
+The tracked\-hint is written in a new \(aq.hg/dirstate\-tracked\-hint\(aq. That
+file contains two lines: \- the first line is the file version
+(currently: 1), \- the second line contains the "tracked\-hint". That
+file is written right after the dirstate is written.
 .sp
-The tracked\-hint changes whenever the set of file tracked in the dirstate
-changes. The general idea is:
-\- if the hint is identical, the set of tracked file SHOULD be identical,
-\- if the hint is different, the set of tracked file MIGHT be different.
+The tracked\-hint changes whenever the set of file tracked in the
+dirstate changes. The general idea is: \- if the hint is identical, the
+set of tracked file SHOULD be identical, \- if the hint is different,
+the set of tracked file MIGHT be different.
 .sp
-The "hint is identical" case uses \fISHOULD\fP as the dirstate and the hint file
-are two distinct files and therefore that cannot be read or written to in an
-atomic way. If the key is identical, nothing garantees that the dirstate is
-not updated right after the hint file. This is considered a negligible
-limitation for the intended usecase. It is actually possible to prevent this
-race by taking the repository lock during read operations.
+The "hint is identical" case uses \(aqSHOULD\(aq as the dirstate and the
+hint file are two distinct files and therefore that cannot be read or
+written to in an atomic way. If the key is identical, nothing
+garantees that the dirstate is not updated right after the hint file.
+This is considered a negligible limitation for the intended usecase.
+It is actually possible to prevent this race by taking the repository
+lock during read operations.
 .sp
 They are two "ways" to use this feature:
 .sp
-1) monitoring changes to the \fI.hg/dirstate\-tracked\-hint\fP, if the file
+1) monitoring changes to the \(aq.hg/dirstate\-tracked\-hint\(aq, if the file
 changes, the tracked set might have changed.
 .INDENT 7.0
 .IP 2. 3
@@ -2936,6 +2979,20 @@ the feature:
 For details on the "dirstate\-v2" feature, see:
 \%\fBhg help config.format.use\-dirstate\-v2\fP\:.
 .TP
+.B \fBrevlog.exchange\-compressed\-delta\fP
+.sp
+Controls whether the repository might emit or request
+compressed deltas in bundles.
+.sp
+Exchanging deltas in their compressed form results in larger bundles and higher
+bandwidth usage, but reduces CPU usage on both ends and helps the main server
+to use agressive compression levels to share that benefit with ordinary clients
+pulling from them.
+.sp
+Even when activated, the exchange of compressed deltas will only be used if the
+exchange uses a changegroup format that supports it (04 and above) and the
+receiving end supports it.
+.TP
 .B \fBrevlog.issue6528.fix\-incoming\fP
 .sp
 Version 5.8 of Mercurial had a bug leading to altering the parent of file
@@ -3059,6 +3116,12 @@ down.
 .sp
 This option is enabled by default. When disabled, it also disables the
 related \fBstorage.revlog.reuse\-external\-delta\-parent\fP option.
+.TP
+.B \fBrevlog.reuse\-external\-delta\-compression\fP
+.sp
+When true, reuse the compression of incoming deltas
+when receiving a compressed delta if its compression type is compatible
+with the one used by the revlog.
 .TP
 .B \fBrevlog.zlib.level\fP
 .sp
@@ -3884,6 +3947,31 @@ performance,
 \fBlow\fP: reduces memory usage when possible at the cost of overall
 performance.
 .UNINDENT
+.TP
+.B \fBresources.bandwidth\fP
+.sp
+How aggressive Mercurial can be in terms of bandwidth usage:
+.sp
+Currently recognised values are:
+.sp
+.nf
+.ft C
+\- \(ga\(gadefault\(ga\(ga: the default value, inherits the value from \(gausage.resources\(ga,
+.ft P
+.fi
+.INDENT 7.0
+.IP \(bu 2
+.
+\fBhigh\fP: allows for more aggressive bandwidth usage to improve overall
+performance,
+.IP \(bu 2
+.
+\fBmedium\fP:  aims at a moderate bandwidth usage,
+.IP \(bu 2
+.
+\fBlow\fP: reduces bandwidth usage when possible at the cost of overall
+performance.
+.UNINDENT
 .UNINDENT
 .SS \fBcommand\-templates\fP
 .sp
@@ -4346,6 +4434,55 @@ enabled.
 Number of threads to process background file closes. Only relevant if
 \fBbackgroundclose\fP is enabled.
 (default: 4)
+.TP
+.B \fBparallel\-stream\-bundle\-processing\fP
+.sp
+Read, parse and write stream bundle in parallel speeding up the process.
+.sp
+Also see \fIworker.parallel\-stream\-bundle\-processing.memory\-target\fP to control
+the memory usage of the buffers.
+.sp
+Also see \fIworker.parallel\-stream\-bundle\-processing.num\-writer\fP to control the
+amount of concurrent writers.
+.TP
+.B \fBparallel\-stream\-bundle\-processing.memory\-target\fP
+.sp
+Limit memory usage around this value. This is not a hard target a Mercurial will use a bit more, but this reduce the amount of buffered stream content that we read ahead.
+.sp
+If set to a negative value, the amount of memory used will not be restricted.
+.sp
+When set to 0, the default value depends on the value of the
+\fIusage.resources.memory\fP configuration:
+.INDENT 7.0
+.IP \(bu 2
+.
+low:    100 MB
+.IP \(bu 2
+.
+medium: 500 MB (default)
+.IP \(bu 2
+.
+high:     2 GB
+.UNINDENT
+.TP
+.B \fBparallel\-stream\-bundle\-processing.num\-writer\fP
+.sp
+Control the number of file being written concurrently when applying a stream
+bundle.
+.sp
+When set to 0, the default, the value used depends on the value of the
+\fIusage.resources.cpu\fP configuration:
+.INDENT 7.0
+.IP \(bu 2
+.
+low:    1 writer
+.IP \(bu 2
+.
+medium: 4 writers (default)
+.IP \(bu 2
+.
+high:   8 writers
+.UNINDENT
 .UNINDENT
 .SH AUTHOR
 .sp
@@ -4358,7 +4495,7 @@ Mercurial was written by Olivia Mackall <\%olivia@selenic.com\:>.
 .SH COPYING
 .sp
 This manual page is copyright 2005 Bryan O\(aqSullivan.
-Mercurial is copyright 2005\-2025 Olivia Mackall.
+Mercurial is copyright 2005\-2026 Olivia Mackall.
 Free use of this software is granted under the terms of the GNU General
 Public License version 2 or any later version.
 .\" Common link and substitution definitions.

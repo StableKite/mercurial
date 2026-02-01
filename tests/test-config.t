@@ -71,13 +71,15 @@ Test case sensitive configuration
    {
     "defaultvalue": null,
     "name": "Section.KeY",
-    "source": "*.hgrc:*", (glob)
+    "source": "$HGRCPATH:*", (glob) (no-windows !)
+    "source": "$STR_REPR_HGRCPATH:*", (glob) (windows !)
     "value": "Case Sensitive"
    },
    {
     "defaultvalue": null,
     "name": "Section.key",
-    "source": "*.hgrc:*", (glob)
+    "source": "$HGRCPATH:*", (glob) (no-windows !)
+    "source": "$STR_REPR_HGRCPATH:*", (glob) (windows !)
     "value": "lower case"
    }
   ]
@@ -86,7 +88,8 @@ Test case sensitive configuration
    {
     "defaultvalue": null,
     "name": "Section.KeY",
-    "source": "*.hgrc:*", (glob)
+    "source": "$HGRCPATH:*", (glob) (no-windows !)
+    "source": "$STR_REPR_HGRCPATH:*", (glob) (windows !)
     "value": "Case Sensitive"
    }
   ]
@@ -426,6 +429,7 @@ The feature is experimental and behavior may varies. This test exists to make su
   commands.commit.interactive.unified=None
   commands.commit.interactive.word-diff=False
   commands.commit.post-status=False
+  commands.commit.report-head-changes=True
   convert.git.committeractions=[*'messagedifferent'] (glob)
   convert.svn.dangerous-set-commit-dates=False
   experimental.copytrace.sourcecommitlimit=100

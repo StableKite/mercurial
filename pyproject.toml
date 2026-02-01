@@ -1,7 +1,6 @@
 [build-system]
 requires = [
-    "wheel",
-    "setuptools>=80.1.0",
+    "setuptools>=77",
     "setuptools-scm>=8.1.0",
     ]
 build-backend = "setuptools.build_meta"
@@ -41,10 +40,26 @@ dynamic = ["version"]
 home = "https://mercurial-scm.org/"
 download_url = "https://mercurial-scm.org/release/"
 
+[project.optional-dependencies]
+# This is currently only useful for --pure install.
+# However it is is really handy there as it let a pure install access zstd
+# compressed repositories. And such repository have been the default format for
+# years.
+zstd = [
+    "zstandard"
+]
+
 
 [tool.setuptools]
 # no automatic include
 include-package-data = false
+
+
+[tool.uv]
+# Rebuild for each `make local` call and avoid wrong caching
+#
+# See https://github.com/astral-sh/uv/issues/2152
+reinstall-package = ["mercurial"]
 
 
 [tool.black]
@@ -69,7 +84,7 @@ quiet = true
 
 
 [tool.cibuildwheel]
-build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*"]
+build = ["cp39-*", "cp310-*", "cp311-*", "cp312-*", "cp313-*", "cp314-*"]
 
 # Don't stockpile wheels in the pip cache directory when they get built, since
 # there's no mechanism to age old ones out.
@@ -92,7 +107,7 @@ test-skip = "*"
 # to also build "x86_64".  Further discussion here:
 #    https://github.com/pypa/cibuildwheel/issues/1333
 #    https://github.com/python-cffi/cffi/issues/133
-#  
+#
 # NOTE: this is overridden in heptapod-ci.yml because the current CI system
 # doesn't support arm64 builds.
 archs = ["universal2"]

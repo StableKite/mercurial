@@ -255,88 +255,36 @@ Aborting lock does not prevent fncache writes
   $ extpath=`pwd`/exceptionext.py
   $ hg init fncachetxn
   $ cd fncachetxn
-  $ printf "[extensions]\nexceptionext=$extpath\n" >> .hg/hgrc
   $ touch y
-  $ hg ci -qAm y
+  $ hg ci -qAm y --config extensions.exceptionext="$extpath"
   abort: forced lock failure
   [255]
   $ cat .hg/store/fncache
   data/y.i
 
-Aborting transaction prevents fncache change
-
-  $ cat > ../exceptionext.py <<EOF
-  > import os
-  > from mercurial import commands, error, extensions, localrepo
-  > 
-  > def wrapper(orig, self, *args, **kwargs):
-  >     tr = orig(self, *args, **kwargs)
-  >     def fail(tr):
-  >         raise error.Abort(b"forced transaction failure")
-  >     # zzz prefix to ensure it sorted after store.write
-  >     tr.addfinalize(b'zzz-forcefails', fail)
-  >     return tr
-  > 
-  > def uisetup(ui):
-  >     extensions.wrapfunction(
-  >         localrepo.localrepository, 'transaction', wrapper)
-  > 
-  > cmdtable = {}
-  > 
-  > EOF
-
-Clean cached version
-  $ rm -f "${extpath}c"
+  $ rm -f "$extpath" "${extpath}c"
   $ rm -Rf "`dirname $extpath`/__pycache__"
 
+Aborting transaction prevents fncache change
+
   $ touch z
-  $ hg ci -qAm z
+  $ hg ci -qAm z --config devel.debug.abort-transaction=abort-post-finalize
   transaction abort!
   rollback completed
-  abort: forced transaction failure
+  abort: requested abort-post-finalize
   [255]
   $ cat .hg/store/fncache
   data/y.i
 
 Aborted transactions can be recovered later
 
-  $ cat > ../exceptionext.py <<EOF
-  > import os
-  > from mercurial.testing import ps_util
-  > from mercurial import (
-  >   commands,
-  >   error,
-  >   extensions,
-  >   localrepo,
-  >   transaction,
-  > )
-  > 
-  > def trwrapper(orig, self, *args, **kwargs):
-  >     tr = orig(self, *args, **kwargs)
-  >     def fail(tr):
-  >         ps_util.kill(os.getpid())
-  >     # zzz prefix to ensure it sorted after store.write
-  >     tr.addfinalize(b'zzz-forcefails', fail)
-  >     return tr
-  > 
-  > def uisetup(ui):
-  >     extensions.wrapfunction(localrepo.localrepository, 'transaction',
-  >                             trwrapper)
-  > 
-  > cmdtable = {}
-  > 
-  > EOF
-
-Clean cached versions
-  $ rm -f "${extpath}c"
-  $ rm -Rf "`dirname $extpath`/__pycache__"
-
   $ hg up -q 1
   $ touch z
 # Cannot rely on the return code value as chg use a different one.
 # So we use a `|| echo` trick
 # XXX-CHG fixing chg behavior would be nice here.
-  $ hg ci -qAm z || echo "He's Dead, Jim." 2>/dev/null
+  $ hg ci -qAm z --config devel.debug.abort-transaction=kill-9-post-finalize \
+  > || echo "He's Dead, Jim." 2>/dev/null
   *Killed* (glob) (?)
   He's Dead, Jim.
   $ cat .hg/store/fncache | sort
@@ -472,8 +420,8 @@ changesets that only contain changes to existing files:
   > from mercurial import extensions, localrepo
   > 
   > def extsetup(ui):
-  >     def wrapstore(orig, requirements, *args):
-  >         store = orig(requirements, *args)
+  >     def wrapstore(orig, ui, requirements, *args, **kwargs):
+  >         store = orig(ui, requirements, *args, **kwargs)
   >         if b'store' in requirements and b'fncache' in requirements:
   >             instrumentfncachestore(store, ui)
   >         return store
@@ -532,5 +480,64 @@ but adding new files should:
   $ hg -R tobundle bundle -q newfile.hg
   $ hg unbundle -q newfile.hg
   fncache load triggered!
+
+  $ cd ..
+
+Behavior around strip
+---------------------
+
+  $ hg clone nofncacheload strip-test
+  fncache load triggered!
+  fncache load triggered!
+  updating to branch default
+  3 files updated, 0 files merged, 0 files removed, 0 files unresolved
+  fncache load triggered!
+  $ cd strip-test
+
+We starts with a valid repository
+
+  $ hg verify
+  checking changesets
+  checking manifests
+  crosschecking files in changesets and manifests
+  checking files
+  checking dirstate
+  checked 5 changesets with 5 changes to 3 files
+  $ cat .hg/store/fncache | sort
+  data/bar.i
+  data/foo.i
+  data/newfile.i
+
+That contains 3 file, the last of which added in the last changeset
+
+  $ hg manifest --all
+  bar
+  foo
+  newfile
+  $ hg status --change 4
+  A newfile
+
+We strip that change, removing the file
+
+  $ hg debugstrip --rev 4
+  0 files updated, 0 files merged, 1 files removed, 0 files unresolved
+  saved backup bundle to $TESTTMP/strip-test/.hg/strip-backup/dc782f6e0b2d-71d6a2b0-backup.hg
+  $ hg manifest --all
+  bar
+  foo
+
+The repository should still be valid
+
+  $ hg verify
+  checking changesets
+  checking manifests
+  crosschecking files in changesets and manifests
+  checking files
+  checking dirstate
+  checked 4 changesets with 4 changes to 2 files
+  $ cat .hg/store/fncache | sort
+  data/bar.i
+  data/foo.i
+
 
   $ cd ..

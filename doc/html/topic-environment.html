@@ -124,6 +124,20 @@ defaults to 'vi'.</dd>
 <dt>PYTHONPATH</dt>
 <dd>This is used by Python to find imported modules and may need to be
 set appropriately if this Mercurial is not installed system-wide.</dd>
+<dt>HGZSTDPOLICY</dt>
+<dd><p class="first">Control which zstd implementation will be used for the Python code. This is
+a list of options in priority order.</p>
+<ul class="simple">
+<li>vendored: use the pinned version of python-zstandard shipped in Mercurial</li>
+<li>system: use a possibly installed &quot;zstandard&quot; python package</li>
+<li>none: don't use zstd (ommiting this will raise an error if the above
+fails)</li>
+</ul>
+<p>Default value is &quot;vendored,system,none&quot;</p>
+<p class="last">This variable might be deprecated in the future depending on how zstd wrapper
+library and they integration in Mercurial evolves. This config has no
+effect on the Rust code.</p>
+</dd>
 </dl>
 </div>
 </body>

@@ -1,3 +1,4 @@
+
 test --time
 
   $ hg --time help -q help 2>&1 | grep time > /dev/null
@@ -123,7 +124,7 @@ statistical profiler works
 Various statprof formatters work
 
   $ hg --profile --config profiling.statformat=byline sleep 2>../out || cat ../out
-  $ grep -v _path_stat ../out | head -n 3
+  $ grep -v _path_stat ../out | grep -v "frozen importlib._bootstrap_external" | head -n 3
     %   cumulative      self          
    time    seconds   seconds  name    
   * sleepext_with_a_long_filename.py:*:sleep_for_at_least_one_stat_cycle (glob)
@@ -158,7 +159,39 @@ statprof can be used as a standalone module
   must specify --file to load
   [1]
 
+
+Rust tracing output
+===================
+
+Make sure rust tracing doesn't pollute the stdout:
+
+  $ touch some-file
+
+traced command should not display their trace on stdout
+
+  $ RUST_LOG=trace hg status some-file 2> ../rust-trace.txt
+  ? some-file
+
+some trace should exist on stderr (if rust is used)
+
+  $ wc -l ../rust-trace.txt
+   *[1-9][0-9]* \.\./rust-trace.txt (re) (rust !)
+   *[1-9][0-9]* \.\./rust-trace.txt (re) (rhg no-rust !)
+   *0 \.\./rust-trace.txt (re) (no-rhg no-rust !)
+
+That output should should looks like traces
+
+  $ grep -E "close.*time.busy.*time.idle"  ../rust-trace.txt | wc -l
+   *[1-9][0-9]* (re) (rust !)
+   *[1-9][0-9]* (re) (rhg no-rust !)
+   *0 (re) (no-rhg no-rust !)
+
   $ cd ..
+
+
+
+profiler extensions
+===================
 
 #if no-chg
 profiler extension could be loaded before other extensions

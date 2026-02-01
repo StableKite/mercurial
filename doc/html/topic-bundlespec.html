@@ -108,9 +108,24 @@ but do not have guaranteed compatibility with older clients.</p>
 <dt>changegroup</dt>
 <dd>Include the changegroup data in the bundle (default to True).</dd>
 <dt>cg.version</dt>
-<dd>Select the version of the changegroup to use. Available options are : 01, 02
-or 03. By default it will be automatically selected according to the current
-repository format.</dd>
+<dd>Select the version of the changegroup to use. Available options are : 01,
+02, 03, or 04. By default it will be automatically selected according to the
+current repository format.</dd>
+<dt>cg.delta-compression</dt>
+<dd><p class="first">Starting with <cite>cg.version</cite> &quot;04&quot;, changegroups can include pre-compressed
+deltas that the receiving end might reuse as-is. If this option is omitted,
+no such delta will be part of the changegroup. The option accepts a
+comma-separated list of accepted compression formats. Supported format are:</p>
+<ul class="last simple">
+<li><dl class="first docutils">
+<dt>none: delta explicitly non-compressed (useful to prevent the receiver from</dt>
+<dd>even trying to compress such deltas)</dd>
+</dl>
+</li>
+<li>zlib: zlib-compressed delta</li>
+<li>zstd: zstd-compressed delta</li>
+</ul>
+</dd>
 <dt>obsolescence</dt>
 <dd>Include obsolescence-markers relevant to the bundled changesets.</dd>
 <dt>phases</dt>

@@ -506,6 +506,10 @@ compare bookmarks
 .
 a specific branch you would like to pull
 .TP
+.B \-\-remote\-hidden
+.
+include changesets hidden on the remote (EXPERIMENTAL)
+.TP
 .B \-p,  \-\-patch
 .
 show patch
@@ -801,7 +805,7 @@ If SOURCE is omitted, the \(aqdefault\(aq path will be used.
 See \%\fBhg help urls\fP\: for more information.
 .sp
 If multiple sources are specified, they will be pulled sequentially as if
-the command was run multiple time. If \-\-update is specify and the command
+the command was run multiple times. If \-\-update is specified, the command
 will stop at the first failed \-\-update.
 .sp
 Specifying bookmark as \fB.\fP is equivalent to specifying the active
@@ -811,7 +815,7 @@ One can use the \fI\-\-remote\-hidden\fP flag to pull changesets
 hidden on the remote. This flag is "best effort", and will only
 work if the server supports the feature and is configured to
 allow the user to access hidden changesets. This option is
-experimental and backwards compatibility is not garanteed.
+experimental and backwards compatibility is not guaranteed.
 .sp
 Returns 0 on success, 1 if an update had unresolved files.
 .sp
@@ -5647,6 +5651,64 @@ Options:
 update to new branch head if changesets were unbundled
 .UNINDENT
 .SS Repository maintenance
+.SS admin::narrow\-client
+.sp
+Narrow\-related client administration utils. (EXPERIMENTAL):
+.sp
+.nf
+.ft C
+hg admin::narrow\-client
+.ft P
+.fi
+.sp
+This command is experimental and is subject to change.
+.sp
+Options:
+.INDENT 0.0
+.TP
+.B \-\-store\-fingerprint
+.
+get the fingerprint for this repo\(aqs store narrowspec
+.UNINDENT
+.SS admin::narrow\-server
+.sp
+Narrow\-related server administration utils. (EXPERIMENTAL):
+.sp
+.nf
+.ft C
+hg admin::narrow\-server
+.ft P
+.fi
+.sp
+This command is experimental and is subject to change.
+.sp
+Options:
+.INDENT 0.0
+.TP
+.B \-\-shape\-fingerprints
+.
+list the fingerprint for each shape
+.TP
+.BI \-\-shape\-patterns \ <SHAPE\-PATTERNS>
+.
+list the path patterns for the given shape
+.TP
+.BI \-\-shape\-narrow\-patterns \ <SHAPE\-NARROW\-PATTERNS>
+.
+list the legacy narrow\-style patterns for the given shape
+.TP
+.BI \-\-shape\-files \ <VALUE>
+.
+list the files covered by the given shape
+.TP
+.BI \-\-shape\-files\-hidden \ <VALUE>
+.
+list this shape\(aqs files that are not in the working copy
+.TP
+.BI \-T,  \-\-template \ <TEMPLATE>
+.
+display with template
+.UNINDENT
 .SS admin::verify
 .sp
 verify the integrity of the repository:
@@ -6236,9 +6298,31 @@ Include the changegroup data in the bundle (default to True).
 .TP
 .B cg.version
 .
-Select the version of the changegroup to use. Available options are : 01, 02
-or 03. By default it will be automatically selected according to the current
-repository format.
+Select the version of the changegroup to use. Available options are : 01,
+02, 03, or 04. By default it will be automatically selected according to the
+current repository format.
+.TP
+.B cg.delta\-compression
+.
+Starting with \fIcg.version\fP "04", changegroups can include pre\-compressed
+deltas that the receiving end might reuse as\-is. If this option is omitted,
+no such delta will be part of the changegroup. The option accepts a
+comma\-separated list of accepted compression formats. Supported format are:
+.INDENT 7.0
+.IP \(bu 2
+.INDENT 2.0
+.TP
+.B none: delta explicitly non\-compressed (useful to prevent the receiver from
+.
+even trying to compress such deltas)
+.UNINDENT
+.IP \(bu 2
+.
+zlib: zlib\-compressed delta
+.IP \(bu 2
+.
+zstd: zstd\-compressed delta
+.UNINDENT
 .TP
 .B obsolescence
 .
@@ -6789,6 +6873,29 @@ defaults to \(aqvi\(aq.
 .
 This is used by Python to find imported modules and may need to be
 set appropriately if this Mercurial is not installed system\-wide.
+.TP
+.B HGZSTDPOLICY
+.
+Control which zstd implementation will be used for the Python code. This is
+a list of options in priority order.
+.INDENT 7.0
+.IP \(bu 2
+.
+vendored: use the pinned version of python\-zstandard shipped in Mercurial
+.IP \(bu 2
+.
+system: use a possibly installed "zstandard" python package
+.IP \(bu 2
+.
+none: don\(aqt use zstd (ommiting this will raise an error if the above
+fails)
+.UNINDENT
+.sp
+Default value is "vendored,system,none"
+.sp
+This variable might be deprecated in the future depending on how zstd wrapper
+library and they integration in Mercurial evolves. This config has no
+effect on the Rust code.
 .UNINDENT
 .SH SAFELY REWRITING HISTORY (EXPERIMENTAL)
 .sp
@@ -8353,6 +8460,10 @@ dirstate\-v2 file format
 .
 Extension API
 .TP
+.B file\-index
+.
+File Index
+.TP
 .B mergestate
 .
 Mergestate
@@ -9852,6 +9963,28 @@ You can then add extensions to that install using
 $ pipx inject mercurial hg\-foo
 .UNINDENT
 .UNINDENT
+.SS Using uv tool
+.sp
+Using \fIuv tool\fP is another efficient way to get an isolated installation of
+mercurial available for a user or globally.
+.INDENT 0.0
+.INDENT 3.5
+.INDENT 0.0
+.TP
+.B $ uv tool install mercurial 
+.
+\-\-no\-binary=mercurial \-\-no\-cache \-\-config\-setting=\-\-build\-option=\-\-rust
+.UNINDENT
+.UNINDENT
+.UNINDENT
+.sp
+You can bring extensions along using the \fI\-\-with\fP flag. For example
+.INDENT 0.0
+.INDENT 3.5
+.sp
+$ uv tool install mercurial \-\-with hg\-evolve [...]
+.UNINDENT
+.UNINDENT
 .SS From your distribution
 .sp
 Some distributions are shipping Mercurial with Rust extensions enabled and
@@ -10383,6 +10516,10 @@ Integer. All ancestors not in the latest tag.
 .B children
 .
 List of strings. The children of the changeset.
+.TP
+.B closesbranch
+.
+"yes" if this changeset is branch\-closing, "no" otherwise
 .TP
 .B date
 .
@@ -19093,6 +19230,57 @@ since version 5.7. Please use \%\fBhg debugstrip ...\fP\: instead.
 .sp
 This extension allows you to strip changesets and all their descendants from the
 repository. See the command help for details.
+.SS Commands
+.SS Repository maintenance
+.SS strip
+.sp
+.nf
+.ft C
+hg strip [\-k] [\-f] [\-B bookmark] [\-r] REV...
+.ft P
+.fi
+.sp
+Options:
+.INDENT 0.0
+.TP
+.BI \-r,  \-\-rev \ <REV[+]>
+.
+strip specified revision (optional, can specify revisions without this option)
+.TP
+.B \-f,  \-\-force
+.
+force removal of changesets, discard uncommitted changes (no backup)
+.TP
+.B \-\-no\-backup
+.
+do not save backup bundle
+.TP
+.B \-\-nobackup
+.
+do not save backup bundle (DEPRECATED)
+.TP
+.B \-n
+.
+ignored  (DEPRECATED)
+.TP
+.B \-k,  \-\-keep
+.
+do not modify working directory during strip
+.TP
+.BI \-B,  \-\-bookmark \ <BOOKMARK[+]>
+.
+remove revs only reachable from given bookmark
+.TP
+.B \-\-soft
+.
+simply drop changesets from visible history (EXPERIMENTAL)
+.TP
+.B \-\-permit\-empty\-revset
+.
+return success even if no revision was stripped
+.UNINDENT
+.sp
+[+] marked option can be specified multiple times
 .SS transplant
 .sp
 command to transplant changesets from another branch
@@ -19519,7 +19707,7 @@ Source code repository: \%https://www.mercurial\-scm.org/repo/hg\:
 Mailing list: \%https://www.mercurial\-scm.org/mailman/listinfo/mercurial/\:
 .SH COPYING
 .sp
-Copyright (C) 2005\-2025 Olivia Mackall.
+Copyright (C) 2005\-2026 Olivia Mackall.
 Free use of this software is granted under the terms of the GNU General
 Public License version 2 or any later version.
 .\" Common link and substitution definitions.

@@ -3,6 +3,7 @@
 # $ find .hg/store/ -name "*.i" | xargs dumprevlog > repo.dump
 
 
+import os
 import sys
 from mercurial.node import hex
 from mercurial import (
@@ -16,6 +17,13 @@ from mercurial.revlogutils import (
     constants as revlog_constants,
 )
 
+BASE = b'/'
+if pycompat.iswindows:
+    # use os.path.splitroot once we drop support for Python 3.11
+    pieces = os.path.splitdrive(os.getcwdb())
+    BASE = pieces[0] + pieces[1][0:1]
+
+
 for fp in (sys.stdin, sys.stdout, sys.stderr):
     procutil.setbinary(fp)
 
@@ -23,10 +31,18 @@ for fp in (sys.stdin, sys.stdout, sys.stderr):
 def binopen(path, mode=b'rb'):
     if b'b' not in mode:
         mode = mode + b'b'
+    if not os.path.isabs(path):
+        path = BASE + path
     return open(path, pycompat.sysstr(mode))
 
 
 binopen.options = {}
+binopen.filter_name = None
+if pycompat.iswindows:
+    binopen.base = os.path.splitdrive(os.getcwdb())[0]
+else:
+    binopen.base = b"/"
+binopen.read_write = False
 
 
 def printb(data, end=b'\n'):
@@ -35,7 +51,9 @@ def printb(data, end=b'\n'):
 
 
 for f in sys.argv[1:]:
-    localf = encoding.strtolocal(f)
+    absstr = os.path.abspath(f)
+    abslocal = encoding.strtolocal(absstr)
+    localf = os.path.relpath(abslocal, BASE)
     if not localf.endswith(b'.i'):
         print("file:", f, file=sys.stderr)
         print("  invalid filename", file=sys.stderr)

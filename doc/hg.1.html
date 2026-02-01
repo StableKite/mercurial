@@ -448,6 +448,10 @@ hg in changes.hg -T &quot;{desc|firstline}\n&quot;
 <kbd><span class="option">-b</span>, <span class="option">--branch <var>&lt;BRANCH[+]&gt;</var></span></kbd></td>
 </tr>
 <tr><td>&nbsp;</td><td>a specific branch you would like to pull</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--remote-hidden</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>include changesets hidden on the remote (EXPERIMENTAL)</td></tr>
 <tr><td class="option-group">
 <kbd><span class="option">-p</span>, <span class="option">--patch</span></kbd></td>
 <td>show patch</td></tr>
@@ -693,7 +697,7 @@ to add those changes to the repository, you should use <a class="reference exter
 <p>If SOURCE is omitted, the 'default' path will be used.
 See <a class="reference external" href="hg.1.html#urls"><tt class="docutils literal">hg help urls</tt></a> for more information.</p>
 <p>If multiple sources are specified, they will be pulled sequentially as if
-the command was run multiple time. If --update is specify and the command
+the command was run multiple times. If --update is specified, the command
 will stop at the first failed --update.</p>
 <p>Specifying bookmark as <tt class="docutils literal">.</tt> is equivalent to specifying the active
 bookmark's name.</p>
@@ -702,7 +706,7 @@ One can use the <cite>--remote-hidden</cite> flag to pull changesets
 hidden on the remote. This flag is &quot;best effort&quot;, and will only
 work if the server supports the feature and is configured to
 allow the user to access hidden changesets. This option is
-experimental and backwards compatibility is not garanteed.</div>
+experimental and backwards compatibility is not guaranteed.</div>
 <p>Returns 0 on success, 1 if an update had unresolved files.</p>
 <p>Options:</p>
 <table class="docutils option-list" frame="void" rules="none">
@@ -4620,6 +4624,64 @@ hg unbundle [-u] FILE...
 </div>
 <div class="section" id="repository-maintenance">
 <h2>Repository maintenance</h2>
+<div class="section" id="admin-narrow-client">
+<h3>admin::narrow-client</h3>
+<p>Narrow-related client administration utils. (EXPERIMENTAL):</p>
+<pre class="literal-block">
+hg admin::narrow-client
+</pre>
+<p>This command is experimental and is subject to change.</p>
+<p>Options:</p>
+<table class="docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--store-fingerprint</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>get the fingerprint for this repo's store narrowspec</td></tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="admin-narrow-server">
+<h3>admin::narrow-server</h3>
+<p>Narrow-related server administration utils. (EXPERIMENTAL):</p>
+<pre class="literal-block">
+hg admin::narrow-server
+</pre>
+<p>This command is experimental and is subject to change.</p>
+<p>Options:</p>
+<table class="docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--shape-fingerprints</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>list the fingerprint for each shape</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--shape-patterns <var>&lt;SHAPE-PATTERNS&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>list the path patterns for the given shape</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--shape-narrow-patterns <var>&lt;SHAPE-NARROW-PATTERNS&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>list the legacy narrow-style patterns for the given shape</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--shape-files <var>&lt;VALUE&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>list the files covered by the given shape</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--shape-files-hidden <var>&lt;VALUE&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>list this shape's files that are not in the working copy</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-T</span>, <span class="option">--template <var>&lt;TEMPLATE&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>display with template</td></tr>
+</tbody>
+</table>
+</div>
 <div class="section" id="admin-verify">
 <h3>admin::verify</h3>
 <p>verify the integrity of the repository:</p>
@@ -5107,9 +5169,24 @@ but do not have guaranteed compatibility with older clients.</p>
 <dt>changegroup</dt>
 <dd>Include the changegroup data in the bundle (default to True).</dd>
 <dt>cg.version</dt>
-<dd>Select the version of the changegroup to use. Available options are : 01, 02
-or 03. By default it will be automatically selected according to the current
-repository format.</dd>
+<dd>Select the version of the changegroup to use. Available options are : 01,
+02, 03, or 04. By default it will be automatically selected according to the
+current repository format.</dd>
+<dt>cg.delta-compression</dt>
+<dd><p class="first">Starting with <cite>cg.version</cite> &quot;04&quot;, changegroups can include pre-compressed
+deltas that the receiving end might reuse as-is. If this option is omitted,
+no such delta will be part of the changegroup. The option accepts a
+comma-separated list of accepted compression formats. Supported format are:</p>
+<ul class="last simple">
+<li><dl class="first docutils">
+<dt>none: delta explicitly non-compressed (useful to prevent the receiver from</dt>
+<dd>even trying to compress such deltas)</dd>
+</dl>
+</li>
+<li>zlib: zlib-compressed delta</li>
+<li>zstd: zstd-compressed delta</li>
+</ul>
+</dd>
 <dt>obsolescence</dt>
 <dd>Include obsolescence-markers relevant to the bundled changesets.</dd>
 <dt>phases</dt>
@@ -5493,6 +5570,20 @@ defaults to 'vi'.</dd>
 <dt>PYTHONPATH</dt>
 <dd>This is used by Python to find imported modules and may need to be
 set appropriately if this Mercurial is not installed system-wide.</dd>
+<dt>HGZSTDPOLICY</dt>
+<dd><p class="first">Control which zstd implementation will be used for the Python code. This is
+a list of options in priority order.</p>
+<ul class="simple">
+<li>vendored: use the pinned version of python-zstandard shipped in Mercurial</li>
+<li>system: use a possibly installed &quot;zstandard&quot; python package</li>
+<li>none: don't use zstd (ommiting this will raise an error if the above
+fails)</li>
+</ul>
+<p>Default value is &quot;vendored,system,none&quot;</p>
+<p class="last">This variable might be deprecated in the future depending on how zstd wrapper
+library and they integration in Mercurial evolves. This config has no
+effect on the Rust code.</p>
+</dd>
 </dl>
 </div>
 <div class="section" id="safely-rewriting-history-experimental">
@@ -6615,6 +6706,8 @@ is captured by this handler.</p>
 </tr>
 <tr class="field"><th class="field-name">extensions:</th><td class="field-body">Extension API</td>
 </tr>
+<tr class="field"><th class="field-name">file-index:</th><td class="field-body">File Index</td>
+</tr>
 <tr class="field"><th class="field-name">mergestate:</th><td class="field-body">Mergestate</td>
 </tr>
 <tr class="field"><th class="field-name">requirements:</th><td class="field-body">Repository Requirements</td>
@@ -7664,6 +7757,20 @@ available for a user or globally.</p>
 <blockquote>
 $ pipx inject mercurial hg-foo</blockquote>
 </div>
+<div class="section" id="using-uv-tool">
+<h3>Using uv tool</h3>
+<p>Using <cite>uv tool</cite> is another efficient way to get an isolated installation of
+mercurial available for a user or globally.</p>
+<blockquote>
+<dl class="docutils">
+<dt>$ uv tool install mercurial </dt>
+<dd>--no-binary=mercurial --no-cache --config-setting=--build-option=--rust</dd>
+</dl>
+</blockquote>
+<p>You can bring extensions along using the <cite>--with</cite> flag. For example</p>
+<blockquote>
+$ uv tool install mercurial --with hg-evolve [...]</blockquote>
+</div>
 <div class="section" id="from-your-distribution">
 <h3>From your distribution</h3>
 <p>Some distributions are shipping Mercurial with Rust extensions enabled and
@@ -8117,6 +8224,9 @@ committed.</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">children:</th><td class="field-body"><p class="first">List of strings. The children of the changeset.</p>
+</td>
+</tr>
+<tr class="field"><th class="field-name">closesbranch:</th><td class="field-body"><p class="first">&quot;yes&quot; if this changeset is branch-closing, &quot;no&quot; otherwise</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">date:</th><td class="field-body"><p class="first">Date information. The date when the changeset was committed.</p>
@@ -15431,6 +15541,56 @@ changeset. Use --no-rebase to avoid the rebase.</p>
 since version 5.7. Please use <a class="reference external" href="hg.1.html#debugstrip"><tt class="docutils literal">hg debugstrip ...</tt></a> instead.</p>
 <p>This extension allows you to strip changesets and all their descendants from the
 repository. See the command help for details.</p>
+<div class="section" id="commands-40">
+<h3>Commands</h3>
+<div class="section" id="repository-maintenance-8">
+<h4>Repository maintenance</h4>
+<div class="section" id="strip-1">
+<h5>strip</h5>
+<pre class="literal-block">
+hg strip [-k] [-f] [-B bookmark] [-r] REV...
+</pre>
+<p>Options:</p>
+<table class="docutils option-list" frame="void" rules="none">
+<col class="option" />
+<col class="description" />
+<tbody valign="top">
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-r</span>, <span class="option">--rev <var>&lt;REV[+]&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>strip specified revision (optional, can specify revisions without this option)</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-f</span>, <span class="option">--force</span></kbd></td>
+<td>force removal of changesets, discard uncommitted changes (no backup)</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--no-backup</span></kbd></td>
+<td>do not save backup bundle</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--nobackup</span></kbd></td>
+<td>do not save backup bundle (DEPRECATED)</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-n</span></kbd></td>
+<td>ignored  (DEPRECATED)</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">-k</span>, <span class="option">--keep</span></kbd></td>
+<td>do not modify working directory during strip</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">-B</span>, <span class="option">--bookmark <var>&lt;BOOKMARK[+]&gt;</var></span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>remove revs only reachable from given bookmark</td></tr>
+<tr><td class="option-group">
+<kbd><span class="option">--soft</span></kbd></td>
+<td>simply drop changesets from visible history (EXPERIMENTAL)</td></tr>
+<tr><td class="option-group" colspan="2">
+<kbd><span class="option">--permit-empty-revset</span></kbd></td>
+</tr>
+<tr><td>&nbsp;</td><td>return success even if no revision was stripped</td></tr>
+</tbody>
+</table>
+<p>[+] marked option can be specified multiple times</p>
+</div>
+</div>
+</div>
 </div>
 <div class="section" id="transplant">
 <h2><a class="toc-backref" href="#toc-entry-92">transplant</a></h2>
@@ -15439,7 +15599,7 @@ repository. See the command help for details.</p>
 possibly in another repository. The transplant is done using 'diff' patches.</p>
 <p>Transplanted patches are recorded in .hg/transplant/transplants, as a
 map from a changeset hash to its hash in the source repository.</p>
-<div class="section" id="commands-40">
+<div class="section" id="commands-41">
 <h3>Commands</h3>
 <div class="section" id="change-manipulation-6">
 <h4>Change manipulation</h4>
@@ -15547,7 +15707,7 @@ and then resume where you left off by calling <a class="reference external" href
 files to their uncommitted state. This means that files modified, added or
 removed in the changeset will be left unchanged, and so will remain modified,
 added and removed in the working directory.</p>
-<div class="section" id="commands-41">
+<div class="section" id="commands-42">
 <h3>Commands</h3>
 <div class="section" id="change-manipulation-7">
 <h4>Change manipulation</h4>
@@ -15778,7 +15938,7 @@ below) when you find them.</p>
 </div>
 <div class="section" id="copying">
 <h1><a class="toc-backref" href="#contents">Copying</a></h1>
-<p>Copyright (C) 2005-2025 Olivia Mackall.
+<p>Copyright (C) 2005-2026 Olivia Mackall.
 Free use of this software is granted under the terms of the GNU General
 Public License version 2 or any later version.</p>
 <span class="target" id="common"></span><!-- Common link and substitution definitions. -->

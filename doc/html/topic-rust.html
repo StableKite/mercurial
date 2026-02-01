@@ -22,13 +22,14 @@
 <li><a class="reference internal" href="#installing" id="toc-entry-5">Installing</a><ul>
 <li><a class="reference internal" href="#using-pip" id="toc-entry-6">Using pip</a></li>
 <li><a class="reference internal" href="#using-pipx" id="toc-entry-7">Using pipx</a></li>
-<li><a class="reference internal" href="#from-your-distribution" id="toc-entry-8">From your distribution</a></li>
-<li><a class="reference internal" href="#from-source" id="toc-entry-9">From source</a></li>
+<li><a class="reference internal" href="#using-uv-tool" id="toc-entry-8">Using uv tool</a></li>
+<li><a class="reference internal" href="#from-your-distribution" id="toc-entry-9">From your distribution</a></li>
+<li><a class="reference internal" href="#from-source" id="toc-entry-10">From source</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#msrv" id="toc-entry-10">MSRV</a></li>
-<li><a class="reference internal" href="#rhg-1" id="toc-entry-11">rhg</a></li>
-<li><a class="reference internal" href="#contributing" id="toc-entry-12">Contributing</a></li>
+<li><a class="reference internal" href="#msrv" id="toc-entry-11">MSRV</a></li>
+<li><a class="reference internal" href="#rhg-1" id="toc-entry-12">rhg</a></li>
+<li><a class="reference internal" href="#contributing" id="toc-entry-13">Contributing</a></li>
 </ul>
 </div>
 <p id="rhg"><span id="rustext"></span><span id="rust"></span>Mercurial can be augmented with Rust extensions for speeding up certain
@@ -119,6 +120,20 @@ available for a user or globally.</p>
 <p>You can then add extensions to that install using</p>
 <blockquote>
 $ pipx inject mercurial hg-foo</blockquote>
+</div>
+<div class="section" id="using-uv-tool">
+<h2><a class="toc-backref" href="#contents">Using uv tool</a></h2>
+<p>Using <cite>uv tool</cite> is another efficient way to get an isolated installation of
+mercurial available for a user or globally.</p>
+<blockquote>
+<dl class="docutils">
+<dt>$ uv tool install mercurial </dt>
+<dd>--no-binary=mercurial --no-cache --config-setting=--build-option=--rust</dd>
+</dl>
+</blockquote>
+<p>You can bring extensions along using the <cite>--with</cite> flag. For example</p>
+<blockquote>
+$ uv tool install mercurial --with hg-evolve [...]</blockquote>
 </div>
 <div class="section" id="from-your-distribution">
 <h2><a class="toc-backref" href="#contents">From your distribution</a></h2>

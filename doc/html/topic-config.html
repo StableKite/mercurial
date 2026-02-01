@@ -758,6 +758,11 @@ for related options for the annotate command.</p>
 <dl class="docutils">
 <dt><tt class="docutils literal">git</tt></dt>
 <dd>Use git extended diff format.</dd>
+<dt><tt class="docutils literal">merge</tt></dt>
+<dd>Show a &quot;merge diff&quot; instead of defaulting to a diff against
+the working directory's first parent. A &quot;merge diff&quot; will diff against the
+conflict regions in the merge, which is very useful to make sense of what
+the merge commit itself has done.</dd>
 <dt><tt class="docutils literal">nobinary</tt></dt>
 <dd>Omit git binary patches.</dd>
 <dt><tt class="docutils literal">nodates</tt></dt>
@@ -870,9 +875,9 @@ rebase=
 <div class="section" id="format">
 <h2><a class="toc-backref" href="#contents"><tt class="docutils literal">format</tt></a></h2>
 <p>Configuration that controls the repository format. Newer format options are more
-powerful, but incompatible with some older versions of Mercurial. Format options
-are considered at repository initialization only. You need to make a new clone
-for config changes to be taken into account.</p>
+powerful, but incompatible with some older versions of Mercurial.</p>
+<p>Format options are considered at repository initialization only. You need to
+make a new clone for config changes to be taken into account.</p>
 <p>For more details about repository format and version compatibility, see
 <a class="reference external" href="https://www.mercurial-scm.org/wiki/MissingRequirement">https://www.mercurial-scm.org/wiki/MissingRequirement</a></p>
 <dl class="docutils">
@@ -899,6 +904,23 @@ fncache) to allow longer filenames and avoids using Windows
 reserved names, e.g. &quot;nul&quot;.</p>
 <p>Repositories with this on-disk format require Mercurial version 1.1.</p>
 <p class="last">Enabled by default.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">use-delta-info-flags</span></tt></dt>
+<dd><p class="first">Store more information through flags in the revlog's index.</p>
+<p>These flags allow for more efficient data access, data exchange and
+data storage in general.</p>
+<p>In particular, one can expect better performance for the following categories of
+commands for repositories using this format can expect better performance than
+ones using older formats:</p>
+<ul class="last simple">
+<li><cite>hg status --copies --rev X</cite></li>
+<li><cite>hg diff</cite></li>
+<li><cite>hg merge</cite></li>
+<li><cite>hg clone</cite></li>
+<li><cite>hg pull</cite></li>
+<li><cite>hg push</cite></li>
+<li><cite>hg unbundle</cite></li>
+</ul>
 </dd>
 <dt><tt class="docutils literal"><span class="pre">use-dirstate-v2</span></tt></dt>
 <dd><p class="first">Enable or disable the experimental &quot;dirstate-v2&quot; feature. The dirstate
@@ -944,27 +966,28 @@ setting both this value and <cite>format.use-dirstate-v2</cite> at the same time
 <dt><tt class="docutils literal"><span class="pre">use-dirstate-v2.automatic-upgrade-of-mismatching-repositories:quiet</span></tt></dt>
 <dd>Hide message when performing such automatic upgrade.</dd>
 <dt><tt class="docutils literal"><span class="pre">use-dirstate-tracked-hint</span></tt></dt>
-<dd><p class="first">Enable or disable the writing of &quot;tracked key&quot; file alongside the dirstate.
-(default to disabled)</p>
-<p>That &quot;tracked-hint&quot; can help external automations to detect changes to the
-set of tracked files. (i.e the result of <cite>hg files</cite> or <cite>hg status -macd</cite>)</p>
-<p>The tracked-hint is written in a new <cite>.hg/dirstate-tracked-hint</cite>. That file
-contains two lines:
-- the first line is the file version (currently: 1),
-- the second line contains the &quot;tracked-hint&quot;.
-That file is written right after the dirstate is written.</p>
-<p>The tracked-hint changes whenever the set of file tracked in the dirstate
-changes. The general idea is:
-- if the hint is identical, the set of tracked file SHOULD be identical,
-- if the hint is different, the set of tracked file MIGHT be different.</p>
-<p>The &quot;hint is identical&quot; case uses <cite>SHOULD</cite> as the dirstate and the hint file
-are two distinct files and therefore that cannot be read or written to in an
-atomic way. If the key is identical, nothing garantees that the dirstate is
-not updated right after the hint file. This is considered a negligible
-limitation for the intended usecase. It is actually possible to prevent this
-race by taking the repository lock during read operations.</p>
+<dd><p class="first">Enable or disable the writing of &quot;tracked key&quot; file alongside
+the dirstate. (default to disabled)</p>
+<p>That &quot;tracked-hint&quot; can help external automations to detect changes to
+the set of tracked files. (i.e the result of 'hg files' or 'hg status
+-macd')</p>
+<p>The tracked-hint is written in a new '.hg/dirstate-tracked-hint'. That
+file contains two lines: - the first line is the file version
+(currently: 1), - the second line contains the &quot;tracked-hint&quot;. That
+file is written right after the dirstate is written.</p>
+<p>The tracked-hint changes whenever the set of file tracked in the
+dirstate changes. The general idea is: - if the hint is identical, the
+set of tracked file SHOULD be identical, - if the hint is different,
+the set of tracked file MIGHT be different.</p>
+<p>The &quot;hint is identical&quot; case uses 'SHOULD' as the dirstate and the
+hint file are two distinct files and therefore that cannot be read or
+written to in an atomic way. If the key is identical, nothing
+garantees that the dirstate is not updated right after the hint file.
+This is considered a negligible limitation for the intended usecase.
+It is actually possible to prevent this race by taking the repository
+lock during read operations.</p>
 <p>They are two &quot;ways&quot; to use this feature:</p>
-<p>1) monitoring changes to the <cite>.hg/dirstate-tracked-hint</cite>, if the file
+<p>1) monitoring changes to the '.hg/dirstate-tracked-hint', if the file
 changes, the tracked set might have changed.</p>
 <ol class="last arabic simple" start="2">
 <li>storing the value and comparing it to a later value.</li>
@@ -2163,6 +2186,17 @@ the feature:</p>
 <p class="last">For details on the &quot;dirstate-v2&quot; feature, see:
 <a class="reference external" href="hgrc.5.html#format"><tt class="docutils literal">hg help <span class="pre">config.format.use-dirstate-v2</span></tt></a>.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">revlog.exchange-compressed-delta</span></tt></dt>
+<dd><p class="first">Controls whether the repository might emit or request
+compressed deltas in bundles.</p>
+<p>Exchanging deltas in their compressed form results in larger bundles and higher
+bandwidth usage, but reduces CPU usage on both ends and helps the main server
+to use agressive compression levels to share that benefit with ordinary clients
+pulling from them.</p>
+<p class="last">Even when activated, the exchange of compressed deltas will only be used if the
+exchange uses a changegroup format that supports it (04 and above) and the
+receiving end supports it.</p>
+</dd>
 <dt><tt class="docutils literal"><span class="pre">revlog.issue6528.fix-incoming</span></tt></dt>
 <dd><p class="first">Version 5.8 of Mercurial had a bug leading to altering the parent of file
 revision with copy information (or any other metadata) on exchange. This
@@ -2263,6 +2297,10 @@ down.</p>
 <p class="last">This option is enabled by default. When disabled, it also disables the
 related <tt class="docutils literal"><span class="pre">storage.revlog.reuse-external-delta-parent</span></tt> option.</p>
 </dd>
+<dt><tt class="docutils literal"><span class="pre">revlog.reuse-external-delta-compression</span></tt></dt>
+<dd>When true, reuse the compression of incoming deltas
+when receiving a compressed delta if its compression type is compatible
+with the one used by the revlog.</dd>
 <dt><tt class="docutils literal">revlog.zlib.level</tt></dt>
 <dd>Zlib compression level used when storing data into the repository. Accepted
 Value range from 1 (lowest compression) to 9 (highest compression). Zlib
@@ -2843,6 +2881,20 @@ performance,</li>
 performance.</li>
 </ul>
 </dd>
+<dt><tt class="docutils literal">resources.bandwidth</tt></dt>
+<dd><p class="first">How aggressive Mercurial can be in terms of bandwidth usage:</p>
+<p>Currently recognised values are:</p>
+<pre class="literal-block">
+- ``default``: the default value, inherits the value from `usage.resources`,
+</pre>
+<ul class="last simple">
+<li><tt class="docutils literal">high</tt>: allows for more aggressive bandwidth usage to improve overall
+performance,</li>
+<li><tt class="docutils literal">medium</tt>:  aims at a moderate bandwidth usage,</li>
+<li><tt class="docutils literal">low</tt>: reduces bandwidth usage when possible at the cost of overall
+performance.</li>
+</ul>
+</dd>
 </dl>
 </div>
 <div class="section" id="command-templates">
@@ -3174,6 +3226,35 @@ enabled.
 <dd>Number of threads to process background file closes. Only relevant if
 <tt class="docutils literal">backgroundclose</tt> is enabled.
 (default: 4)</dd>
+<dt><tt class="docutils literal"><span class="pre">parallel-stream-bundle-processing</span></tt></dt>
+<dd><p class="first">Read, parse and write stream bundle in parallel speeding up the process.</p>
+<p>Also see <cite>worker.parallel-stream-bundle-processing.memory-target</cite> to control
+the memory usage of the buffers.</p>
+<p class="last">Also see <cite>worker.parallel-stream-bundle-processing.num-writer</cite> to control the
+amount of concurrent writers.</p>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">parallel-stream-bundle-processing.memory-target</span></tt></dt>
+<dd><p class="first">Limit memory usage around this value. This is not a hard target a Mercurial will use a bit more, but this reduce the amount of buffered stream content that we read ahead.</p>
+<p>If set to a negative value, the amount of memory used will not be restricted.</p>
+<p>When set to 0, the default value depends on the value of the
+<cite>usage.resources.memory</cite> configuration:</p>
+<ul class="last simple">
+<li>low:    100 MB</li>
+<li>medium: 500 MB (default)</li>
+<li>high:     2 GB</li>
+</ul>
+</dd>
+<dt><tt class="docutils literal"><span class="pre">parallel-stream-bundle-processing.num-writer</span></tt></dt>
+<dd><p class="first">Control the number of file being written concurrently when applying a stream
+bundle.</p>
+<p>When set to 0, the default, the value used depends on the value of the
+<cite>usage.resources.cpu</cite> configuration:</p>
+<ul class="last simple">
+<li>low:    1 writer</li>
+<li>medium: 4 writers (default)</li>
+<li>high:   8 writers</li>
+</ul>
+</dd>
 </dl>
 </div>
 </div>
