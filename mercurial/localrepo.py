@@ -661,7 +661,6 @@ def makelocalrepository(baseui, path: bytes, intents=None):
                 share_safe_upgrade.upgrade_share_to_safe(
                     ui,
                     hgvfs,
-                    storevfs,
                     requirements,
                     mismatch_config,
                     mismatch_warn,
@@ -1656,7 +1655,7 @@ class localrepository(_localrepo_base_classes):
                 quick[r] = pair
                 quick[n] = pair
         p1node = self.dirstate.p1()
-        if p1node != self.nullid:
+        if p1node in quick:
             quick[b'.'] = quick[p1node]
         return quick
 

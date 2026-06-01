@@ -1503,7 +1503,7 @@ rust/rhg/src/commands/script_hgignore.rs
 rust/rhg/src/commands/status.rs
 rust/rhg/src/utils/path_utils.rs
 tests/.balto.toml
-tests/README
+tests/README.md
 tests/autodiff.py
 tests/basic_test_result.py
 tests/binfile.bin
@@ -1622,6 +1622,7 @@ tests/test-branch-change.t
 tests/test-branch-option.t
 tests/test-branch-tag-confict.t
 tests/test-branches-obsolete.t
+tests/test-branches-topo-mode.t
 tests/test-branches.t
 tests/test-bugzilla.t
 tests/test-bundle-phase-internal.t
@@ -2167,6 +2168,7 @@ tests/test-obsolete-check-push.t
 tests/test-obsolete-checkheads.t
 tests/test-obsolete-distributed.t
 tests/test-obsolete-divergent.t
+tests/test-obsolete-streamclone.t
 tests/test-obsolete-tag-cache.t
 tests/test-obsolete.t
 tests/test-oldcgi.t
@@ -2599,6 +2601,7 @@ tests/svn/svndump-replace.sh
 tests/svn/svndump-startrev.sh
 tests/svn/svndump-tags.sh
 tests/svn/tags.svndump
+tests/testlib/advance-fs-time.py
 tests/testlib/badserverext.py
 tests/testlib/common.sh
 tests/testlib/exchange-obsmarker-util.sh
