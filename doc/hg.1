@@ -17095,7 +17095,303 @@ qpush after importing
 [+] marked option can be specified multiple times
 .SS narrow
 .sp
-create clones which fetch history data for subset of files (EXPERIMENTAL)
+create clones which fetch history data for subsets of files (EXPERIMENTAL)
+.sp
+Only the server holds the full store: narrow clones will have the full history
+of fewer files in their store.
+.SS Concepts
+.sp
+The narrow extension introduces a number of concepts that are detailed below.
+.SS Shape (experimental)
+.sp
+A shape is used to define a set of paths to consider for clients of the narrow
+server. And it does so through the entire history, regardless the state of these
+files in the heads of the repository (deleted, for example).
+.sp
+As of Mercurial 7.2, only a limited scope of all planned shape\-related features
+have been implemented. Shapes are only directly interacted with by server
+administrators. They can be used to generate narrowspecs (used by clients) and
+to create narrow streaming clonebundles.
+.sp
+This means that as of Mercurial 7.2, clients have no knowledge of shapes and
+must be given the set of narrow patterns by server administrators in order to
+use a streaming clonebundle for a given shape:
+.sp
+.nf
+.ft C
+$ hg clone server \-\-narrow \-\-narrowspec NARROW_SPEC_FILE
+.ft P
+.fi
+.SS Fingerprint
+.sp
+Every shape corresponds to a normalized and minimal set of included and excluded
+paths in a repository\(aqs store. This normalization ensures that we can derive a
+fingerprint, meaning that two shapes with the same fingerprint mean they match
+the same set of paths.
+.sp
+Checking the fingerprint of a narrow clone can be done by running:
+.sp
+.nf
+.ft C
+$ hg admin::narrow\-client \-\-store\-fingerprint
+.ft P
+.fi
+.sp
+For now, we guarantee no stability of the fingerprints. Before we take shapes
+out of experimental, we will have a fingerprint versioning scheme, to allow
+for future changes with no confusion.
+.SS Shards
+.sp
+Shards are used server\-side to slice the store. Each shard is defined as a set
+of paths it contains: files or directories matching each path will be included
+in that shard. Moreover shards are mutually exclusive, meaning that a given file
+can only ever be in one shard and one shard only. When a shard\(aqs path matches a
+directory, the shard contains all files in that directory\(aqs tree, except for
+those matched by a more deeply nested shard.
+.SS Example
+.sp
+Given the following store, representing all files ever known to the repository:
+.sp
+.nf
+.ft C
+\&.
+├── file1
+├── file2
+└── foo
+    └── bar
+        ├── baz
+        │   ├── file1
+        │   └── file2
+        └── confidential
+            ├── confidential\-file1
+            └── confidential\-file2
+.ft P
+.fi
+.sp
+One could define the following shards:
+.sp
+.nf
+.ft C
+* \(ga\(gafoo\(ga\(ga, that includes \(ga\(gafoo\(ga\(ga
+* \(ga\(gafoo.confidential\(ga\(ga, that includes \(ga\(gafoo/bar/confidential\(ga\(ga
+.ft P
+.fi
+.sp
+This would mean that shard \fBfoo\fP contains:
+.sp
+.nf
+.ft C
+* \(ga\(gafoo/bar/baz/file1\(ga\(ga
+* \(ga\(gafoo/bar/baz/file2\(ga\(ga
+.ft P
+.fi
+.sp
+And shard \fBfoo.confidential\fP contains:
+.sp
+.nf
+.ft C
+* \(ga\(gafoo/bar/confidential/confidential\-file1\(ga\(ga
+* \(ga\(gafoo/bar/confidential/confidential\-file2\(ga\(ga
+.ft P
+.fi
+.sp
+In this example, \fBfile1\fP and \fBfile2\fP are not contained in any explicitly
+defined shard. As a result, they are contained by the implicit \fBbase\fP shard.
+.sp
+It is important to note that adding a new shard (e.g. that includes \fIfile1\fP and
+\fBfile2\fP) would remove its paths from any shard that previously contained them
+(in this case, only \fBbase\fP).
+.sp
+Server\-side, shards are used to define shapes, which are sets of shards. Each
+shape defines the shards it includes, hence excluding the contents of all other
+shards.
+.sp
+To simplify the creation of shapes, we can compose shards together by defining
+explicit dependencies between shards. In our above example, we could define a
+\fBfoo.full\fP (that does not itself have to define any paths), but requires both
+\fBfoo\fP and \fBfoo.confidential\fP, giving us a shard with the full \fBfoo\fP store
+subtree.
+.sp
+Note that the set of paths in the current working copy may only be a subset of
+the the store. In our example, we can imagine that
+\fBfoo/bar/confidential\-module\fP has been split into the files in
+\fBfoo/bar/confidential\fP and removed from the working copy.
+.sp
+In addition to the implicit \fBbase\fP shard, there is also the implicit
+\fB.hg\-files\fP shard, which contains special paths used by Mercurial:
+.sp
+.nf
+.ft C
+* \(ga\(ga.hgignore\(ga\(ga
+* \(ga\(ga.hgtags\(ga\(ga
+* \(ga\(ga.hgsub\(ga\(ga
+* \(ga\(ga.hgsubstate\(ga\(ga
+.ft P
+.fi
+.sp
+This shard will be automatically included in every \fBShape\fP to make sure
+Mercurial has the data it needs to operate on each revision.
+.SS Narrowspec (legacy)
+.sp
+Note: the narrowspec in its current form will be phased out in favor of the
+\fBShape\fP system within the next few versions of Mercurial, as of Mercurial 7.2.
+See the \fBShapes vs narrowspec\fP section below.
+.sp
+The \fBnarrowspec\fP is a client\-side configuration that consists of expressions
+to match remote files and/or directories that should be pulled
+into a client. The \fBnarrowspec\fP has \fIinclude\fP and \fIexclude\fP expressions,
+with excludes always trumping includes: that is, if a file matches an exclude
+expression, it will be excluded even if it also matches an include expression.
+Excluding files that were never included has no effect.
+.sp
+Each included or excluded entry is in the format described by
+\%\fBhg help patterns\fP\:, but can only use \fBpath:\fP or \fBrootfilesin:\fP, except
+when using \fBShard\fP and \fBShape\fP where you can only use \fBpath:\fP.
+.SS Shapes vs narrowspec
+.sp
+The \fBnarrowspec\fP was introduced alongside the experimental narrow extension
+back in 2018.  It enabled the client to chose exactly what it cares about from
+the server, with the server merely cooperating with the patterns that the
+client asks for.
+.sp
+Unless this flexibility becomes really important for someone in the future,
+the current direction is to deprecate the narrowspec usage and remove its
+support entirely in later versions in favor of store shapes.
+.sp
+Here the advantages of store shapes:
+.sp
+.nf
+.ft C
+* We can define clonebundles for usual patterns
+* We can nest and generally compose includes and excludes
+* We can generate a fingerprint for equivalent patterns
+* We can require that the server and the client agree on patterns
+* Client are made aware of changes on the server, invalidating their patterns
+* A solid permissions system could be built on top of store shapes
+* Some legacy problems (e.g. CLI parsing) will be solved
+.ft P
+.fi
+.sp
+Some of these points could be (and have been) bolted on top of the original
+implementation, but we would not go very far.
+.SS Usage
+.SS Server configuration
+.sp
+For Mercurial 7.2, the \fB.hg/store/server\-shapes\fP file is a TOML file, to be
+created and modified directly by the narrow server\(aqs administrators.
+.sp
+\fBWarning\fP: using dedicated \fBhg\fP command to modify the shapes config will
+become mandatory in future releases, once such a command exists,
+as changing shapes can lead to (sometimes surprising) client breakage.
+.sp
+The current (experimental!) format is the following:
+.sp
+.nf
+.ft C
+* \(ga\(gaversion\(ga\(ga (required): its value must be \(ga\(ga0\(ga\(ga
+* \(ga\(gashards\(ga\(ga (required): a list of <shardconfig>
+* <shardconfig>:
+
+  * \(ga\(ganame\(ga\(ga (required): canonical name for this shard.
+  * \(ga\(gapaths\(ga\(ga (optional): A list of UTF8 paths that this shard concerns,
+      relative to the repo root.
+  * \(ga\(garequires\(ga\(ga (optional): A list of the names of the shards that this
+      shard depends on.
+  * \(ga\(gashape\(ga\(ga (optional): If \(ga\(gatrue\(ga\(ga, this as a user\-accessible shape.
+.ft P
+.fi
+.sp
+Constraints:
+.sp
+.nf
+.ft C
+* Shard names must be unique within the config
+* Shard names must only contain bytes that are either lowercase alphanumeric
+  ascii, dot or hyphen
+* \(ga\(gafull\(ga\(ga, \(ga\(gabase\(ga\(ga and \(ga\(ga.hg\-files\(ga\(ga are reserved shard names
+* Each <shardconfig> must define one of \(ga\(garequires\(ga\(ga or \(ga\(gapaths\(ga\(ga, or both
+* Shard requirements cannot form a cycle
+* A given path cannot be in more than one shard
+* \(ga\(gapaths\(ga\(ga must be a list of UTF8 paths. Support for non\-UTF8 paths will be
+  added in an upcoming version, via an \(ga\(gaencoded_paths\(ga\(ga field
+* \(ga\(gapaths\(ga\(ga must be a list of syntactically valid paths relative to the
+  repository root (no \(ga\(ga\en\(ga\(ga, \(ga\(ga\er\(ga\(ga or \(ga\(ga\ex00\(ga\(ga, no consecutive slash, no
+  slashes at the start or end, etc.)
+.ft P
+.fi
+.sp
+Example:
+.sp
+.nf
+.ft C
+version = 0
+
+[[shards]]
+name = "foo"
+paths = ["foo", "bar.txt", "baz/nested"]
+shape = true
+
+[[shards]]
+name = "subproject1"
+paths = ["subproject1", "utils/only\-this\-dir"]
+
+[[shards]]
+name = "backend"
+paths = ["subproject2"]
+requires = ["subproject1"]
+shape = true
+
+[[shards]]
+name = "full\-stack"
+requires = ["backend", "foo"]
+shape = true
+.ft P
+.fi
+.SS Bundle generation
+.sp
+Server administrators manually (and likely frequently) create streaming
+clonebundles for every shape and expose them in the server clonebundle manifest
+with their fingerprint. In future versions, non\-streaming clonebundles will
+be supported and their generations more automated.
+.sp
+You may generate the bundles with the following:
+.sp
+.nf
+.ft C
+$ hg bundle \-\-all \-\-type"none\-v2;stream\-v2;shape=my\-shape" ../bundle.hg
+$ bundlespec="$(hg debugbundle \-\-spec ../bundle.hg)"
+$ # [move bundle to static server or to \(ga.hg/bundle\-cache\(ga for inline serving]
+$ bundleentry="https://static.com/bundle.hg BUNDLESPEC=$bundlespec"
+$ # [or use inline SSH clonebundles]
+$ bundleentry="peer\-bundle\-cache://bundle.hg BUNDLESPEC=$bundlespec"
+$ echo $bundleentry >> .hg/clonebundles.manifest
+.ft P
+.fi
+.sp
+You can export the includes and exclude patterns for every shape and give
+them manually to clients:
+.sp
+.nf
+.ft C
+$ hg admin::narrow\-server \-\-shape\-narrow\-patterns my\-shape
+[exclude]
+path:foo
+path:bar
+.ft P
+.fi
+.sp
+Clients can then use said patterns when doing a narrow stream clone, which
+matches the fingerprint from the patterns with that of the server clonebundles:
+.sp
+.nf
+.ft C
+$ hg clone \-\-narrow \-\-narrowspec $NARROWSPECFILE
+.ft P
+.fi
+.SS Client
+.sp
+TODO explain current client\-side config and how it might evolve (storing the
+shape, fingerprint, etc.).
 .SS Commands
 .SS Repository maintenance
 .SS tracked

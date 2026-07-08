@@ -15,13 +15,260 @@
 <div class="contents htmlonly topic" id="contents">
 <p class="topic-title"><a class="reference internal" href="#top">Contents</a></p>
 <ul class="simple">
-<li><a class="reference internal" href="#commands" id="toc-entry-1">Commands</a><ul>
-<li><a class="reference internal" href="#repository-maintenance" id="toc-entry-2">Repository maintenance</a></li>
+<li><a class="reference internal" href="#description" id="toc-entry-1">Description</a><ul>
+<li><a class="reference internal" href="#concepts" id="toc-entry-2">Concepts</a></li>
+<li><a class="reference internal" href="#usage" id="toc-entry-3">Usage</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#commands" id="toc-entry-4">Commands</a><ul>
+<li><a class="reference internal" href="#repository-maintenance" id="toc-entry-5">Repository maintenance</a></li>
 </ul>
 </li>
 </ul>
 </div>
-<p>create clones which fetch history data for subset of files (EXPERIMENTAL)</p>
+<p>create clones which fetch history data for subsets of files (EXPERIMENTAL)</p>
+<div class="section" id="description">
+<h1><a class="toc-backref" href="#contents">Description</a></h1>
+<p>Only the server holds the full store: narrow clones will have the full history
+of fewer files in their store.</p>
+<div class="section" id="concepts">
+<h2><a class="toc-backref" href="#contents">Concepts</a></h2>
+<p>The narrow extension introduces a number of concepts that are detailed below.</p>
+<div class="section" id="shape-experimental">
+<h3>Shape (experimental)</h3>
+<p>A shape is used to define a set of paths to consider for clients of the narrow
+server. And it does so through the entire history, regardless the state of these
+files in the heads of the repository (deleted, for example).</p>
+<p>As of Mercurial 7.2, only a limited scope of all planned shape-related features
+have been implemented. Shapes are only directly interacted with by server
+administrators. They can be used to generate narrowspecs (used by clients) and
+to create narrow streaming clonebundles.</p>
+<p>This means that as of Mercurial 7.2, clients have no knowledge of shapes and
+must be given the set of narrow patterns by server administrators in order to
+use a streaming clonebundle for a given shape:</p>
+<pre class="literal-block">
+$ hg clone server --narrow --narrowspec NARROW_SPEC_FILE
+</pre>
+</div>
+<div class="section" id="fingerprint">
+<h3>Fingerprint</h3>
+<p>Every shape corresponds to a normalized and minimal set of included and excluded
+paths in a repository's store. This normalization ensures that we can derive a
+fingerprint, meaning that two shapes with the same fingerprint mean they match
+the same set of paths.</p>
+<p>Checking the fingerprint of a narrow clone can be done by running:</p>
+<pre class="literal-block">
+$ hg admin::narrow-client --store-fingerprint
+</pre>
+<p>For now, we guarantee no stability of the fingerprints. Before we take shapes
+out of experimental, we will have a fingerprint versioning scheme, to allow
+for future changes with no confusion.</p>
+</div>
+<div class="section" id="shards">
+<h3>Shards</h3>
+<p>Shards are used server-side to slice the store. Each shard is defined as a set
+of paths it contains: files or directories matching each path will be included
+in that shard. Moreover shards are mutually exclusive, meaning that a given file
+can only ever be in one shard and one shard only. When a shard's path matches a
+directory, the shard contains all files in that directory's tree, except for
+those matched by a more deeply nested shard.</p>
+</div>
+<div class="section" id="example">
+<h3>Example</h3>
+<p>Given the following store, representing all files ever known to the repository:</p>
+<pre class="literal-block">
+.
+├── file1
+├── file2
+└── foo
+    └── bar
+        ├── baz
+        │   ├── file1
+        │   └── file2
+        └── confidential
+            ├── confidential-file1
+            └── confidential-file2
+</pre>
+<p>One could define the following shards:</p>
+<pre class="literal-block">
+* ``foo``, that includes ``foo``
+* ``foo.confidential``, that includes ``foo/bar/confidential``
+</pre>
+<p>This would mean that shard <tt class="docutils literal">foo</tt> contains:</p>
+<pre class="literal-block">
+* ``foo/bar/baz/file1``
+* ``foo/bar/baz/file2``
+</pre>
+<p>And shard <tt class="docutils literal">foo.confidential</tt> contains:</p>
+<pre class="literal-block">
+* ``foo/bar/confidential/confidential-file1``
+* ``foo/bar/confidential/confidential-file2``
+</pre>
+<p>In this example, <tt class="docutils literal">file1</tt> and <tt class="docutils literal">file2</tt> are not contained in any explicitly
+defined shard. As a result, they are contained by the implicit <tt class="docutils literal">base</tt> shard.</p>
+<p>It is important to note that adding a new shard (e.g. that includes <cite>file1</cite> and
+<tt class="docutils literal">file2</tt>) would remove its paths from any shard that previously contained them
+(in this case, only <tt class="docutils literal">base</tt>).</p>
+<p>Server-side, shards are used to define shapes, which are sets of shards. Each
+shape defines the shards it includes, hence excluding the contents of all other
+shards.</p>
+<p>To simplify the creation of shapes, we can compose shards together by defining
+explicit dependencies between shards. In our above example, we could define a
+<tt class="docutils literal">foo.full</tt> (that does not itself have to define any paths), but requires both
+<tt class="docutils literal">foo</tt> and <tt class="docutils literal">foo.confidential</tt>, giving us a shard with the full <tt class="docutils literal">foo</tt> store
+subtree.</p>
+<p>Note that the set of paths in the current working copy may only be a subset of
+the the store. In our example, we can imagine that
+<tt class="docutils literal"><span class="pre">foo/bar/confidential-module</span></tt> has been split into the files in
+<tt class="docutils literal">foo/bar/confidential</tt> and removed from the working copy.</p>
+<p>In addition to the implicit <tt class="docutils literal">base</tt> shard, there is also the implicit
+<tt class="docutils literal"><span class="pre">.hg-files</span></tt> shard, which contains special paths used by Mercurial:</p>
+<pre class="literal-block">
+* ``.hgignore``
+* ``.hgtags``
+* ``.hgsub``
+* ``.hgsubstate``
+</pre>
+<p>This shard will be automatically included in every <tt class="docutils literal">Shape</tt> to make sure
+Mercurial has the data it needs to operate on each revision.</p>
+</div>
+<div class="section" id="narrowspec-legacy">
+<h3>Narrowspec (legacy)</h3>
+<p>Note: the narrowspec in its current form will be phased out in favor of the
+<tt class="docutils literal">Shape</tt> system within the next few versions of Mercurial, as of Mercurial 7.2.
+See the <tt class="docutils literal">Shapes vs narrowspec</tt> section below.</p>
+<p>The <tt class="docutils literal">narrowspec</tt> is a client-side configuration that consists of expressions
+to match remote files and/or directories that should be pulled
+into a client. The <tt class="docutils literal">narrowspec</tt> has <em>include</em> and <em>exclude</em> expressions,
+with excludes always trumping includes: that is, if a file matches an exclude
+expression, it will be excluded even if it also matches an include expression.
+Excluding files that were never included has no effect.</p>
+<p>Each included or excluded entry is in the format described by
+<a class="reference external" href="topic-patterns.html"><tt class="docutils literal">hg help patterns</tt></a>, but can only use <tt class="docutils literal">path:</tt> or <tt class="docutils literal">rootfilesin:</tt>, except
+when using <tt class="docutils literal">Shard</tt> and <tt class="docutils literal">Shape</tt> where you can only use <tt class="docutils literal">path:</tt>.</p>
+</div>
+<div class="section" id="shapes-vs-narrowspec">
+<h3>Shapes vs narrowspec</h3>
+<p>The <tt class="docutils literal">narrowspec</tt> was introduced alongside the experimental narrow extension
+back in 2018.  It enabled the client to chose exactly what it cares about from
+the server, with the server merely cooperating with the patterns that the
+client asks for.</p>
+<p>Unless this flexibility becomes really important for someone in the future,
+the current direction is to deprecate the narrowspec usage and remove its
+support entirely in later versions in favor of store shapes.</p>
+<p>Here the advantages of store shapes:</p>
+<pre class="literal-block">
+* We can define clonebundles for usual patterns
+* We can nest and generally compose includes and excludes
+* We can generate a fingerprint for equivalent patterns
+* We can require that the server and the client agree on patterns
+* Client are made aware of changes on the server, invalidating their patterns
+* A solid permissions system could be built on top of store shapes
+* Some legacy problems (e.g. CLI parsing) will be solved
+</pre>
+<p>Some of these points could be (and have been) bolted on top of the original
+implementation, but we would not go very far.</p>
+</div>
+</div>
+<div class="section" id="usage">
+<h2><a class="toc-backref" href="#contents">Usage</a></h2>
+<div class="section" id="server-configuration">
+<h3>Server configuration</h3>
+<p>For Mercurial 7.2, the <tt class="docutils literal"><span class="pre">.hg/store/server-shapes</span></tt> file is a TOML file, to be
+created and modified directly by the narrow server's administrators.</p>
+<p><strong>Warning</strong>: using dedicated <tt class="docutils literal">hg</tt> command to modify the shapes config will
+become mandatory in future releases, once such a command exists,
+as changing shapes can lead to (sometimes surprising) client breakage.</p>
+<p>The current (experimental!) format is the following:</p>
+<pre class="literal-block">
+* ``version`` (required): its value must be ``0``
+* ``shards`` (required): a list of &lt;shardconfig&gt;
+* &lt;shardconfig&gt;:
+
+  * ``name`` (required): canonical name for this shard.
+  * ``paths`` (optional): A list of UTF8 paths that this shard concerns,
+      relative to the repo root.
+  * ``requires`` (optional): A list of the names of the shards that this
+      shard depends on.
+  * ``shape`` (optional): If ``true``, this as a user-accessible shape.
+</pre>
+<p>Constraints:</p>
+<pre class="literal-block">
+* Shard names must be unique within the config
+* Shard names must only contain bytes that are either lowercase alphanumeric
+  ascii, dot or hyphen
+* ``full``, ``base`` and ``.hg-files`` are reserved shard names
+* Each &lt;shardconfig&gt; must define one of ``requires`` or ``paths``, or both
+* Shard requirements cannot form a cycle
+* A given path cannot be in more than one shard
+* ``paths`` must be a list of UTF8 paths. Support for non-UTF8 paths will be
+  added in an upcoming version, via an ``encoded_paths`` field
+* ``paths`` must be a list of syntactically valid paths relative to the
+  repository root (no ``\n``, ``\r`` or ``\x00``, no consecutive slash, no
+  slashes at the start or end, etc.)
+</pre>
+<p>Example:</p>
+<pre class="literal-block">
+version = 0
+
+[[shards]]
+name = &quot;foo&quot;
+paths = [&quot;foo&quot;, &quot;bar.txt&quot;, &quot;baz/nested&quot;]
+shape = true
+
+[[shards]]
+name = &quot;subproject1&quot;
+paths = [&quot;subproject1&quot;, &quot;utils/only-this-dir&quot;]
+
+[[shards]]
+name = &quot;backend&quot;
+paths = [&quot;subproject2&quot;]
+requires = [&quot;subproject1&quot;]
+shape = true
+
+[[shards]]
+name = &quot;full-stack&quot;
+requires = [&quot;backend&quot;, &quot;foo&quot;]
+shape = true
+</pre>
+</div>
+<div class="section" id="bundle-generation">
+<h3>Bundle generation</h3>
+<p>Server administrators manually (and likely frequently) create streaming
+clonebundles for every shape and expose them in the server clonebundle manifest
+with their fingerprint. In future versions, non-streaming clonebundles will
+be supported and their generations more automated.</p>
+<p>You may generate the bundles with the following:</p>
+<pre class="literal-block">
+$ hg bundle --all --type&quot;none-v2;stream-v2;shape=my-shape&quot; ../bundle.hg
+$ bundlespec=&quot;$(hg debugbundle --spec ../bundle.hg)&quot;
+$ # [move bundle to static server or to `.hg/bundle-cache` for inline serving]
+$ bundleentry=&quot;https://static.com/bundle.hg BUNDLESPEC=$bundlespec&quot;
+$ # [or use inline SSH clonebundles]
+$ bundleentry=&quot;peer-bundle-cache://bundle.hg BUNDLESPEC=$bundlespec&quot;
+$ echo $bundleentry &gt;&gt; .hg/clonebundles.manifest
+</pre>
+<p>You can export the includes and exclude patterns for every shape and give
+them manually to clients:</p>
+<pre class="literal-block">
+$ hg admin::narrow-server --shape-narrow-patterns my-shape
+[exclude]
+path:foo
+path:bar
+</pre>
+<p>Clients can then use said patterns when doing a narrow stream clone, which
+matches the fingerprint from the patterns with that of the server clonebundles:</p>
+<pre class="literal-block">
+$ hg clone --narrow --narrowspec $NARROWSPECFILE
+</pre>
+</div>
+<div class="section" id="client">
+<h3>Client</h3>
+<p>TODO explain current client-side config and how it might evolve (storing the
+shape, fingerprint, etc.).</p>
+</div>
+</div>
+</div>
 <div class="section" id="commands">
 <h1><a class="toc-backref" href="#contents">Commands</a></h1>
 <div class="section" id="repository-maintenance">

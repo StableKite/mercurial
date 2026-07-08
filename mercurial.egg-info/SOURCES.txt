@@ -878,6 +878,8 @@ mercurial.egg-info/PKG-INFO
 mercurial.egg-info/SOURCES.txt
 mercurial.egg-info/dependency_links.txt
 mercurial.egg-info/requires.txt
+mercurial.egg-info/scm_file_list.json
+mercurial.egg-info/scm_version.json
 mercurial.egg-info/top_level.txt
 mercurial/admin/__init__.py
 mercurial/admin/chainsaw.py
@@ -2420,6 +2422,7 @@ tests/test-stabletailgraph.t
 tests/test-stack.t
 tests/test-state-extension.t
 tests/test-static-http.t
+tests/test-status-ambiguous-length.t
 tests/test-status-color.t
 tests/test-status-committed-and-ignored.t
 tests/test-status-eacces.t
