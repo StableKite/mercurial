@@ -1,0 +1,58 @@
+# HG changeset patch
+# User Julien Cristau <jcristau@debian.org>
+# Date 1589916203 -7200
+#      Tue May 19 21:23:23 2020 +0200
+# Node ID de789b6b188b62cf38c5c5cfe760cff9a48c52f5
+# Parent  3b7aabd02e11fcfc015b3a90a0c52d971a7b8a83
+test: make test-doctest.py work when it's not run from a mercurial repo
+
+This assumption fails when building and running tests from a source
+tarball, e.g.
+
+Differential Revision: https://phab.mercurial-scm.org/D8571
+---
+ tests/test-doctest.py | 23 ++++++++++++-----------
+ 1 file changed, 12 insertions(+), 11 deletions(-)
+
+--- a/tests/test-doctest.py
++++ b/tests/test-doctest.py
+@@ -4,7 +4,6 @@
+ import doctest
+ import os
+ import re
+-import subprocess
+ import sys
+ 
+ if 'TERM' in os.environ:
+@@ -74,23 +73,15 @@ testmod_arg_overrides = {
+     'tests.test-url': [{'optionflags': doctest.NORMALIZE_WHITESPACE}],
+ }
+ 
+-fileset = 'set:(**.py)'
++cwd = os.path.dirname(os.environb[b"TESTDIR"])
+ 
+-cwd = os.path.dirname(os.environ["TESTDIR"])
+-
+-if not os.path.isdir(os.path.join(cwd, ".hg")):
+-    sys.exit(0)
+-
+-files = subprocess.check_output(
+-    [
+-        "sh",
+-        "-c",
+-        "set -e; . helpers-testrepo.sh; testrepohg files --print0 \"%s\""
+-        % fileset,
+-    ],
+-    shell=False,
+-    cwd=cwd,
+-).split(b'\0')
++files = []
++for dirpath, dirnames, filenames in os.walk(cwd):
++    excludeddirindexes = reversed([i for i, dir in enumerate(dirnames) if dir == b'build' or dir.startswith(b'.')])
++    for i in excludeddirindexes:
++        del dirnames[i]
++    # include all .py files, removing the cwd + dirsep prefix
++    files.extend(os.path.join(dirpath, f)[len(cwd) + 1:] for f in filenames if f.endswith(b'.py'))
+ 
+ if sys.version_info[0] >= 3:
+     cwd = os.fsencode(cwd)

@@ -1,0 +1,41 @@
+# test-clonebundles.t fails in the reproducible-builds setup due to no
+#  name resolution:
+# --- /build/mercurial-3.7.2/tests/test-clonebundles.t
+# +++ /build/mercurial-3.7.2/tests/test-clonebundles.t.err
+# @@ -52,7 +52,7 @@
+#    $ echo 'http://does.not.exist/bundle.hg' > server/.hg/clonebundles.manifest
+#    $ hg clone http://localhost:$HGPORT 404-url
+#    applying clone bundle from http://does.not.exist/bundle.hg
+# -  error fetching bundle: (.* not known|getaddrinfo failed) (re)
+# +  error fetching bundle: Temporary failure in name resolution
+#    abort: error applying bundle
+#    (if this error persists, consider contacting the server operator or disable clone bundles via "--config ui.clonebundles=false")
+#    [255]
+#
+# ERROR: test-clonebundles.t output changed
+test-clonebundles.t
+
+# upstream don't run this test and it only fails when pyflakes is installed
+test-check-pyflakes.t
+
+# https://bz.mercurial-scm.org/show_bug.cgi?id=6294
+test-debugcommands.t
+
+# These tests are flaky, still need to investigate why:
+test-commandserver.t
+test-largefiles.t
+
+# We don't ship the git extension yet
+test-git-interop.t
+
+# https://bz.mercurial-scm.org/show_bug.cgi?id=3782
+test-convert-cvs-synthetic.t
+
+# https://bz.mercurial-scm.org/show_bug.cgi?id=6783
+test-remotefilelog-gc.t
+
+# https://bz.mercurial-scm.org/show_bug.cgi?id=6799
+test-convert-darcs.t
+
+# https://bz.mercurial-scm.org/show_bug.cgi?id=6827
+test-convert-svn-branches.t

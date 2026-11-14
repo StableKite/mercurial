@@ -1,0 +1,18 @@
+setuptools_scm insists on writing to the version_file during the build;
+we don't want it to do that.
+
+---
+ pyproject.toml |    2 --
+ 1 file changed, 2 deletions(-)
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -132,8 +132,6 @@ archs = ["x86", "AMD64", "ARM64"]
+ 
+ 
+ [tool.setuptools_scm]
+-version_file = "mercurial/__version__.py"
+-
+ # this use `<last-tag>.post1.dev<distance>
+ #
+ # To restore the format introduced for 6.9 nightly build we would need to be

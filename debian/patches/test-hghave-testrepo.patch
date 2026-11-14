@@ -1,0 +1,22 @@
+https://bz.mercurial-scm.org/show_bug.cgi?id=6762
+
+---
+ tests/test-hghave.t |    3 ---
+ 1 file changed, 3 deletions(-)
+
+--- a/tests/test-hghave.t
++++ b/tests/test-hghave.t
+@@ -1,5 +1,3 @@
+-  $ . "$TESTDIR/helpers-testrepo.sh"
+-
+   $ . "$TESTDIR/helper-runtests.sh"
+ 
+ Testing that hghave does not crash when checking features
+@@ -36,7 +34,6 @@ tested here, we work around the issue fo
+ 
+ 
+   $ ( \
+-  > testrepohgenv; \
+   > "$PYTHON" $TESTDIR/run-tests.py \
+   >     --with-hg=$HGTEST_REAL_HG $MAYBE_PURE\
+   >     --jobs 1 \

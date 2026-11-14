@@ -1,0 +1,8 @@
+# times out on riscv64 buildds
+test-dirstate-read-race.t
+test-bookmarks-corner-case.t
+test-revset.t
+test-sparse-revlog.t
+test-sparse-revlog-partial.t
+test-sparse-revlog-upgrade.t
+test-sparse-revlog-full.t

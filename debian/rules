@@ -1,0 +1,93 @@
+#!/usr/bin/make -f
+# -*- mode: makefile; coding: utf-8 -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+build:
+	dh $@ --with python3,bash-completion --buildsystem=pybuild
+%:
+	dh $@ --with python3,bash-completion --buildsystem=pybuild
+
+.PHONY: build
+
+PYVERS := $(shell py3versions -vd)
+BUILD_DIR := $(shell pybuild -p $(PYVERS) --print '{build_dir}')
+
+include /usr/share/dpkg/architecture.mk
+
+override_dh_python3:
+	dh_python3 --shebang=/usr/bin/python3
+
+override_dh_auto_build:
+	dh_auto_build
+	$(MAKE) build-chg
+
+ifneq (,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+         NJOBS := $(patsubst parallel=%,%,$(filter parallel=%,$(DEB_BUILD_OPTIONS)))
+         PARALLEL_TEST_JOBS := --jobs $(NJOBS)
+endif
+
+ARCH_IS_MIPS := $(if $(subst mips,,$(DEB_HOST_ARCH)),,T)
+ARCH_IS_KFREEBSD-i386 := $(if $(subst kfreebsd-i386,,$(DEB_HOST_ARCH)),,T)
+ARCH_IS_ARMEL := $(if $(subst armel,,$(DEB_HOST_ARCH)),,T)
+ARCH_IS_SPARC := $(if $(subst sparc,,$(DEB_HOST_ARCH)),,T)
+
+common_test_flags = \
+    --with-hg=$(BUILD_DIR)/../scripts/hg \
+    --verbose \
+    --timeout 1800 \
+    $(PARALLEL_TEST_JOBS)
+test_flags = \
+    $(common_test_flags) \
+    --blacklist $(CURDIR)/debian/mercurial.test_blacklist
+ifeq ($(DEB_HOST_ARCH), riscv64)
+test_flags += \
+    --blacklist $(CURDIR)/debian/mercurial.test_blacklist_riscv64
+endif
+
+override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	http_proxy='' $(MAKE) tests PYTHON=python3 TESTFLAGS="$(test_flags)" PYTHONPATH=$(BUILD_DIR)
+	# run blacklisted tests but ignore their results
+	-cd tests && PYTHONPATH=$(BUILD_DIR) python3 run-tests.py $(common_test_flags) `grep ^test ../debian/mercurial.test_blacklist`
+endif
+
+execute_after_dh_install:
+	if test -d $(CURDIR)/debian/mercurial ; then \
+		$(MAKE) -f debian/rules install-archdep ; \
+	fi
+	if test -d $(CURDIR)/debian/mercurial-common ; then \
+		$(MAKE) -f debian/rules install-archindep ;\
+	fi
+
+install-archdep:
+	# remove arch-independent python stuff
+	find debian/mercurial/usr/lib \
+		! -name '*.so' ! -type d -delete , \
+		-type d -empty -delete
+
+install-archindep:
+	# remove arch-dependent python stuff
+	find debian/mercurial-common/usr/lib \
+		-name '*.so' ! -type d -delete , \
+		-type d -empty -delete
+	install -DTm 644 contrib/zsh_completion \
+	    debian/mercurial-common/usr/share/zsh/vendor-completions/_mercurial
+	install -DTm 644 tests/run-tests.py \
+	    debian/mercurial-common/usr/share/mercurial/tests/run-tests.py
+
+override_dh_python3-arch:
+	dh_python3
+	find debian/mercurial/usr/share -type d -empty -delete ; \
+
+override_dh_auto_clean: mercurial/__version__.py
+	dh_auto_clean
+	$(MAKE) clean
+	$(RM) -rv tmp/
+
+mercurial/__version__.py:
+	@echo "$@ is missing (you probably call 'make clean' directly)."
+	@echo "Restore it from sources before building the package"
+	@echo "Aborting."
+	exit 1
