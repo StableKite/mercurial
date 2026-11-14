@@ -55,7 +55,16 @@ endif
 
 override_dh_auto_test:
 ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+ifeq ($(FREE_THREADED),1)
+	# PyO3 0.27 Rust bindings cannot target free-threaded Python 3.15.
+	# This Debian build installs Mercurial's pure Python backend, so run its
+	# full --pure Python suite without invoking incompatible Rust-only checks.
+	# Traditional GIL builds retain the original upstream Rust test path.
+	@echo 'Free-threaded Python: testing the pure backend; Rust/PyO3 checks require a supported interpreter.'
+	cd tests && http_proxy='' PYTHONPATH=$(BUILD_DIR) python3 run-tests.py $(test_flags)
+else
 	http_proxy='' $(MAKE) tests PYTHON=python3 TESTFLAGS="$(test_flags)" PYTHONPATH=$(BUILD_DIR)
+endif
 	# run blacklisted tests but ignore their results
 	-cd tests && PYTHONPATH=$(BUILD_DIR) python3 run-tests.py $(common_test_flags) `grep ^test ../debian/mercurial.test_blacklist`
 endif
