@@ -20,6 +20,7 @@ override_dh_python3:
 	dh_python3 --shebang=/usr/bin/python3
 
 override_dh_auto_build:
+	python3 debian/tests/zstd-bytes-resize.py -v
 	dh_auto_build
 	$(MAKE) build-chg
 

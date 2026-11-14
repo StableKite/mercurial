@@ -7,3 +7,4 @@ test_copies_chain_merge_slow.patch
 pyproject-version-file.patch
 test-run-tests-pip.patch
 openssl4-ssl-check.patch
+zstd-free-threaded-bytes-resize.patch

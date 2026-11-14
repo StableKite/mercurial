@@ -1,0 +1,28 @@
+Description: Use public uniqueness APIs when resizing bundled zstd byte buffers
+ CPython's free-threaded object layout has no ob_refcnt member. Backport the
+ maintained binding's uniqueness check on Python 3.14+, retaining Py_REFCNT
+ for older GIL builds and a copying fallback for older free-threaded builds.
+ Bound that copy to the destination size, including shared/immortal bytes.
+ Do not declare the old bundled binding or Mercurial's other C modules
+ free-threading-safe: this only corrects the local buffer ownership operation.
+Author: Robolightning <irobolightning@gmail.com>
+Origin: backport, https://github.com/indygreg/python-zstandard/commit/fc727e5fe5c7bf109638d5aa465fd946d202f5a8
+Forwarded: no
+Last-Update: 2026-11-14
+---
+--- a/contrib/python-zstandard/c-ext/backend_c.c
++++ b/contrib/python-zstandard/c-ext/backend_c.c
+@@ -316,3 +316,9 @@
+-    if ((*obj)->ob_refcnt == 1) {
++#if PY_VERSION_HEX >= 0x030e0000
++    if (PyUnstable_Object_IsUniquelyReferenced(*obj)) {
+         return _PyBytes_Resize(obj, size);
+     }
++#elif !defined(Py_GIL_DISABLED)
++    if (Py_REFCNT(*obj) == 1) {
++        return _PyBytes_Resize(obj, size);
++    }
++#endif
+@@ -326 +332 @@
+-           PyBytes_GET_SIZE(*obj));
++           Py_MIN(size, PyBytes_GET_SIZE(*obj)));
