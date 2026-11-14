@@ -254,7 +254,8 @@ class config:
         remap: CfgRemapT | None = None,
     ) -> None:
         self.new_source()
-        if not fp:
+        owned = not fp
+        if owned:
             fp = util.posixfile(path, b'rb')
         assert (
             getattr(fp, 'mode', 'rb') == 'rb'
@@ -275,6 +276,10 @@ class config:
             # anything after the include has a higher level
             self.new_source()
 
-        self.parse(
-            path, fp.read(), sections=sections, remap=remap, include=include
-        )
+        try:
+            self.parse(
+                path, fp.read(), sections=sections, remap=remap, include=include
+            )
+        finally:
+            if owned:
+                fp.close()

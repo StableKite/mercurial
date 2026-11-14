@@ -5,6 +5,7 @@ Table of contents
 * Documentation
 * Extensions
 * Emacs support
+* Free-threaded Python
 
 
 Documentation
@@ -32,5 +33,18 @@ This package installs a mercurial.el file in the example directory
 (/usr/share/doc/mercurial/examples/). However, with emacs22 or better,
 vc-hg.el provided directly by emacs is better. This is why mercurial.el
 is not installed by default anymore.
+
+Free-threaded Python
+********************
+
+On free-threaded CPython this compatibility branch selects Mercurial's
+supported pure-Python backend rather than allowing unaudited C extensions
+to enable the GIL implicitly. Native-only extensions (including optional
+SHA1DC) are not installed in that build, as in upstream's ordinary pure
+configuration. Builds using a traditional GIL interpreter are unchanged.
+
+Zstandard repository and bundle compression remains enabled through
+CPython 3.14+'s native compression.zstd module. No tests are disabled and
+no GIL-safety declarations are added to Mercurial's legacy extensions.
 
  -- Javi Merino <merino.jav@gmail.com>, Sun, 17 Jul 2016 13:35:02 +0100

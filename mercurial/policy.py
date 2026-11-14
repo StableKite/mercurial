@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import sys
+import sysconfig
 
 
 # Rules for how modules can be loaded. Values are:
@@ -30,6 +31,7 @@ policy: bytes = b'allow'
 _ZP_VENDOR = b'vendored'
 _ZP_SYSTEM = b'system'
 _ZP_NONE = b'none'
+_ZP_STDLIB = b'stdlib'
 
 zstd_policy: list[bytes] = [_ZP_VENDOR, _ZP_SYSTEM, _ZP_NONE]
 _packageprefs: dict[bytes, tuple[str | None, str | None]] = {
@@ -57,6 +59,10 @@ except ImportError:
 # But we don't import platform and don't bloat for it here.
 if '__pypy__' in sys.builtin_module_names:
     policy: bytes = b'cffi'
+
+if sysconfig.get_config_var('Py_GIL_DISABLED'):
+    policy = b'py'
+    zstd_policy = [_ZP_STDLIB]
 
 # Environment variable can always force settings.
 if os.environ.get('HGMODULEPOLICY'):  # ignore None and Empty
@@ -179,13 +185,15 @@ def _get_zstd(_catch=True):
     if not zstd_policy:
         raise RuntimeError("empty zstd policy should not happen")
     for p in zstd_policy:
-        if p not in [_ZP_VENDOR, _ZP_SYSTEM, _ZP_NONE]:
+        if p not in [_ZP_VENDOR, _ZP_SYSTEM, _ZP_NONE, _ZP_STDLIB]:
             raise RuntimeError('invalid HG_ZSTD_POLICY %r' % policy)
         try:
             if p == _ZP_VENDOR:
                 from . import zstd  # pytype: disable=import-error
             elif p == _ZP_SYSTEM:
                 import zstandard as zstd  # pytype: disable=import-error
+            elif p == _ZP_STDLIB:
+                from .pure import zstd
             elif p == _ZP_NONE:
                 zstd = None
                 break  # found something !

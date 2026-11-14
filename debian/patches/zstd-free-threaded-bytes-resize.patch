@@ -14,7 +14,7 @@ Last-Update: 2026-11-14
 +++ b/contrib/python-zstandard/c-ext/backend_c.c
 @@ -316,3 +316,9 @@
 -    if ((*obj)->ob_refcnt == 1) {
-+#if PY_VERSION_HEX >= 0x030e0000
++#if defined(Py_GIL_DISABLED) && PY_VERSION_HEX >= 0x030e0000
 +    if (PyUnstable_Object_IsUniquelyReferenced(*obj)) {
          return _PyBytes_Resize(obj, size);
      }

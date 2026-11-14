@@ -306,7 +306,9 @@ class hgbuildmo(build):
 
 
 class hgdist(Distribution):
-    pure = False
+    # The C accelerators have not declared free-threading support. Use the
+    # existing portable backend instead of implicitly enabling the GIL.
+    pure = bool(sysconfig.get_config_var('Py_GIL_DISABLED'))
     rust = False
     no_rust = False
     cffi = ispypy

@@ -161,7 +161,8 @@ check http return codes
   transfer-encoding: chunked
   
   body: size=506, sha1=1bd1f8e8d3701704bd4385038bd9c09b81c77f4e (py38 no-py39 !)
-  body: size=503, sha1=2d8ce8bb3816603b9683a1804a5a02c11224cb01 (py39 !)
+  body: size=503, sha1=2d8ce8bb3816603b9683a1804a5a02c11224cb01 (py39 no-py315 !)
+  body: size=503, sha1=37fff6d86b8569f8be21fcdf937a8ec8463251ca (py315 !)
   % zip and tar.gz disallowed should both give 403
   403 Archive type not allowed
   content-type: text/html; charset=ascii
@@ -250,7 +251,8 @@ check http return codes (with deprecated option)
   transfer-encoding: chunked
   
   body: size=506, sha1=1bd1f8e8d3701704bd4385038bd9c09b81c77f4e (py38 no-py39 !)
-  body: size=503, sha1=2d8ce8bb3816603b9683a1804a5a02c11224cb01 (py39 !)
+  body: size=503, sha1=2d8ce8bb3816603b9683a1804a5a02c11224cb01 (py39 no-py315 !)
+  body: size=503, sha1=37fff6d86b8569f8be21fcdf937a8ec8463251ca (py315 !)
   % zip and tar.gz disallowed should both give 403
   403 Archive type not allowed
   content-type: text/html; charset=ascii

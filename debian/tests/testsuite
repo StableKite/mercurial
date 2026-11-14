@@ -2,4 +2,8 @@
 
 set -ex
 
-exec make tests TESTFLAGS="--verbose --timeout 1800 --with-hg=/usr/bin/hg --blacklist=$(pwd)/debian/mercurial.test_blacklist" PYTHON=python3
+pure=
+if python3 -c 'import sys, sysconfig; sys.exit(not sysconfig.get_config_var("Py_GIL_DISABLED"))'; then
+    pure=--pure
+fi
+exec make tests TESTFLAGS="$pure --verbose --timeout 1800 --with-hg=/usr/bin/hg --blacklist=$(pwd)/debian/mercurial.test_blacklist" PYTHON=python3
