@@ -312,10 +312,8 @@ size_t roundpow2(size_t i) {
  */
 int safe_pybytes_resize(PyObject **obj, Py_ssize_t size) {
     PyObject *tmp;
-    Py_ssize_t copy_size;
 
-    /* PyObject's refcount layout is different in free-threaded Python. */
-    if (Py_REFCNT(*obj) == 1) {
+    if ((*obj)->ob_refcnt == 1) {
         return _PyBytes_Resize(obj, size);
     }
 
@@ -324,15 +322,8 @@ int safe_pybytes_resize(PyObject **obj, Py_ssize_t size) {
         return -1;
     }
 
-    /* Shared bytes can shrink (including to the immortal empty bytes).
-     * Never copy beyond the newly allocated destination. */
-    copy_size = PyBytes_GET_SIZE(*obj);
-    if (copy_size > size) {
-        copy_size = size;
-    }
-    if (copy_size > 0) {
-        memcpy(PyBytes_AS_STRING(tmp), PyBytes_AS_STRING(*obj), copy_size);
-    }
+    memcpy(PyBytes_AS_STRING(tmp), PyBytes_AS_STRING(*obj),
+           PyBytes_GET_SIZE(*obj));
 
     Py_DECREF(*obj);
     *obj = tmp;
