@@ -2439,7 +2439,7 @@ Quiet upgrade and downgrade
   tracked-hint:                    no
   share-safe:                     yes
 
-#if unix-permissions
+#if unix-permissions no-root
 
 Attempting Auto-upgrade on a read-only repository
 -------------------------------------------------
